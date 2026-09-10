@@ -50,6 +50,28 @@
       "problemMatcher": []
     },
     {
+      // Starts the Adminer container (and Postgres as its dependency).
+      "label": "db: adminer",
+      "type": "npm",
+      "script": "db:adminer",
+      "problemMatcher": []
+    },
+    {
+      // One click from nothing to a table browser. The query string preselects
+      // the PostgreSQL driver and fills in server, user and database, so the
+      // login form only asks for the password (`tooltrack` locally).
+      //
+      // ns is the schema Adminer opens on. `public` is where it lands by
+      // default and it is empty here — swap it for `catalog` to arrive on the
+      // tool cards, or `account` for users and sessions.
+      "label": "open: adminer in browser",
+      "dependsOn": ["db: adminer"],
+      "type": "shell",
+      "command": "open 'http://localhost:8080/?pgsql=postgres&username=tooltrack&db=tooltrack&ns=public'",
+      "presentation": { "reveal": "never" },
+      "problemMatcher": []
+    },
+    {
       // Opens the running API in the default browser. The root path answers
       // 404 with the full route list, which is what you want to look at when
       // the question is "is it up, and what does it serve" — /api/version and

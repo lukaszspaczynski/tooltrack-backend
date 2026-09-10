@@ -5,6 +5,10 @@
     // Starting and reading the local Postgres container.
     "ms-azuretools.vscode-docker",
     // Runs the requests in docs/api.http against the dev server.
-    "humao.rest-client"
+    "humao.rest-client",
+    // Browsing the database from the sidebar, using the connection already
+    // configured in settings.json. Needs both: the extension and its driver.
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg"
   ]
 }

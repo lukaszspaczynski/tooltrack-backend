@@ -17,5 +17,27 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # Browsing the data by hand: Adminer is one PHP file with a table browser and
+  # a query box, the Postgres equivalent of reaching for phpMyAdmin.
+  #
+  # Behind the `tools` profile so it does not start with `npm run db:up` and
+  # does not sit on port 8080 when nobody is looking at it. Start it with
+  # `npm run db:adminer`, which also brings Postgres up as its dependency.
+  adminer:
+    image: adminer:5
+    profiles:
+      - tools
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+    environment:
+      # Prefills the Server field. It is the compose service name, not
+      # localhost: Adminer reaches Postgres across the compose network, where
+      # the port is the container's own 5432 rather than the 55433 published
+      # to the host.
+      ADMINER_DEFAULT_SERVER: postgres
+
 volumes:
   postgres_data:

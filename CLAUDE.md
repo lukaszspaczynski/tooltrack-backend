@@ -100,6 +100,10 @@ it parses.
 
 ## VS Code
 
+`npm run db:adminer` starts a table browser on http://localhost:8080 behind the
+`tools` compose profile; the SQLTools connection to the same database is in
+`.vscode/settings.json`. Both use the throwaway local credentials.
+
 `.vscode/` carries tasks (`typecheck`, `test`, `format`, `dev`, the `db:` ones
 and a `start local stack` chain) and launch configurations for the server, a
 single test file, the whole suite and a schema dry run. Editor behaviour

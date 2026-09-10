@@ -28,6 +28,24 @@
     "**/.local": true,
     "**/package-lock.json": true
   },
+  // The local database, ready to connect from the SQLTools sidebar. These are
+  // the throwaway credentials from docker-compose.yml, which is why the
+  // password can sit here — do not add a connection to anything real. Note
+  // that the tables live in the `account` and `catalog` schemas, not `public`.
+  "sqltools.connections": [
+    {
+      "name": "ToolTrack local",
+      "driver": "PostgreSQL",
+      "server": "127.0.0.1",
+      "port": 55433,
+      "database": "tooltrack",
+      "username": "tooltrack",
+      "password": "tooltrack",
+      "askForPassword": false,
+      "connectionTimeout": 15
+    }
+  ],
+
   "files.watcherExclude": {
     "**/node_modules/**": true,
     "**/dist/**": true,

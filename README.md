@@ -70,6 +70,35 @@ is the same as in the RN-App repo, so a save does the same thing in both. The
 code style itself is not: this project has no semicolons, and `.prettierrc.json`
 is the authority.
 
+## Looking at the data
+
+```bash
+npm run db:adminer   # http://localhost:8080, brings Postgres up with it
+```
+
+Adminer is a table browser and a query box — the Postgres equivalent of
+phpMyAdmin — and it sits behind a compose profile, so `npm run db:up` does not
+start it and nothing holds port 8080 when nobody is looking. In VS Code the
+`open: adminer in browser` task starts it and opens a URL that already has the
+driver, server, user and database filled in; the password is `tooltrack`.
+
+Two things to know: inside the compose network the server is `postgres:5432`,
+not `localhost:55433` (that port is only published to the host), and the
+tables are in the `account` and `catalog` schemas, not `public`.
+
+With the SQLTools extension the same database is one click in the sidebar —
+the connection is already in `.vscode/settings.json`. And when a shell is
+enough:
+
+```bash
+docker compose exec postgres psql -U tooltrack -d tooltrack
+# \dn                    schemas
+# \dt account.* catalog.*  tables
+# select * from catalog.tool;
+```
+
+`npm run db:down` stops everything, Adminer included.
+
 ## First admin
 
 Every registration is a viewer, so a fresh database has nobody who can promote

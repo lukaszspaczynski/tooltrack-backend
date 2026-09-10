@@ -6,7 +6,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "db:down": "docker compose down",
+    "db:adminer": "docker compose --profile tools up -d adminer",
+    "db:adminer:down": "docker compose --profile tools stop adminer",
+    "db:down": "docker compose --profile tools down",
     "db:up": "docker compose up -d postgres",
     "db:schema:apply": "tsx scripts/apply-db-schema.ts",
     "dev": "tsx watch src/server/index.ts",
