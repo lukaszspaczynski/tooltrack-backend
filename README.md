@@ -70,6 +70,32 @@ is the same as in the RN-App repo, so a save does the same thing in both. The
 code style itself is not: this project has no semicolons, and `.prettierrc.json`
 is the authority.
 
+## Photos
+
+Every tool can have several photos, one of them the main one. They arrive three
+ways — an upload from a phone, a pasted URL, or a pick from the web search
+behind `GET /api/tools/:id/photo-suggestions` — and all three end the same way:
+the bytes stored by this server, under `TOOLTRACK_MEDIA_DIR` (`.local/media` by
+default), named by their own checksum. A link is where a photo came from, not
+something the catalog keeps depending on.
+
+Uploads arrive as the raw file in the request body rather than as
+`multipart/form-data`, and the file's type is decided by reading its first
+bytes, not by trusting the header. See [docs/api.md](docs/api.md#photos).
+
+The search needs a provider. Unconfigured it uses **Openverse**, which needs no
+key and works immediately but indexes openly licensed photography and rations
+anonymous callers — good for "angle grinder", useless for "GWS 180-LI". For
+real product photos set `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_CX`
+(Google Custom Search, free tier 100 queries a day, image search enabled on the
+search engine). `TOOLTRACK_PHOTO_SEARCH=none` switches the feature off.
+
+Two things this deliberately does not do: it does not resize or re-encode
+anything (no image library, no native dependency — the cap is the size limit),
+and it does not check whether a photo from the web may be republished.
+`attribution` is stored when the provider states one; what may be done with a
+picture is a decision for the person ticking the box.
+
 ## Importing the Qbrick tool list
 
 The fifteen labelled Qbrick boxes from `~/Projects/Qbrick` are the first real

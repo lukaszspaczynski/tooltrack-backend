@@ -50,6 +50,16 @@ docs/
 - **Stores take a pool argument** defaulting to `db()`, so a test hands in a
   recording fake instead of reaching Postgres.
 
+## Photos
+
+`catalog.tool_photo` holds what a photo is; `src/server/photo-storage.ts` holds
+the bytes, in a directory keyed by checksum. Three modules exist because each
+answers a different question, and all three are pure enough to test:
+`image-metadata.ts` (what is this file, really — the upload gate),
+`image-fetch.ts` (may we fetch this URL — the SSRF gate), `photo-search.ts`
+(where do suggestions come from). Everything remote goes through the last two;
+nothing else in the server makes an outbound request.
+
 ## Adding a route
 
 1. Write the handler in `src/server/routes/`, and its SQL in the matching

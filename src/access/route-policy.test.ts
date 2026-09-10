@@ -84,6 +84,34 @@ test('a trailing slash is the same route', () => {
   assert.deepEqual(routeRequirement('/api/tools/', 'GET'), routeRequirement('/api/tools', 'GET'))
 })
 
+test('photo bytes are readable by anyone who may read the catalog', () => {
+  assert.equal(allows('/api/tools/42/photos', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/tools/42/photos/7/file', 'GET', user('viewer')), true)
+})
+
+test('adding, promoting and removing a photo needs tools.write', () => {
+  assert.equal(allows('/api/tools/42/photos', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/tools/42/photos', 'POST', user('editor')), true)
+  assert.equal(allows('/api/tools/42/photos/7', 'PATCH', user('viewer')), false)
+  assert.equal(allows('/api/tools/42/photos/7', 'PATCH', user('editor')), true)
+  assert.equal(allows('/api/tools/42/photos/7', 'DELETE', user('editor')), true)
+})
+
+test('searching the web for photos needs tools.write, not tools.read', () => {
+  // It costs an API call and only exists to add a photo. A viewer, who could
+  // not save the result, has no use for it.
+  assert.equal(allows('/api/tools/42/photo-suggestions', 'GET', user('viewer')), false)
+  assert.equal(allows('/api/tools/42/photo-suggestions', 'GET', user('editor')), true)
+  assert.equal(allows('/api/tools/42/photo-suggestions', 'GET', null), false)
+})
+
+test('a photo path with a non-numeric id is not classified', () => {
+  // The router only matches digits, so these can only arrive by hand. They
+  // fall through to the fail-closed default rather than to the tools rule.
+  assert.equal(routeRequirement('/api/tools/42/photos/abc', 'DELETE').check.kind, 'deny')
+  assert.equal(routeRequirement('/api/tools/abc/photos', 'POST').check.kind, 'deny')
+})
+
 test('the tools rule does not leak onto a longer path', () => {
   // /api/tools/:id is one segment. Anything deeper has to be classified on its
   // own before it can be reached.

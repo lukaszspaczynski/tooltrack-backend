@@ -15,10 +15,13 @@ import pg from 'pg'
 
 import { ACCOUNT_DDL } from '../src/server/account-schema'
 import { CATALOG_DDL } from '../src/server/catalog-schema'
+import { PHOTO_DDL } from '../src/server/photo-schema'
 
 const BATCHES = [
   { ddl: ACCOUNT_DDL, name: 'account' },
   { ddl: CATALOG_DDL, name: 'catalog' },
+  // After catalog: the photos hang off catalog.tool.
+  { ddl: PHOTO_DDL, name: 'photos' },
 ] as const
 
 type BatchName = (typeof BATCHES)[number]['name']

@@ -7,6 +7,7 @@
 // answer to a question the policy already answers.
 
 import type { RouteContext } from '../route-context'
+import { primaryPhotoIds, photoUrl } from './photos-store'
 import { parseToolCreate, parseToolPatch, parseToolQuery } from './tools-input'
 import {
   createTool,
@@ -24,7 +25,21 @@ export async function GET(request: Request): Promise<Response> {
 
   const page = await listTools(query.value)
 
-  return Response.json(page, { headers: { 'cache-control': 'no-store' } })
+  // The main photo of every tool on the page, in one query. The grid shows
+  // thumbnails, and asking per card would be twenty-four requests for one
+  // screen.
+  const primary = await primaryPhotoIds(page.items.map((tool) => tool.id))
+
+  return Response.json(
+    {
+      ...page,
+      items: page.items.map((tool) => ({
+        ...tool,
+        primaryPhotoUrl: primary.has(tool.id) ? photoUrl(tool.id, primary.get(tool.id)!) : null,
+      })),
+    },
+    { headers: { 'cache-control': 'no-store' } },
+  )
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {

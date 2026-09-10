@@ -18,6 +18,7 @@ import { readRequestBody, requestUrl } from './request-body-limit'
 import { enforceRoutePolicy } from './route-guard'
 import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
+import * as photos from './routes/photos'
 import * as tools from './routes/tools'
 import * as users from './routes/users'
 import * as version from './routes/version'
@@ -36,6 +37,10 @@ type RouteMatch = {
 const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
+const TOOL_PHOTOS_PATTERN = /^\/api\/tools\/(\d+)\/photos$/
+const TOOL_PHOTO_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)$/
+const TOOL_PHOTO_FILE_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/file$/
+const TOOL_SUGGESTIONS_PATTERN = /^\/api\/tools\/(\d+)\/photo-suggestions$/
 const USER_DETAIL_PATTERN = /^\/api\/users\/(\d+)$/
 
 // Every path the router answers. Also the body of the 404, because the most
@@ -54,6 +59,12 @@ const ROUTES = [
   'GET /api/tools/:id',
   'PATCH /api/tools/:id',
   'DELETE /api/tools/:id',
+  'GET /api/tools/:id/photos',
+  'POST /api/tools/:id/photos',
+  'GET /api/tools/:id/photos/:photoId/file',
+  'PATCH /api/tools/:id/photos/:photoId',
+  'DELETE /api/tools/:id/photos/:photoId',
+  'GET /api/tools/:id/photo-suggestions',
   'GET /api/users',
   'PATCH /api/users/:id',
   'DELETE /api/users/:id',
@@ -67,7 +78,7 @@ const server = createServer(async (req, res) => {
     // and for the Request the router matches, so the two can never disagree
     // about which path this is.
     const url = requestUrl(req, `localhost:${port}`)
-    const body = await readRequestBody(req)
+    const body = await readRequestBody(req, url.pathname)
     if (!body.ok) {
       await writeResponse(res, body.response)
       return
@@ -154,6 +165,35 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   // match the routing order anyway.
   if (path === '/api/tools/categories') return methodHandler(method, { GET: tools.categoriesGET })
   if (path === '/api/tools') return methodHandler(method, { GET: tools.GET, POST: tools.POST })
+
+  // Longest first: /photos/7/file must not be read as the photo detail route.
+  const photoFile = TOOL_PHOTO_FILE_PATTERN.exec(path)
+  if (photoFile) {
+    return methodHandler(
+      method,
+      { GET: photos.fileGET },
+      { id: photoFile[1], photoId: photoFile[2] },
+    )
+  }
+
+  const photoDetail = TOOL_PHOTO_PATTERN.exec(path)
+  if (photoDetail) {
+    return methodHandler(
+      method,
+      { DELETE: photos.detailDELETE, PATCH: photos.detailPATCH },
+      { id: photoDetail[1], photoId: photoDetail[2] },
+    )
+  }
+
+  const toolPhotos = TOOL_PHOTOS_PATTERN.exec(path)
+  if (toolPhotos) {
+    return methodHandler(method, { GET: photos.listGET, POST: photos.POST }, { id: toolPhotos[1] })
+  }
+
+  const suggestions = TOOL_SUGGESTIONS_PATTERN.exec(path)
+  if (suggestions) {
+    return methodHandler(method, { GET: photos.suggestionsGET }, { id: suggestions[1] })
+  }
 
   const toolDetail = TOOL_DETAIL_PATTERN.exec(path)
   if (toolDetail) {

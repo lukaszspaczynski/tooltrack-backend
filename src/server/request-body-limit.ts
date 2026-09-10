@@ -7,7 +7,14 @@
 
 import type { IncomingMessage } from 'node:http'
 
+import { maxPhotoBytes } from './image-fetch'
+
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024
+
+// Photo uploads arrive as the raw file in the body, so they cannot live under
+// the JSON cap. Which paths those are is decided here rather than in the route,
+// because the cap has to be applied while the bytes are still arriving.
+const PHOTO_UPLOAD_PATTERN = /^\/api\/tools\/\d+\/photos\/?$/
 
 export type BodyResult =
   { body: undefined | Uint8Array; ok: true } | { ok: false; response: Response }
@@ -27,10 +34,14 @@ export function requestUrl(req: IncomingMessage, fallbackHost: string): URL {
   return new URL(req.url ?? '/', `http://${host}`)
 }
 
-export async function readRequestBody(req: IncomingMessage): Promise<BodyResult> {
+export function bodyLimitFor(pathname: string): number {
+  return PHOTO_UPLOAD_PATTERN.test(pathname) ? maxPhotoBytes() : maxRequestBodyBytes()
+}
+
+export async function readRequestBody(req: IncomingMessage, pathname: string): Promise<BodyResult> {
   if (req.method === 'GET' || req.method === 'HEAD') return { body: undefined, ok: true }
 
-  const limit = maxRequestBodyBytes()
+  const limit = bodyLimitFor(pathname)
   const declared = Number(req.headers['content-length'] ?? '')
   if (Number.isFinite(declared) && declared > limit) return { ok: false, response: tooLarge(limit) }
 

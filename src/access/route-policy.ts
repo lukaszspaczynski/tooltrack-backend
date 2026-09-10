@@ -71,6 +71,30 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/[^/]+$/,
   },
   {
+    // The bytes of a photo. Readable by anyone who may read the catalog — the
+    // picture is part of the card.
+    domain: 'tools',
+    methods: { GET: READ_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/file$/,
+  },
+  {
+    domain: 'tools',
+    methods: { DELETE: WRITE_TOOLS, PATCH: WRITE_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photos\/\d+$/,
+  },
+  {
+    domain: 'tools',
+    methods: { GET: READ_TOOLS, POST: WRITE_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photos$/,
+  },
+  {
+    // Searching the web costs an API call and only exists to add a photo, so
+    // it asks for the capability to add one. A viewer has no use for it.
+    domain: 'tools',
+    methods: { GET: WRITE_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photo-suggestions$/,
+  },
+  {
     domain: 'users',
     methods: { GET: MANAGE_USERS },
     pattern: /^\/api\/users$/,
