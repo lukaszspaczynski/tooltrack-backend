@@ -50,6 +50,17 @@
       "problemMatcher": []
     },
     {
+      // Opens the running API in the default browser. The root path answers
+      // 404 with the full route list, which is what you want to look at when
+      // the question is "is it up, and what does it serve" — /api/version and
+      // /healthz are linked from there in docs/api.md.
+      "label": "open: status in browser",
+      "type": "shell",
+      "command": "open http://localhost:37411",
+      "presentation": { "reveal": "never" },
+      "problemMatcher": []
+    },
+    {
       // What a fresh checkout needs before anything works: database up, schema
       // applied, then the watching server.
       "label": "start local stack",

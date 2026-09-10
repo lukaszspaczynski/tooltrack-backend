@@ -59,6 +59,9 @@ extensions when prompted (Prettier, Docker, REST Client), then:
   need no database, so this works with the container stopped.
 - The `start local stack` task does `db: up`, `db: apply schema` and `dev` in
   order — what a fresh checkout needs.
+- `open: status in browser` opens the running API. The root path answers 404
+  with the route list, which is the quickest look at what is served;
+  `/api/version` and `/healthz` are the two endpoints worth bookmarking.
 - [`docs/api.http`](docs/api.http) is every endpoint as a clickable request.
   Log in once and the extension keeps the session cookie for the rest.
 
