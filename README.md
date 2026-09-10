@@ -70,6 +70,33 @@ is the same as in the RN-App repo, so a save does the same thing in both. The
 code style itself is not: this project has no semicolons, and `.prettierrc.json`
 is the authority.
 
+## Importing the Qbrick tool list
+
+The fifteen labelled Qbrick boxes from `~/Projects/Qbrick` are the first real
+content of this catalog. The list is frozen into
+`scripts/data/qbrick-tools.json` — taken from that project's `generuj.py` and
+`ZASADY-PROJEKTU.md`, not read from it live: it is a PDF label generator with
+its own release cycle, and a catalog import must not change because someone
+re-numbered a sticker.
+
+```bash
+npm run qbrick:import              # validate and report, writes nothing
+npm run qbrick:import -- --apply   # insert what is missing
+```
+
+One manifest entry is one physical tool, not one box: boxes 01 and 11 hold two
+tools, 14 and 15 hold three, so fifteen boxes import as twenty-one cards. The
+box number goes into the notes, because a card has no location field yet.
+
+Re-running it is safe. Nothing here has a serial number, so the importer
+dedupes on name, brand and model — what a person would read as the same card —
+and skips what is already there. It records the cards as created by the
+account named with `--actor`, or by the oldest active admin.
+
+Catalog and part numbers (`SR1E7615AB`, `0611910000`, `6-TRE650`) are kept in
+the notes rather than in the serial number field: they identify a model, not
+the individual machine, and that field is unique per tool.
+
 ## Looking at the data
 
 ```bash

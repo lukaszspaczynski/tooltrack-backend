@@ -1,0 +1,217 @@
+{
+  "source": "Projekt Qbrick (~/Projects/Qbrick): generuj.py -> SKRZYNKI/NAZWY oraz ZASADY-PROJEKTU.md, sekcja \"Numeracja i zawartość skrzynek\", wersja z 5 września 2026.",
+  "note": "Jeden wpis = jedno fizyczne narzędzie, nie jedna skrzynka. Skrzynki 01 i 11 mieszczą po dwa narzędzia, 14 i 15 po trzy. Numery katalogowe i handlowe trafiają do notatek, nie do numeru seryjnego: numer katalogowy opisuje model, a nie egzemplarz, i jest w ToolTrack unikalny.",
+  "generatedAt": "2026-09-10",
+  "tools": [
+    {
+      "box": "01",
+      "brand": "Bosch Professional",
+      "category": "Szlifierki",
+      "condition": "good",
+      "model": "GEX 185-LI",
+      "name": "Szlifierka mimośrodowa",
+      "notes": "Skrzynka 01 — Qbrick System PRO Toolbox 24 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "01",
+      "brand": "SKIL",
+      "category": "Szlifierki",
+      "condition": "good",
+      "model": "7615",
+      "name": "Szlifierka taśmowa",
+      "notes": "Skrzynka 01 — Qbrick System PRO Toolbox 24 cm. Sieciowa, taśma 75 mm, 710 W. Numer katalogowy SR1E7615AB (linia z 2020, Overload Alert, ramka Equalizer) — nie mylić z 1210 AA ani 1215 AA.",
+      "serialNumber": ""
+    },
+    {
+      "box": "02",
+      "brand": "Bosch Professional",
+      "category": "Struganie i frezowanie",
+      "condition": "good",
+      "model": "GHO 185-LI",
+      "name": "Strug akumulatorowy",
+      "notes": "Skrzynka 02 — Qbrick System PRO Toolbox 24 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "03",
+      "brand": "Bosch Home & Garden",
+      "category": "Piły",
+      "condition": "good",
+      "model": "UniversalCirc 18V-53",
+      "name": "Pilarka tarczowa",
+      "notes": "Skrzynka 03 — Qbrick System PRO Toolbox 24 cm. Linia zielona Universal / Home & Garden, nie Professional.",
+      "serialNumber": ""
+    },
+    {
+      "box": "04",
+      "brand": "Bosch Professional",
+      "category": "Wiercenie i kucie",
+      "condition": "good",
+      "model": "GBH 18V-26 F",
+      "name": "Młot udarowo-obrotowy SDS-plus",
+      "notes": "Skrzynka 04 — Qbrick System PRO Toolbox 24 cm. Egzemplarz w wersji F, numer katalogowy 0611910000, z wymiennym uchwytem szybkozaciskowym. Nie jest to 0611909000 (bez F).",
+      "serialNumber": ""
+    },
+    {
+      "box": "05",
+      "brand": "Bosch Professional",
+      "category": "Piły",
+      "condition": "good",
+      "model": "GST 185-LI",
+      "name": "Wyrzynarka",
+      "notes": "Skrzynka 05 — Qbrick System PRO Toolcase 12,6 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "06",
+      "brand": "Bosch Professional",
+      "category": "Narzędzia wielofunkcyjne",
+      "condition": "good",
+      "model": "GOP 185-LI",
+      "name": "Narzędzie wielofunkcyjne",
+      "notes": "Skrzynka 06 — Qbrick System PRO Toolcase 12,6 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "07",
+      "brand": "Bosch Professional",
+      "category": "Szlifierki",
+      "condition": "good",
+      "model": "GWS 180-LI",
+      "name": "Szlifierka kątowa",
+      "notes": "Skrzynka 07 — Qbrick System PRO Toolcase 12,6 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "08",
+      "brand": "Bosch Professional",
+      "category": "Piły",
+      "condition": "good",
+      "model": "GSA 18 V-LI C",
+      "name": "Piła szablasta",
+      "notes": "Skrzynka 08 — Qbrick System PRO Toolcase 12,6 cm. Numer katalogowy 0 6016A5080. Wersja z literą C — nie mylić z GSA 18 V-LI ani GSA 18V-24.",
+      "serialNumber": ""
+    },
+    {
+      "box": "09",
+      "brand": "Bosch Home & Garden",
+      "category": "Zszywacze i gwoździarki",
+      "condition": "good",
+      "model": "UniversalTacker 18V-14",
+      "name": "Zszywacz akumulatorowy",
+      "notes": "Skrzynka 09 — Qbrick System PRO Toolcase 12,6 cm. Linia zielona.",
+      "serialNumber": ""
+    },
+    {
+      "box": "10",
+      "brand": "STANLEY",
+      "category": "Zszywacze i gwoździarki",
+      "condition": "good",
+      "model": "TRE650",
+      "name": "Gwoździarka / zszywacz sieciowy",
+      "notes": "Skrzynka 10 — Qbrick System PRO Toolcase 12,6 cm. Oznaczenie handlowe 6-TRE650.",
+      "serialNumber": ""
+    },
+    {
+      "box": "11",
+      "brand": "Bosch Professional",
+      "category": "Osprzęt",
+      "condition": "good",
+      "model": "GDE 18V-16",
+      "name": "System odsysania pyłu SDS-plus",
+      "notes": "Skrzynka 11 — Qbrick System PRO Toolcase 12,6 cm. Moduł dopinany do młota od dołu, z mieszkiem i pojemnikiem na pył. Nie mylić z sieciowym GDE 16 Plus.",
+      "serialNumber": ""
+    },
+    {
+      "box": "11",
+      "brand": "Bosch Home & Garden",
+      "category": "Pomiary",
+      "condition": "good",
+      "model": "PDO 6",
+      "name": "Detektor",
+      "notes": "Skrzynka 11 — Qbrick System PRO Toolcase 12,6 cm. Wykrywa metal, przewody pod napięciem i profile drewniane. Linia zielona Home & Garden.",
+      "serialNumber": ""
+    },
+    {
+      "box": "12",
+      "brand": "Bosch Professional",
+      "category": "Wiercenie i kucie",
+      "condition": "good",
+      "model": "GSR 185-LI",
+      "name": "Wiertarko-wkrętarka",
+      "notes": "Skrzynka 12 — Qbrick System PRO Toolcase 12,6 cm. Silnik bezszczotkowy. Wersja GSR, bez udaru — nie mylić z GSB 185-LI.",
+      "serialNumber": ""
+    },
+    {
+      "box": "13",
+      "brand": "PARKSIDE",
+      "category": "Struganie i frezowanie",
+      "condition": "good",
+      "model": "POF 1200 F5",
+      "name": "Frezarka górnowrzecionowa",
+      "notes": "Skrzynka 13 — Qbrick System PRO Toolbox 24 cm. Sieciowa, 1200 W.",
+      "serialNumber": ""
+    },
+    {
+      "box": "14",
+      "brand": "Bosch Home & Garden",
+      "category": "Pomiary",
+      "condition": "good",
+      "model": "EasyDistance 20",
+      "name": "Dalmierz laserowy",
+      "notes": "Skrzynka 14 — Qbrick System PRO Toolcase 12,6 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "14",
+      "brand": "Bosch Home & Garden",
+      "category": "Pomiary",
+      "condition": "good",
+      "model": "UniversalLevel 360",
+      "name": "Poziomnica laserowa 360°",
+      "notes": "Skrzynka 14 — Qbrick System PRO Toolcase 12,6 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "14",
+      "brand": "Dexter",
+      "category": "Pomiary",
+      "condition": "good",
+      "model": "360",
+      "name": "Poziomnica laserowa 360°",
+      "notes": "Skrzynka 14 — Qbrick System PRO Toolcase 12,6 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "15",
+      "brand": "Bosch Home & Garden",
+      "category": "Akumulatory",
+      "condition": "good",
+      "model": "PBA 18V 4,0 Ah W-C",
+      "name": "Akumulator 18 V 4,0 Ah",
+      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm. Linia Power for All. Tabliczka: 18V 4.0Ah W-C, Li-Ion 5INR19/66-2, 72 Wh.",
+      "serialNumber": ""
+    },
+    {
+      "box": "15",
+      "brand": "Bosch Professional",
+      "category": "Akumulatory",
+      "condition": "good",
+      "model": "ProCORE18V 4,0 Ah",
+      "name": "Akumulator 18 V 4,0 Ah",
+      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm.",
+      "serialNumber": ""
+    },
+    {
+      "box": "15",
+      "brand": "Bosch Professional",
+      "category": "Akumulatory",
+      "condition": "good",
+      "model": "",
+      "name": "Akumulator 12 V",
+      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm. Starsza obudowa z napisem „powered by Li-Ion technology\". Pojemność niepotwierdzona — brak czytelnej tabliczki. Jedyny pakiet inny niż 18 V.",
+      "serialNumber": ""
+    }
+  ]
+}
