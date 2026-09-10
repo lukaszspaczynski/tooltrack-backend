@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      # Deliberately not 5432: a developer machine usually already has one, and
+      # the whole point of this container is to be the throwaway one.
+      - '55433:5432'
+    environment:
+      POSTGRES_DB: tooltrack
+      POSTGRES_USER: tooltrack
+      POSTGRES_PASSWORD: tooltrack
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tooltrack -d tooltrack']
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

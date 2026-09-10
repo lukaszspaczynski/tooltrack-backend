@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Cmd+Shift+B. The $tsc matcher puts the errors in the Problems panel.
+      "label": "typecheck",
+      "type": "npm",
+      "script": "typecheck",
+      "problemMatcher": ["$tsc"],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "test",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      "label": "format",
+      "type": "npm",
+      "script": "format",
+      "problemMatcher": []
+    },
+    {
+      // Watch mode: restarts the server on every save. Debugging is the
+      // "API: debug server" launch configuration instead.
+      "label": "dev",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "db: up",
+      "type": "npm",
+      "script": "db:up",
+      "problemMatcher": []
+    },
+    {
+      "label": "db: apply schema",
+      "type": "npm",
+      "script": "db:schema:apply",
+      "problemMatcher": []
+    },
+    {
+      "label": "db: down",
+      "type": "npm",
+      "script": "db:down",
+      "problemMatcher": []
+    },
+    {
+      // What a fresh checkout needs before anything works: database up, schema
+      // applied, then the watching server.
+      "label": "start local stack",
+      "dependsOrder": "sequence",
+      "dependsOn": ["db: up", "db: apply schema", "dev"],
+      "problemMatcher": []
+    }
+  ]
+}

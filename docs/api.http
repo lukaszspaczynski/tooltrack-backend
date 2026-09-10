@@ -1,0 +1,99 @@
+# ToolTrack API — requests you can run from VS Code.
+#
+# Needs the REST Client extension (humao.rest-client, recommended in
+# .vscode/extensions.json): each request gets a "Send Request" link above it.
+# The extension keeps cookies between requests, so run the login once and every
+# call below it is authenticated as that account.
+#
+# Start the server first: `npm run db:up && npm run db:schema:apply && npm run dev`.
+
+@host = http://localhost:37411
+
+### Liveness. Never touches Postgres.
+GET {{host}}/healthz
+
+### What is running.
+GET {{host}}/api/version
+
+### Register. Always creates a viewer, whatever this asks for.
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "ola@example.com",
+  "password": "sekret1234",
+  "displayName": "Ola"
+}
+
+### Log in. The session cookie is kept by the extension from here on.
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "ola@example.com",
+  "password": "sekret1234"
+}
+
+### Who am I, and what may I do? Render menus from `capabilities`.
+GET {{host}}/api/auth/me
+
+### The catalog.
+GET {{host}}/api/tools
+
+### Search, filter and sort. An unknown condition is a 400; a broken limit is ignored.
+GET {{host}}/api/tools?q=makita&condition=needs_repair&sort=name&order=asc&limit=20
+
+### The categories to offer in a filter, derived from the tools themselves.
+GET {{host}}/api/tools/categories
+
+### Add a tool. Needs tools.write, so a viewer gets 403 here.
+POST {{host}}/api/tools
+Content-Type: application/json
+
+{
+  "name": "Młotowiertarka SDS",
+  "category": "Wiertarki",
+  "brand": "Makita",
+  "model": "HR2470",
+  "serialNumber": "12345-AB",
+  "condition": "needs_repair",
+  "notes": "Szczotki do wymiany"
+}
+
+### One card.
+GET {{host}}/api/tools/1
+
+### Edit. Send only what changes; "" clears a field, omitting it leaves it alone.
+PATCH {{host}}/api/tools/1
+Content-Type: application/json
+
+{
+  "condition": "good",
+  "notes": ""
+}
+
+### Delete.
+DELETE {{host}}/api/tools/1
+
+### Users. Needs users.manage, so only an admin gets past this.
+GET {{host}}/api/users
+
+### Promote someone to editor. You cannot change your own role.
+PATCH {{host}}/api/users/2
+Content-Type: application/json
+
+{
+  "role": "editor"
+}
+
+### Change your own password. Ends every session, this one included.
+PATCH {{host}}/api/auth/password
+Content-Type: application/json
+
+{
+  "currentPassword": "sekret1234",
+  "newPassword": "inne-haslo-9"
+}
+
+### Log out.
+POST {{host}}/api/auth/logout

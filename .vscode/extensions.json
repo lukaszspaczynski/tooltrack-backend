@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    // Formatting on save, as configured in settings.json.
+    "esbenp.prettier-vscode",
+    // Starting and reading the local Postgres container.
+    "ms-azuretools.vscode-docker",
+    // Runs the requests in docs/api.http against the dev server.
+    "humao.rest-client"
+  ]
+}

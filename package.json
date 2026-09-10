@@ -1,0 +1,35 @@
+{
+  "name": "tooltrack-backend",
+  "version": "0.1.0",
+  "description": "ToolTrack Node API for the construction tool catalog, backed by raw Postgres schemas.",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:down": "docker compose down",
+    "db:up": "docker compose up -d postgres",
+    "db:schema:apply": "tsx scripts/apply-db-schema.ts",
+    "dev": "tsx watch src/server/index.ts",
+    "dev:debug": "tsx watch --inspect src/server/index.ts",
+    "format": "prettier --write .",
+    "lint": "npm run typecheck",
+    "start": "tsx src/server/index.ts",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit --pretty false",
+    "user:admin": "tsx scripts/ensure-admin-user.ts"
+  },
+  "dependencies": {
+    "dotenv": "16.4.7",
+    "pg": "8.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.9",
+    "@types/pg": "8.20.0",
+    "prettier": "^3.4.2",
+    "tsx": "4.21.0",
+    "typescript": "5.7.3"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  // Editor behaviour is kept the same as RN-App, so switching between the two
+  // repos does not change what a save does. What is not carried over is the
+  // ESLint half of it: this project has no ESLint (`npm run lint` is the type
+  // check), and a fixAll.eslint action with no ESLint configured makes every
+  // save wait for an extension that will never answer.
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+
+  // The workspace TypeScript, not the one bundled with VS Code: the type
+  // errors in the editor then match `npm run typecheck` exactly.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  // Imports are extensionless (moduleResolution: bundler, run through tsx), so
+  // auto-import has to write them that way too.
+  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.local": true,
+    "**/package-lock.json": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.local/**": true
+  }
+}

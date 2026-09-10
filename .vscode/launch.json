@@ -1,0 +1,64 @@
+{
+  // The API runs TypeScript directly through tsx, in the editor exactly as in
+  // the container, so there is no build step to debug through and breakpoints
+  // sit in the .ts files themselves.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5: starts the server with the debugger attached. No watch mode — a
+      // restart on every save detaches breakpoints; use the `dev` task for
+      // watching and this for stopping on a line.
+      "name": "API: debug server",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/server/index.ts",
+      "runtimeArgs": ["--import", "tsx"],
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      // Attach to a server already started with `npm run dev:debug`, which is
+      // the same watch mode as `npm run dev` with an inspector port open.
+      "name": "API: attach to dev server",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      // Debugs the test file in the active editor. The tests take their pool
+      // as an argument and hand in a fake, so this needs no database.
+      "name": "Tests: debug current file",
+      "type": "node",
+      "request": "launch",
+      "program": "${file}",
+      "runtimeArgs": ["--import", "tsx", "--test"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      "name": "Tests: debug all",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "test"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    },
+    {
+      // Applies the DDL with the debugger attached. Reaches a real database,
+      // so read the DATABASE_URL in .env before running it.
+      "name": "Schema: apply (dry run)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/apply-db-schema.ts",
+      "args": ["--dry-run"],
+      "runtimeArgs": ["--import", "tsx"],
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"]
+    }
+  ]
+}
