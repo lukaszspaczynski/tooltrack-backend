@@ -53,15 +53,28 @@ import {
 } from './photo-owner'
 import {
   attachPhotosTo,
-  deletePhoto,
-  getPhoto,
+  getCardPhoto,
   insertPhoto,
+  linkPhoto,
   listPhotos,
   PhotoAlreadyExistsError,
   setPrimaryPhoto,
-  type Photo,
+  unlinkPhoto,
+  type CardPhoto,
 } from './photos-store'
 import { getTool } from './tools-store'
+
+// Write the picture, then put it on this card. Two steps because they are two
+// facts — the same photograph can already be on our disk from another card,
+// and then only the second one is new.
+async function addToCard(
+  owner: PhotoOwner,
+  input: Parameters<typeof insertPhoto>[0],
+  actorId: number,
+): Promise<CardPhoto> {
+  const photo = await insertPhoto(input, actorId)
+  return linkPhoto(owner, photo.id, actorId)
+}
 
 // How many links one request may import. Larger than a single engine's ten,
 // because with several engines enabled the suggestion grid holds more than one
@@ -131,8 +144,9 @@ async function uploadBytes(
 
   try {
     const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
-    const photo = await insertPhoto(
-      { metadata: converted.metadata, owner, source: 'upload', stored },
+    const photo = await addToCard(
+      owner,
+      { metadata: converted.metadata, source: 'upload', stored },
       actorId,
     )
 
@@ -163,7 +177,7 @@ async function importLinks(
     return Response.json({ error: `Maksymalnie ${MAX_IMPORT_ITEMS} zdjęć naraz` }, { status: 400 })
   }
 
-  const photos: Photo[] = []
+  const photos: CardPhoto[] = []
   const failed: { error: string; url: string }[] = []
 
   for (const item of items) {
@@ -175,11 +189,11 @@ async function importLinks(
       const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
 
       photos.push(
-        await insertPhoto(
+        await addToCard(
+          owner,
           {
             attribution: item.attribution,
             metadata: converted.metadata,
-            owner,
             // A link someone pasted and a link someone ticked in the search
             // results are different provenance, and the card says which.
             source: item.fromSearch ? 'search' : 'url',
@@ -233,7 +247,7 @@ export async function cutoutPreviewPOST(
   const parsed = parseCutoutRunInput(await readJson(request))
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
 
-  const original = await getPhoto(target.owner, target.photoId)
+  const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
   const bytes = await readPhotoBytes(original.storageKey)
@@ -303,7 +317,7 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   const parsed = parseCutoutCommitInput(await readJson(request))
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
 
-  const original = await getPhoto(target.owner, target.photoId)
+  const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
   const preview = await readPreviewBytes(parsed.value.checksum)
@@ -322,12 +336,12 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
     // the client's idea of what it accepted — does not change.
     const stored = await savePhotoBytes(preview.bytes, metadata.contentType)
 
-    const photo = await insertPhoto(
+    const photo = await addToCard(
+      target.owner,
       {
         attribution: original.attribution,
         derivedFrom: original.id,
         metadata,
-        owner: target.owner,
         source: 'edit',
         sourceUrl: original.sourceUrl,
         stored,
@@ -358,7 +372,7 @@ export async function cutoutPOST(_request: Request, context: RouteContext): Prom
   const actorId = context.user?.id
   if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const original = await getPhoto(target.owner, target.photoId)
+  const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
   const bytes = await readPhotoBytes(original.storageKey)
@@ -372,12 +386,12 @@ export async function cutoutPOST(_request: Request, context: RouteContext): Prom
     const png = await toStoredPng(cutout.bytes)
     const stored = await savePhotoBytes(png.bytes, png.metadata.contentType)
 
-    const photo = await insertPhoto(
+    const photo = await addToCard(
+      target.owner,
       {
         attribution: original.attribution,
         derivedFrom: original.id,
         metadata: png.metadata,
-        owner: target.owner,
         source: 'edit',
         sourceUrl: original.sourceUrl,
         stored,
@@ -425,7 +439,7 @@ export async function fileGET(_request: Request, context: RouteContext): Promise
   const target = parsePhotoTarget(context)
   if (!target) return photoNotFound()
 
-  const photo = await getPhoto(target.owner, target.photoId)
+  const photo = await getCardPhoto(target.owner, target.photoId)
   if (!photo) return photoNotFound()
 
   const bytes = await readPhotoBytes(photo.storageKey)
@@ -466,7 +480,8 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   const target = parsePhotoTarget(context)
   if (!target) return photoNotFound()
 
-  const deleted = await deletePhoto(target.owner, target.photoId)
+  // Off this card, and off the disk if no other card shows it.
+  const deleted = await unlinkPhoto(target.owner, target.photoId)
   if (!deleted) return photoNotFound()
 
   return Response.json({ ok: true })

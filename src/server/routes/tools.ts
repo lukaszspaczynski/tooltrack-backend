@@ -7,7 +7,7 @@
 // answer to a question the policy already answers.
 
 import type { RouteContext } from '../route-context'
-import { primaryPhotoIds, photoUrl } from './photos-store'
+import { dropOrphanedPhotos, photoIdsOf, photoUrl, primaryPhotoIds } from './photos-store'
 import { parseToolCreate, parseToolPatch, parseToolQuery } from './tools-input'
 import {
   createTool,
@@ -102,11 +102,19 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
+  // Read before the delete: once the tool is gone its links have cascaded away
+  // and there is nothing left to say which pictures were its.
+  const photoIds = await photoIdsOf({ id, kind: 'tool' })
+
   const deleted = await deleteTool(id)
   // Deleting a card that is already gone is the outcome the caller wanted, but
   // it is still worth saying which of the two happened: two people clearing
   // the same row from two phones should not both be told they did it.
   if (!deleted) return notFound()
+
+  // The pictures no other card shows go with it. One that another card still
+  // uses stays, which is the whole point of the links.
+  await dropOrphanedPhotos(photoIds)
 
   return Response.json({ ok: true })
 }

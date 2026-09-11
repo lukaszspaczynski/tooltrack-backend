@@ -89,37 +89,56 @@ is unique — the opposite of `tool.serial_number`, which is one machine.
 
 ### `catalog.photo`
 
-Photos of tools and of cases. The bytes are not here: the row says what the
-file is and which storage key holds it, and `src/server/photo-storage.ts` owns
-the file. A database that also carried a few hundred megabytes of PNG is a
-database nobody wants to back up.
+One row per picture. The bytes are not here: the row says what the file is and
+which storage key holds it, and `src/server/photo-storage.ts` owns the file. A
+database that also carried a few hundred megabytes of PNG is a database nobody
+wants to back up.
 
-| Column                      | Type                           | Notes                                      |
-| --------------------------- | ------------------------------ | ------------------------------------------ |
-| `id`                        | `bigint` identity              |                                            |
-| `tool_id`                   | `bigint` → `catalog.tool`      | `ON DELETE CASCADE`, NULL if not a tool's  |
-| `case_id`                   | `bigint` → `catalog.tool_case` | `ON DELETE CASCADE`, NULL if not a case's  |
-| `storage_key`, `checksum`   | `text`                         | Content addressed: same image, one file    |
-| `content_type`              | `text`                         | Always `image/png` since the PNG-only rule |
-| `byte_size`                 | `bigint`                       |                                            |
-| `width`, `height`           | `integer`                      |                                            |
-| `source`                    | `text`                         | `upload` \| `url` \| `search` \| `edit`    |
-| `source_url`, `attribution` | `text`                         | Where it came from, and whose it is        |
-| `is_primary`                | `boolean`                      | One per card, by partial unique index      |
-| `derived_from`              | `bigint` → `catalog.photo`     | The original a cutout was made from        |
-| `created_by`, `created_at`  |                                |                                            |
+| Column                      | Type                       | Notes                                       |
+| --------------------------- | -------------------------- | ------------------------------------------- |
+| `id`                        | `bigint` identity          |                                             |
+| `storage_key`, `checksum`   | `text`                     | Content addressed; `checksum` is **unique** |
+| `content_type`              | `text`                     | Always `image/png` since the PNG-only rule  |
+| `byte_size`                 | `bigint`                   |                                             |
+| `width`, `height`           | `integer`                  |                                             |
+| `source`                    | `text`                     | `upload` \| `url` \| `search` \| `edit`     |
+| `source_url`, `attribution` | `text`                     | Where it came from, and whose it is         |
+| `derived_from`              | `bigint` → `catalog.photo` | The picture a cutout was made from          |
+| `created_by`, `created_at`  |                            |                                             |
 
-Two owner columns rather than an `owner_kind`/`owner_id` pair, because a real
-foreign key is what makes deleting a case take its photos with it. A CHECK
-allows at most one of them to be set, and a second CHECK stops a row with
-neither from claiming to be a main photo of nothing.
+The unique checksum is what makes the same bytes arriving twice — a re-import,
+the same address pasted again — one row and one file rather than a conflict
+every caller has to handle.
 
-Three unique indexes carry the rules a route would otherwise have to remember:
-one primary per tool, one per case, and the same checksum only once per card.
-A fourth covers photos with no owner at all — in an index two NULLs are
-different values, so without it the same picture could sit in the library a
-hundred times.
+Nothing here says which card shows the picture. That is a different fact, and
+it has its own tables.
 
-The table was called `tool_photo` when tools were the only thing with a
-picture. The DDL renames it, idempotently, rather than creating a second table:
-a case photo is the same row with a different owner.
+### `catalog.photo_tool` and `catalog.photo_case`
+
+Which cards show which pictures.
+
+| Column                     | Type                       | Notes                                  |
+| -------------------------- | -------------------------- | -------------------------------------- |
+| `tool_id` / `case_id`      | `bigint` → the card        | `ON DELETE CASCADE`                    |
+| `photo_id`                 | `bigint` → `catalog.photo` | `ON DELETE CASCADE`                    |
+| `is_primary`               | `boolean`                  | One per card, by partial unique index  |
+| `created_by`, `created_at` |                            | When this picture was put on this card |
+
+The primary key is the pair, so a picture cannot be attached to one card twice
+— the rule the old per-card checksum index carried. Being the main photo is a
+property of the pairing: the same photograph can head one card and sit fourth
+on another, which a flag on the picture could not express.
+
+Two tables rather than one polymorphic `(owner_kind, owner_id)`, because a real
+foreign key is what makes deleting a case take its links with it. The cost is
+one table per kind of card; the alternative costs every query a discriminator
+and gives up referential integrity.
+
+Photos of a card are read by joining these, ordered by `is_primary` first and
+then by when each picture was attached — which is per card, and therefore not
+something the pictures themselves could carry.
+
+Earlier shapes of this table are migrated in place, idempotently: `tool_photo`
+is renamed to `photo`, the owner columns are read into the link tables, rows
+sharing a checksum are merged into the oldest of each group (with the links and
+any `derived_from` repointed at it), and the columns are then dropped.

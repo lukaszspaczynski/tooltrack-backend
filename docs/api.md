@@ -16,11 +16,11 @@ handler runs. Two refusals are possible and they mean different things:
 
 ## Roles
 
-| Capability                                     | viewer | editor | admin |
-| ---------------------------------------------- | :----: | :----: | :---: |
-| `catalog.read` — browse and search the catalog |   ●    |   ●    |   ●   |
-| `catalog.write` — add, edit, delete tools, cases and photos      |        |   ●    |   ●   |
-| `users.manage` — list users, change roles      |        |        |   ●   |
+| Capability                                                  | viewer | editor | admin |
+| ----------------------------------------------------------- | :----: | :----: | :---: |
+| `catalog.read` — browse and search the catalog              |   ●    |   ●    |   ●   |
+| `catalog.write` — add, edit, delete tools, cases and photos |        |   ●    |   ●   |
+| `users.manage` — list users, change roles                   |        |        |   ●   |
 
 New accounts are always `viewer`.
 
@@ -226,9 +226,9 @@ the difference from a tool's serial number, which is one machine.
 
 ## Photos
 
-A tool has any number of photos and at most one **main** photo — the one the
-catalog grid shows. The first photo added becomes the main one automatically,
-and deleting the main one promotes the oldest remaining.
+A card has any number of photos and at most one **main** photo — the one the
+grid shows. The first photo added becomes the main one automatically, and
+removing the main one promotes the oldest remaining attachment.
 
 The bytes are always stored by this server. A URL or a search result is a
 source, not a link the catalog keeps depending on: a page that disappears next
@@ -236,8 +236,14 @@ year must not empty the shed.
 
 Everything in this section exists twice, under `/api/tools/:id/…` and under
 `/api/cases/:id/…`. They are the same routes, served by the same handler, and
-the only difference is which column the photo's owner lands in. `:id` below
-means either.
+the only difference is which link table the pairing lands in. `:id` below means
+either.
+
+A **picture** and **a card showing a picture** are two different things. The
+photo object is the picture: it has no owner and no `isPrimary`, because the
+same photograph can illustrate several tools, several cases, and a tool
+together with the case it lives in. The per-card routes add `isPrimary`, which
+belongs to the pairing.
 
 ### `GET /api/{tools,cases}/:id/photos` — `catalog.read`
 
@@ -245,9 +251,11 @@ means either.
 { "photos": [{ "id": 3, "url": "/api/tools/7/photos/3/file", "isPrimary": true }] }
 ```
 
-Main photo first, then oldest to newest. Each entry carries `contentType`,
-`byteSize`, `width`, `height`, `source` (`upload` \| `url` \| `search`),
-`sourceUrl`, `attribution`, `createdBy` and `createdAt`.
+Main photo first, then in the order the pictures were attached to **this**
+card. Each entry carries `isPrimary` and the picture's own `contentType`,
+`byteSize`, `width`, `height`, `source` (`upload` \| `url` \| `search` \|
+`edit`), `sourceUrl`, `attribution`, `derivedFrom`, `createdBy` and
+`createdAt`.
 
 ### `POST /api/{tools,cases}/:id/photos` — `catalog.write`
 
@@ -322,8 +330,12 @@ The only edit a photo has. Everything else about it is a fact about the file.
 
 ### `DELETE /api/{tools,cases}/:id/photos/:photoId` — `catalog.write`
 
-`200 { "ok": true }`. The file itself is removed once no other card uses it —
-identical images share one file on disk.
+`200 { "ok": true }`. Takes the picture off **this** card. If no other card
+shows it, the picture and its file go too — a bin on a card has to mean the
+photograph is gone, not that it moved to a library nobody asked to fill.
+
+Deleting a whole tool or case does the same for everything it showed: its
+pairings go with it, and the pictures no other card uses go with those.
 
 ### `POST /api/{tools,cases}/:id/photos/:photoId/cutout` — `catalog.write`
 
@@ -583,12 +595,11 @@ a batch that pulled in the wrong pictures.
   "items": [
     {
       "id": 5,
-      "toolId": 9,
-      "caseId": null,
-      "ownerKind": "tool",
-      "ownerName": "Szlifierka kątowa",
-      "isPrimary": true,
-      "url": "…"
+      "url": "…",
+      "owners": [
+        { "kind": "tool", "id": 9, "name": "Szlifierka kątowa", "isPrimary": true },
+        { "kind": "case", "id": 2, "name": "Toolbox 2.0", "isPrimary": false }
+      ]
     }
   ],
   "total": 128,
@@ -597,22 +608,27 @@ a batch that pulled in the wrong pictures.
 }
 ```
 
-Each entry is the photo record from the per-card routes plus `ownerKind`
-(`"tool"`, `"case"` or `null`) and `ownerName`, which is empty for a photo
-nobody has placed yet. Such a photo has `toolId` and `caseId` both `null`, and
-is reached through `url` — `/api/photos/:id/file` — because there is no card to
-reach it through.
+Each entry is the picture plus `owners`: every card showing it, as
+`{ kind, id, name, isPrimary }`. The array is empty for a picture nobody has
+placed yet, which is reached through `url` — `/api/photos/:id/file` — because
+there is no card to reach it through.
+
+A picture appears **once** here however many cards use it. That is the
+difference from the per-card routes: this screen is about what is on our disk,
+and one photograph is one thing on the disk.
 
 ### `POST /api/photos` — `catalog.write`
 
 An upload that belongs to nothing. The raw file as the body, like the per-card
-upload, converted to PNG the same way. `201 { photo }` with `toolId` and
-`caseId` both `null`.
+upload, converted to PNG the same way. `201 { photo }` with no `owners`.
 
 Pictures arrive before anyone decides what they are: a batch off a phone at the
 end of a day, something found while looking for something else. Forcing a card
-at that moment is how photos end up on the wrong one. `409` if that exact
-picture is already waiting in the library.
+at that moment is how photos end up on the wrong one.
+
+Bytes already on the server answer with the picture that is there rather than a
+409: it is the same photograph, and refusing would only make the client ask what
+to do about a fact nobody can change.
 
 ### `GET /api/photos/:id/file` — `catalog.read`
 

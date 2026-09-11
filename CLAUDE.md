@@ -72,13 +72,30 @@ answers a different question, and all three are pure enough to test:
 (where do suggestions come from) and `photo-edit.ts` (the AI cutout). Every
 outbound request in the server goes through one of those three.
 
-A photo belongs to a tool, to a case, or to nothing yet. Two nullable columns
-with real foreign keys rather than an owner_kind/owner_id pair: deleting a case
-takes its photos with it without a line of application code. Every photo route
-and every function in `photos-store.ts` takes a `PhotoOwner`, and
-`routes/photo-owner.ts` is the only place a URL segment becomes a column name —
-the same fixed-map trick as `SORT_COLUMNS`. That is why there is one set of
-photo handlers and not two.
+A `catalog.photo` row is one **picture**, once — `checksum` is unique. Which
+cards show it lives in `photo_tool` and `photo_case`, because the same
+photograph legitimately illustrates several tools, several cases, and a tool
+together with the case it lives in. Carrying the owner on the photo row would
+mean a row per card, and with it a copy of the attribution, the source and the
+cutout lineage, which then drift apart.
+
+Two link tables rather than one polymorphic `(owner_kind, owner_id)`: the
+foreign keys are real, so deleting a card takes its links with it. Being the
+**main** photo lives on the link, not on the picture — the same photograph can
+head one card and sit fourth on another.
+
+Every photo route and every function in `photos-store.ts` takes a `PhotoOwner`,
+and `routes/photo-owner.ts` is the only place a URL segment becomes a table or
+column name — the same fixed-map trick as `SORT_COLUMNS`. That is why there is
+one set of photo handlers and not two.
+
+Two consequences worth knowing before changing the delete paths. Taking a
+picture off a card removes the link and then deletes the picture **if no other
+card shows it**, because a bin on a card has to mean the photograph is gone
+rather than that it moved to a library nobody asked to fill. Deleting a whole
+tool or case does the same through `dropOrphanedPhotos`, which is application
+code on purpose: a foreign key cannot say "delete the parent when its last
+child goes".
 
 Previews live in their own directory with a TTL (`photo-storage.ts`), apart
 from the photos on purpose: a directory nothing in the catalog points at can be

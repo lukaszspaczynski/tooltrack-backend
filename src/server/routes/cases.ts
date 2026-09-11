@@ -12,7 +12,7 @@
 import { parseCaseCreate, parseCasePatch, parseCaseQuery } from './cases-input'
 import { createCase, deleteCase, getCase, listCases, listSystems, updateCase } from './cases-store'
 import { parseOwnerId } from './photo-owner'
-import { photoUrl, primaryPhotoIds } from './photos-store'
+import { dropOrphanedPhotos, photoIdsOf, photoUrl, primaryPhotoIds } from './photos-store'
 import type { RouteContext } from '../route-context'
 
 export async function GET(request: Request): Promise<Response> {
@@ -83,10 +83,16 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   const id = parseOwnerId(context.params.id)
   if (id === null) return notFound()
 
-  // The photos go with it: the foreign key cascades, which is the whole reason
-  // a photo points at a case with a real column rather than a loose id.
+  // Read before the delete: once the case is gone its links have cascaded away
+  // and there is nothing left to say which pictures were its.
+  const photoIds = await photoIdsOf({ id, kind: 'case' })
+
   const deleted = await deleteCase(id)
   if (!deleted) return notFound()
+
+  // The pictures no other card shows go with it. One that a tool inside the
+  // case also uses stays, which is the whole point of the links.
+  await dropOrphanedPhotos(photoIds)
 
   return Response.json({ ok: true })
 }

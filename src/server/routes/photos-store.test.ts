@@ -2,11 +2,19 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import type { PgClient, PgPool, PgQueryResult } from '../db'
-import { attachPhotosTo, deletePhotosByIds, insertPhoto, listAllPhotos } from './photos-store'
+import {
+  attachPhotosTo,
+  deletePhotosByIds,
+  insertPhoto,
+  linkPhoto,
+  listAllPhotos,
+  listPhotos,
+  unlinkPhoto,
+} from './photos-store'
 
 type Call = { params: unknown[]; text: string }
 
-// A pool that also hands out a client, because the bulk delete runs in a
+// A pool that also hands out a client, because several of these run in a
 // transaction. Each query answers from a queue of canned results, so the test
 // can say what the database "found" at each step.
 function fakePool(results: unknown[][] = []): { calls: Call[]; pool: PgPool } {
@@ -28,163 +36,6 @@ function fakePool(results: unknown[][] = []): { calls: Call[]; pool: PgPool } {
   return { calls, pool }
 }
 
-test('the library joins both kinds of card, so a photo can say what it belongs to', async () => {
-  const { calls, pool } = fakePool([
-    [
-      {
-        attribution: '',
-        byte_size: '1024',
-        checksum: 'abc',
-        content_type: 'image/jpeg',
-        created_at: '2026-01-01T00:00:00.000Z',
-        created_by: '1',
-        height: 600,
-        id: '5',
-        is_primary: true,
-        source: 'search',
-        source_url: 'https://example.com/a.jpg',
-        case_id: null,
-        case_name: null,
-        storage_key: 'ab/abc.jpg',
-        tool_id: '9',
-        tool_name: 'Szlifierka kątowa',
-        width: 800,
-      },
-    ],
-  ])
-
-  const page = await listAllPhotos(
-    { assigned: null, direction: 'desc', limit: 48, offset: 0, search: 'makita', source: 'search' },
-    pool,
-  )
-
-  assert.equal(page.items[0].ownerName, 'Szlifierka kątowa')
-  // Addressed by its own id, because a photo may have no tool to be reached
-  // through.
-  assert.equal(page.items[0].url, '/api/photos/5/file')
-  // LEFT, because a photo waiting for a tool is still a photo.
-  assert.match(calls[0].text, /LEFT JOIN "catalog"\."tool"/)
-  assert.match(calls[0].text, /LEFT JOIN "catalog"\."tool_case"/)
-  // The search matches the tool, because a photo has no name of its own.
-  assert.deepEqual(calls[0].params, ['%makita%', 'search', null, 48, 0])
-})
-
-test('deleting nothing touches no database', async () => {
-  const { calls, pool } = fakePool()
-
-  assert.deepEqual(await deletePhotosByIds([], pool), { deleted: 0, promoted: [] })
-  assert.deepEqual(calls, [])
-})
-
-test('a bulk delete promotes a new main photo for every tool that lost one', async () => {
-  const { calls, pool } = fakePool([
-    [], // BEGIN
-    [
-      { case_id: null, is_primary: true, storage_key: 'ab/one.jpg', tool_id: '9' },
-      { case_id: null, is_primary: false, storage_key: 'cd/two.jpg', tool_id: '9' },
-    ],
-    [{ owner_id: '9' }], // the promotion
-    [{ storage_key: 'cd/two.jpg' }], // still used by another card
-  ])
-
-  const result = await deletePhotosByIds([1, 2], pool)
-
-  assert.deepEqual(result, { deleted: 2, promoted: [{ id: 9, kind: 'tool' }] })
-  // Only the tool that lost its primary is considered for promotion.
-  assert.deepEqual(calls[2].params, [[9]])
-})
-
-test('a file is unlinked only when no row points at it any more', async () => {
-  const { calls, pool } = fakePool([
-    [],
-    [{ case_id: null, is_primary: false, storage_key: 'ab/shared.jpg', tool_id: '9' }],
-    [],
-    // The checksum is still on another tool's card: the file stays.
-    [{ storage_key: 'ab/shared.jpg' }],
-  ])
-
-  const result = await deletePhotosByIds([1], pool)
-
-  assert.equal(result.deleted, 1)
-  assert.deepEqual(result.promoted, [])
-  assert.match(calls[1].text, /DELETE FROM "catalog"\."photo" WHERE "id" = ANY/)
-  // The transaction was committed, not rolled back.
-  assert.ok(calls.some((call) => call.text.trim() === 'COMMIT'))
-})
-
-test('an unattached photo keeps its place in the library', async () => {
-  const { pool } = fakePool([
-    [
-      {
-        attribution: '',
-        byte_size: '512',
-        checksum: 'abc',
-        content_type: 'image/png',
-        created_at: '2026-01-01T00:00:00.000Z',
-        created_by: '1',
-        derived_from: null,
-        height: 100,
-        id: '5',
-        is_primary: false,
-        source: 'upload',
-        source_url: '',
-        case_id: null,
-        case_name: null,
-        storage_key: 'ab/abc.png',
-        tool_id: null,
-        tool_name: null,
-        total_count: '1',
-        width: 100,
-      },
-    ],
-  ])
-
-  const page = await listAllPhotos(
-    { assigned: false, direction: 'desc', limit: 48, offset: 0, search: null, source: null },
-    pool,
-  )
-
-  assert.equal(page.items[0].toolId, null)
-  // Empty rather than null, so the screen has one thing to render.
-  assert.equal(page.items[0].ownerName, '')
-  // Addressed by its own id: there is no tool to reach it through.
-  assert.equal(page.items[0].url, '/api/photos/5/file')
-})
-
-test('the assigned filter is a parameter, not two different statements', async () => {
-  const { calls, pool } = fakePool([])
-
-  await listAllPhotos(
-    { assigned: true, direction: 'desc', limit: 10, offset: 0, search: null, source: null },
-    pool,
-  )
-  assert.equal(calls[0].params[2], true)
-  assert.match(calls[0].text, /"p"\."case_id" IS NOT NULL\) = \$3/)
-})
-
-test('an owner id is cast, because it may be null in every position', async () => {
-  // A bare parameter that is null everywhere it appears has no type Postgres
-  // can infer, and the insert fails with "could not determine data type of
-  // parameter $1" — which is exactly what an unattached upload does.
-  const { calls, pool } = fakePool([[]])
-
-  await insertPhoto(
-    {
-      metadata: { contentType: 'image/png', height: 10, width: 10 },
-      owner: null,
-      source: 'upload',
-      stored: { byteSize: 10, checksum: 'abc', storageKey: 'ab/abc.png' },
-    },
-    1,
-    pool,
-  ).catch(() => undefined)
-
-  assert.match(calls[0].text, /\$1::bigint/)
-  assert.match(calls[0].text, /\$2::bigint/)
-  assert.equal(calls[0].params[0], null)
-  assert.equal(calls[0].params[1], null)
-})
-
 function photoRow(overrides: Record<string, unknown> = {}) {
   return {
     attribution: '',
@@ -199,57 +50,212 @@ function photoRow(overrides: Record<string, unknown> = {}) {
     is_primary: false,
     source: 'upload',
     source_url: '',
-    case_id: null,
     storage_key: 'ab/abc.png',
-    tool_id: null,
     width: 100,
     ...overrides,
   }
 }
 
-test('an unattached photo is moved, keeping its id', async () => {
-  // "Przypisz" means it leaves the unassigned shelf, not that a second copy
-  // appears there.
-  const { calls, pool } = fakePool([[photoRow()], [photoRow({ is_primary: true, tool_id: '9' })]])
+const TOOL = { id: 9, kind: 'tool' } as const
+const CASE = { id: 4, kind: 'case' } as const
 
-  const result = await attachPhotosTo({ id: 9, kind: 'tool' }, [5], 1, pool)
+test('a card reads its photos through the link table', async () => {
+  const { calls, pool } = fakePool([[photoRow({ is_primary: true })]])
 
-  assert.equal(result.attached[0].id, 5)
-  assert.equal(result.attached[0].toolId, 9)
-  assert.match(calls[1].text, /UPDATE "catalog"\."photo"/)
-  assert.match(calls[1].text, /"tool_id" IS NULL/)
+  const photos = await listPhotos(TOOL, pool)
+
+  assert.equal(photos[0].isPrimary, true)
+  // Addressed by the picture's own id: it is not reached through any one card.
+  assert.equal(photos[0].url, '/api/photos/5/file')
+  assert.match(calls[0].text, /FROM "catalog"\."photo_tool"/)
+  assert.match(calls[0].text, /JOIN "catalog"\."photo"/)
+  // Main photo first, then in the order the pictures were attached to this
+  // card — not the order they were uploaded.
+  assert.match(calls[0].text, /ORDER BY "l"\."is_primary" DESC, "l"\."created_at" ASC/)
 })
 
-test('a photo that belongs to another tool is copied, sharing the file', async () => {
-  const { calls, pool } = fakePool([
-    [photoRow({ tool_id: '3' })],
-    [photoRow({ id: '12', tool_id: '9' })],
-  ])
+test('a case reads from its own link table, chosen by the map and not by the caller', async () => {
+  const { calls, pool } = fakePool([[]])
 
-  const result = await attachPhotosTo({ id: 9, kind: 'tool' }, [5], 1, pool)
+  await listPhotos(CASE, pool)
 
-  assert.equal(result.attached[0].id, 12)
-  assert.match(calls[1].text, /INSERT INTO "catalog"\."photo"/)
-  // The same storage key: one picture on two cards costs a row, not a file.
-  assert.equal(calls[1].params[2], 'ab/abc.png')
+  assert.match(calls[0].text, /FROM "catalog"\."photo_case"/)
+  assert.match(calls[0].text, /"l"\."case_id" = \$1/)
 })
 
-test('a photo already on this tool is reported rather than duplicated', async () => {
-  const { pool } = fakePool([[photoRow({ tool_id: '9' })]])
+test('the same bytes twice are one picture, not a conflict', async () => {
+  // ON CONFLICT DO NOTHING returns nothing, so the existing row is read back.
+  // A re-import, or the same address pasted again, must not fail and must not
+  // produce a second row pointing at the same file.
+  const { calls, pool } = fakePool([[], [photoRow({ id: '12' })]])
 
-  const result = await attachPhotosTo({ id: 9, kind: 'tool' }, [5], 1, pool)
+  const photo = await insertPhoto(
+    {
+      metadata: { contentType: 'image/png', height: 10, width: 10 },
+      source: 'url',
+      stored: { byteSize: 10, checksum: 'abc', storageKey: 'ab/abc.png' },
+    },
+    1,
+    pool,
+  )
+
+  assert.equal(photo.id, 12)
+  assert.match(calls[0].text, /ON CONFLICT \("checksum"\) DO NOTHING/)
+  assert.match(calls[1].text, /WHERE "checksum" = \$1/)
+})
+
+test('the first picture of a card becomes its main one, decided in the insert', async () => {
+  const { calls, pool } = fakePool([[{}], [photoRow({ is_primary: true })]])
+
+  const photo = await linkPhoto(TOOL, 5, 1, pool)
+
+  assert.equal(photo.isPrimary, true)
+  // NOT EXISTS in the same statement, so two uploads racing cannot both decide
+  // they are the first.
+  assert.match(calls[0].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_tool"/)
+})
+
+test('attaching a picture the card already shows is refused, not duplicated', async () => {
+  // The link table's primary key is (card, photo); ON CONFLICT DO NOTHING
+  // reports it as zero rows written.
+  const { pool } = fakePool([[photoRow()], []])
+
+  const result = await attachPhotosTo(TOOL, [5], 1, pool)
 
   assert.deepEqual(result.attached, [])
-  assert.match(result.failed[0].reason, /już jest na tej karcie/)
+  assert.match(result.failed[0].reason, /już na tej karcie/)
 })
 
-test('a photo that no longer exists fails on its own', async () => {
-  // One bad id out of five must not lose the other four.
-  const { pool } = fakePool([[], [photoRow()], [photoRow({ tool_id: '9' })]])
+test('attaching is one insert — nothing is moved and nothing is copied', async () => {
+  const { calls, pool } = fakePool([[photoRow()], [{}], [photoRow()]])
 
-  const result = await attachPhotosTo({ id: 9, kind: 'tool' }, [404, 5], 1, pool)
+  const result = await attachPhotosTo(CASE, [5], 1, pool)
 
-  assert.equal(result.failed.length, 1)
-  assert.equal(result.failed[0].id, 404)
   assert.equal(result.attached.length, 1)
+  assert.match(calls[1].text, /INSERT INTO "catalog"\."photo_case"/)
+  // The picture itself is untouched: no UPDATE of the photo row, no second row.
+  assert.equal(
+    calls.filter((call) =>
+      /UPDATE "catalog"\."photo"|INSERT INTO "catalog"\."photo" /.test(call.text),
+    ).length,
+    0,
+  )
+})
+
+test('taking a picture off its last card deletes the picture', async () => {
+  // A bin on a card means the photograph is gone, not that it moved to a
+  // library nobody asked to fill.
+  const { calls, pool } = fakePool([
+    [], // BEGIN
+    [{ is_primary: false }], // the link, removed
+    [{ storage_key: 'ab/abc.png' }], // no card shows it any more
+    [], // nothing else points at the file
+  ])
+
+  assert.equal(await unlinkPhoto(TOOL, 5, pool), true)
+  assert.match(calls[1].text, /DELETE FROM "catalog"\."photo_tool"/)
+  assert.match(calls[2].text, /DELETE FROM "catalog"\."photo"/)
+  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_tool"/)
+  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_case"/)
+})
+
+test('a picture another card still shows survives being taken off this one', async () => {
+  const { calls, pool } = fakePool([
+    [],
+    [{ is_primary: false }],
+    [], // the conditional delete matched nothing: another link remains
+  ])
+
+  assert.equal(await unlinkPhoto(CASE, 5, pool), true)
+  // No file is unlinked, because the picture is still a row.
+  assert.equal(calls.filter((call) => /DELETE FROM "catalog"\."photo" /.test(call.text)).length, 1)
+})
+
+test('removing the main photo promotes the oldest attachment on that card', async () => {
+  const { calls, pool } = fakePool([[], [{ is_primary: true }], [], []])
+
+  await unlinkPhoto(TOOL, 5, pool)
+
+  const promote = calls.find((call) => /SET "is_primary" = true/.test(call.text))
+  assert.ok(promote)
+  assert.match(promote!.text, /ORDER BY "created_at" ASC, "photo_id" ASC LIMIT 1/)
+})
+
+test('deleting nothing touches no database', async () => {
+  const { calls, pool } = fakePool()
+
+  assert.deepEqual(await deletePhotosByIds([], pool), { deleted: 0, promoted: [] })
+  assert.deepEqual(calls, [])
+})
+
+test('a bulk delete reports every card that now shows a different main photo', async () => {
+  const { pool } = fakePool([
+    [], // BEGIN
+    [{ owner_id: '9' }], // tools losing their primary
+    [], // cases losing theirs
+    [{ storage_key: 'ab/one.png' }], // the pictures, deleted
+    [{}], // the promotion on tool 9
+    [], // nothing else points at the file
+  ])
+
+  const result = await deletePhotosByIds([5], pool)
+
+  assert.equal(result.deleted, 1)
+  assert.deepEqual(result.promoted, [{ id: 9, kind: 'tool' }])
+})
+
+test('the library lists a picture once, with every card that shows it', async () => {
+  const { calls, pool } = fakePool([
+    [
+      {
+        ...photoRow(),
+        owners: [
+          { id: '9', isPrimary: true, kind: 'tool', name: 'Szlifierka' },
+          { id: '4', isPrimary: false, kind: 'case', name: 'Toolbox' },
+        ],
+        total_count: '1',
+      },
+    ],
+  ])
+
+  const page = await listAllPhotos(
+    { assigned: null, direction: 'desc', limit: 48, offset: 0, search: 'makita', source: 'search' },
+    pool,
+  )
+
+  // One row, two cards — the point of the link tables.
+  assert.equal(page.items.length, 1)
+  assert.deepEqual(page.items[0].owners, [
+    { id: 9, isPrimary: true, kind: 'tool', name: 'Szlifierka' },
+    { id: 4, isPrimary: false, kind: 'case', name: 'Toolbox' },
+  ])
+  // The same picture heads the tool and sits behind another on the case: a
+  // fact about each pairing, which is why it travels with the card and not
+  // with the picture.
+  // The search matches the cards, because a picture has no name of its own.
+  assert.deepEqual(calls[0].params, ['%makita%', 'search', null, 48, 0])
+})
+
+test('an unplaced picture is still a picture', async () => {
+  const { pool } = fakePool([[{ ...photoRow(), owners: [], total_count: '1' }]])
+
+  const page = await listAllPhotos(
+    { assigned: false, direction: 'desc', limit: 48, offset: 0, search: null, source: null },
+    pool,
+  )
+
+  assert.deepEqual(page.items[0].owners, [])
+  assert.equal(page.items[0].url, '/api/photos/5/file')
+})
+
+test('the assigned filter asks whether any card shows it', async () => {
+  const { calls, pool } = fakePool([[]])
+
+  await listAllPhotos(
+    { assigned: true, direction: 'desc', limit: 10, offset: 0, search: null, source: null },
+    pool,
+  )
+
+  assert.equal(calls[0].params[2], true)
+  assert.match(calls[0].text, /"r"\."photo_id" IS NOT NULL\) = \$3/)
 })

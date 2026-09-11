@@ -6,8 +6,10 @@
 // fixing every photo bug twice, so the photo routes and the photo store take
 // an owner instead of a tool id.
 //
-// Two columns, not a polymorphic owner_kind/owner_id pair: a real foreign key
-// is what makes deleting a case take its photos with it.
+// The pairing lives in a link table per kind, not on the photo row: one
+// picture legitimately illustrates several tools, several cases, and a tool
+// together with the case it lives in. Two tables rather than one polymorphic
+// pair of columns, so the foreign keys are real.
 
 export const PHOTO_OWNER_KINDS = ['case', 'tool'] as const
 
@@ -18,11 +20,18 @@ export type PhotoOwner = {
   kind: PhotoOwnerKind
 }
 
-// The only place an owner becomes a column name. A value that is not a key of
-// this map cannot reach a query, whatever arrives in the path.
+// The only two places an owner becomes SQL. A value that is not a key of these
+// maps cannot reach a query, whatever arrives in the path.
 export const OWNER_COLUMNS: Record<PhotoOwnerKind, string> = {
   case: 'case_id',
   tool: 'tool_id',
+}
+
+// Which cards show which pictures. Two tables rather than one polymorphic
+// table, so the foreign keys are real and deleting a case takes its links.
+export const LINK_TABLES: Record<PhotoOwnerKind, string> = {
+  case: 'photo_case',
+  tool: 'photo_tool',
 }
 
 // The segment each owner occupies in a URL: /api/tools/7/photos,
@@ -50,6 +59,10 @@ export function isPhotoOwnerKind(value: unknown): value is PhotoOwnerKind {
 
 export function ownerColumn(kind: PhotoOwnerKind): string {
   return OWNER_COLUMNS[kind]
+}
+
+export function linkTable(kind: PhotoOwnerKind): string {
+  return LINK_TABLES[kind]
 }
 
 // The router puts the matched segment in params.owner and the id in params.id.

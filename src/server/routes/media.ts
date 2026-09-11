@@ -59,22 +59,18 @@ export async function uploadPOST(request: Request, context: RouteContext): Promi
     throw error
   }
 
-  try {
-    const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
-    const photo = await insertPhoto(
-      { metadata: converted.metadata, owner: null, source: 'upload', stored },
-      actorId,
-    )
+  const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
 
-    return Response.json({ photo }, { status: 201 })
-  } catch (error) {
-    if (error instanceof PhotoAlreadyExistsError) {
-      // The partial unique index on unattached checksums: the same picture is
-      // already waiting in the library.
-      return Response.json({ error: 'To zdjęcie już jest w bibliotece' }, { status: 409 })
-    }
-    throw error
-  }
+  // No card, so no link: the picture goes on the shelf and waits. If those
+  // bytes are already on our disk this answers with the picture that is there,
+  // rather than refusing — it is the same photograph, and a 409 would only
+  // make the client ask what to do about a fact nobody can change.
+  const photo = await insertPhoto(
+    { metadata: converted.metadata, source: 'upload', stored },
+    actorId,
+  )
+
+  return Response.json({ photo }, { status: 201 })
 }
 
 // GET /api/photos/:id/file — the bytes, by the photo's own id.

@@ -1,15 +1,19 @@
-// Everything that touches `catalog.photo`. The bytes are handled by
-// src/server/photo-storage.ts; this module owns the rows that describe them.
+// Everything that touches `catalog.photo` and the two link tables.
+// src/server/photo-storage.ts owns the bytes; this module owns the rows.
 //
-// Every function here takes an owner — a tool or a case — rather than a tool
-// id. The two carry photos on identical terms, and the column to look in is
-// chosen from a fixed map in photo-owner.ts, so nothing a client sends can
-// reach the query text.
+// A photo row is one picture, once. Which cards show it lives in
+// `photo_tool` and `photo_case`, so the same photograph can illustrate several
+// tools, several cases, and a tool together with the case it lives in — with
+// its attribution, its source and its cutout lineage written down a single
+// time instead of copied per card.
+//
+// Which link table to use is chosen from a fixed map in photo-owner.ts, so
+// nothing a client sends can reach the query text.
 
 import { db, withTransaction, type PgPool } from '../db'
 import { deletePhotoFile, type StoredPhoto } from '../photo-storage'
 import type { ImageMetadata } from '../image-metadata'
-import { ownerColumn, type PhotoOwner, type PhotoOwnerKind } from './photo-owner'
+import { linkTable, ownerColumn, type PhotoOwner, type PhotoOwnerKind } from './photo-owner'
 
 export const PHOTO_SOURCES = ['upload', 'url', 'search', 'edit'] as const
 
@@ -18,32 +22,32 @@ export type PhotoSource = (typeof PHOTO_SOURCES)[number]
 export type Photo = {
   attribution: string
   byteSize: number
-  // Null unless this photo belongs to a case.
-  caseId: null | number
   contentType: string
   createdAt: string
   createdBy: null | number
-  // The photo this one was cut out from, when source is 'edit'. The original
+  // The picture this one was cut out from, when source is 'edit'. The original
   // is never touched, so an unconvincing cutout is one delete away from undone.
   derivedFrom: null | number
   height: null | number
   id: number
-  isPrimary: boolean
   source: PhotoSource
   sourceUrl: string
-  // Null unless this photo belongs to a tool. Both null means it is waiting in
-  // the library for somebody to decide what it is.
-  toolId: null | number
-  // Where the bytes are served from. Addressed by the photo's own id rather
-  // than through its owner, because it may not have one.
+  // Where the bytes are served from. By the picture's own id, because it is
+  // not reached through any one card.
   url: string
   width: null | number
+}
+
+// A picture as one card shows it. Being the main photo is a property of the
+// pairing: the same photograph can head one card and sit fourth on another.
+export type CardPhoto = Photo & {
+  isPrimary: boolean
 }
 
 // What the file-serving route needs on top of what a client sees: where the
 // bytes are and what they hash to. Neither is part of the API surface — the
 // storage layout is ours to change.
-export type StoredPhotoRow = Photo & {
+export type StoredPhotoRow = CardPhoto & {
   checksum: string
   storageKey: string
 }
@@ -58,7 +62,6 @@ export class PhotoAlreadyExistsError extends Error {
 type PhotoRow = {
   attribution: string
   byte_size: number | string
-  case_id: null | number | string
   checksum: string
   content_type: string
   created_at: Date | string
@@ -66,48 +69,41 @@ type PhotoRow = {
   derived_from: null | number | string
   height: null | number
   id: number | string
-  is_primary: boolean
+  is_primary?: boolean
   source: string
   source_url: string
   storage_key: string
-  tool_id: null | number | string
   width: null | number
 }
 
 const PHOTO_COLUMNS = `
-  "id", "tool_id", "case_id", "storage_key", "checksum", "content_type", "byte_size",
-  "width", "height", "source", "source_url", "attribution", "is_primary",
-  "derived_from", "created_by", "created_at"
+  "id", "storage_key", "checksum", "content_type", "byte_size", "width", "height",
+  "source", "source_url", "attribution", "derived_from", "created_by", "created_at"
 `
+
+const PREFIXED_COLUMNS = PHOTO_COLUMNS.split(',')
+  .map((column) => `"p".${column.trim()}`)
+  .join(', ')
 
 export function photoUrl(photoId: number): string {
   return `/api/photos/${photoId}/file`
 }
 
-export function ownerIdOf(photo: Photo, kind: PhotoOwnerKind): null | number {
-  return kind === 'tool' ? photo.toolId : photo.caseId
-}
-
-export function ownerOf(photo: Photo): null | PhotoOwner {
-  if (photo.toolId !== null) return { id: photo.toolId, kind: 'tool' }
-  if (photo.caseId !== null) return { id: photo.caseId, kind: 'case' }
-  return null
-}
-
-export async function listPhotos(owner: PhotoOwner, pool: PgPool = db()): Promise<Photo[]> {
+export async function listPhotos(owner: PhotoOwner, pool: PgPool = db()): Promise<CardPhoto[]> {
   const result = await pool.query<PhotoRow>(
     `
-      SELECT ${PHOTO_COLUMNS}
-      FROM "catalog"."photo"
-      WHERE "${ownerColumn(owner.kind)}" = $1
-      -- The main photo first, then oldest to newest: the order the gallery
-      -- shows, decided once here rather than in every client.
-      ORDER BY "is_primary" DESC, "id" ASC
+      SELECT ${PREFIXED_COLUMNS}, "l"."is_primary"
+      FROM "catalog"."${linkTable(owner.kind)}" AS "l"
+      JOIN "catalog"."photo" AS "p" ON "p"."id" = "l"."photo_id"
+      WHERE "l"."${ownerColumn(owner.kind)}" = $1
+      -- The main photo first, then oldest attachment to newest: the order the
+      -- gallery shows, decided once here rather than in every client.
+      ORDER BY "l"."is_primary" DESC, "l"."created_at" ASC, "p"."id" ASC
     `,
     [owner.id],
   )
 
-  return result.rows.map(toPhoto)
+  return result.rows.map(toCardPhoto)
 }
 
 // One query for a whole page of tools or cases, so a grid can show thumbnails
@@ -120,20 +116,18 @@ export async function primaryPhotoIds(
   if (ownerIds.length === 0) return new Map()
 
   const column = ownerColumn(kind)
-  const result = await pool.query<{ id: number | string; owner_id: number | string }>(
+  const result = await pool.query<{ owner_id: number | string; photo_id: number | string }>(
     `
-      SELECT "id", "${column}" AS "owner_id"
-      FROM "catalog"."photo"
+      SELECT "${column}" AS "owner_id", "photo_id"
+      FROM "catalog"."${linkTable(kind)}"
       WHERE "${column}" = ANY($1::bigint[]) AND "is_primary"
     `,
     [ownerIds],
   )
 
-  return new Map(result.rows.map((row) => [Number(row.owner_id), Number(row.id)]))
+  return new Map(result.rows.map((row) => [Number(row.owner_id), Number(row.photo_id)]))
 }
 
-// By id alone, for the routes that serve bytes and for anything holding a
-// photo with no owner.
 export async function getPhotoById(
   photoId: number,
   pool: PgPool = db(),
@@ -147,13 +141,21 @@ export async function getPhotoById(
   return row ? toStored(row) : null
 }
 
-export async function getPhoto(
+// The picture, but only if this card actually shows it. Every per-card route
+// asks through this, so a photo id from another card cannot be edited by
+// guessing a URL.
+export async function getCardPhoto(
   owner: PhotoOwner,
   photoId: number,
   pool: PgPool = db(),
 ): Promise<null | StoredPhotoRow> {
   const result = await pool.query<PhotoRow>(
-    `SELECT ${PHOTO_COLUMNS} FROM "catalog"."photo" WHERE "${ownerColumn(owner.kind)}" = $1 AND "id" = $2`,
+    `
+      SELECT ${PREFIXED_COLUMNS}, "l"."is_primary"
+      FROM "catalog"."${linkTable(owner.kind)}" AS "l"
+      JOIN "catalog"."photo" AS "p" ON "p"."id" = "l"."photo_id"
+      WHERE "l"."${ownerColumn(owner.kind)}" = $1 AND "p"."id" = $2
+    `,
     [owner.id, photoId],
   )
 
@@ -161,13 +163,14 @@ export async function getPhoto(
   return row ? toStored(row) : null
 }
 
+// Writes the picture, or finds the one already written. The checksum is unique
+// now, so the same bytes arriving twice — a re-import, the same address pasted
+// again — is one row rather than a conflict the caller has to handle.
 export async function insertPhoto(
   input: {
     attribution?: string
     derivedFrom?: number
     metadata: ImageMetadata
-    // Null for a photo that belongs to nothing yet.
-    owner: null | PhotoOwner
     source: PhotoSource
     sourceUrl?: string
     stored: StoredPhoto
@@ -175,132 +178,145 @@ export async function insertPhoto(
   actorId: number,
   pool: PgPool = db(),
 ): Promise<Photo> {
-  const toolId = input.owner?.kind === 'tool' ? input.owner.id : null
-  const caseId = input.owner?.kind === 'case' ? input.owner.id : null
+  const result = await pool.query<PhotoRow>(
+    `
+      INSERT INTO "catalog"."photo"
+        ("storage_key", "checksum", "content_type", "byte_size", "width", "height",
+         "source", "source_url", "attribution", "derived_from", "created_by")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT ("checksum") DO NOTHING
+      RETURNING ${PHOTO_COLUMNS}
+    `,
+    [
+      input.stored.storageKey,
+      input.stored.checksum,
+      input.metadata.contentType,
+      input.stored.byteSize,
+      input.metadata.width,
+      input.metadata.height,
+      input.source,
+      input.sourceUrl ?? '',
+      input.attribution ?? '',
+      input.derivedFrom ?? null,
+      actorId,
+    ],
+  )
 
-  try {
-    const result = await pool.query<PhotoRow>(
-      `
-        INSERT INTO "catalog"."photo"
-          ("tool_id", "case_id", "storage_key", "checksum", "content_type", "byte_size",
-           "width", "height", "source", "source_url", "attribution", "is_primary",
-           "derived_from", "created_by")
-        VALUES (
-          -- Cast, because an owner id may be null and a bare parameter that is
-          -- null everywhere it appears has no type Postgres can infer: the
-          -- whole insert fails with "could not determine data type of
-          -- parameter $1".
-          $1::bigint, $2::bigint, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-          -- The first photo of a card is its main one. Nobody should have to
-          -- upload a picture and then tell the app it is the picture. A photo
-          -- with no owner is the main photo of nothing.
-          ($1::bigint IS NOT NULL
-             AND NOT EXISTS (SELECT 1 FROM "catalog"."photo" WHERE "tool_id" = $1::bigint))
-          OR ($2::bigint IS NOT NULL
-             AND NOT EXISTS (SELECT 1 FROM "catalog"."photo" WHERE "case_id" = $2::bigint)),
-          $12, $13
-        )
-        RETURNING ${PHOTO_COLUMNS}
-      `,
-      [
-        toolId,
-        caseId,
-        input.stored.storageKey,
-        input.stored.checksum,
-        input.metadata.contentType,
-        input.stored.byteSize,
-        input.metadata.width,
-        input.metadata.height,
-        input.source,
-        input.sourceUrl ?? '',
-        input.attribution ?? '',
-        input.derivedFrom ?? null,
-        actorId,
-      ],
-    )
+  if (result.rows[0]) return toPhoto(result.rows[0])
 
-    return toPhoto(result.rows[0])
-  } catch (error) {
-    // The unique index on (owner, checksum): the same image twice on one card
-    // is a mistake, not a second photo.
-    if ((error as { code?: string }).code === '23505') throw new PhotoAlreadyExistsError()
-    throw error
-  }
+  // Already on our disk under another row: the existing picture is the answer,
+  // and its provenance is left as first recorded.
+  const existing = await pool.query<PhotoRow>(
+    `SELECT ${PHOTO_COLUMNS} FROM "catalog"."photo" WHERE "checksum" = $1`,
+    [input.stored.checksum],
+  )
+
+  return toPhoto(existing.rows[0])
+}
+
+// Puts an existing picture on a card. The first picture of a card becomes its
+// main one: nobody should have to upload a photo and then tell the app it is
+// the photo.
+export async function linkPhoto(
+  owner: PhotoOwner,
+  photoId: number,
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<CardPhoto> {
+  const column = ownerColumn(owner.kind)
+  const table = linkTable(owner.kind)
+
+  const inserted = await pool.query(
+    `
+      INSERT INTO "catalog"."${table}" ("${column}", "photo_id", "is_primary", "created_by")
+      VALUES (
+        $1, $2,
+        NOT EXISTS (SELECT 1 FROM "catalog"."${table}" WHERE "${column}" = $1),
+        $3
+      )
+      ON CONFLICT DO NOTHING
+    `,
+    [owner.id, photoId, actorId],
+  )
+
+  if ((inserted.rowCount ?? 0) === 0) throw new PhotoAlreadyExistsError()
+
+  const photo = await getCardPhoto(owner, photoId, pool)
+  if (!photo) throw new Error('link written but the photo cannot be read back')
+
+  return photo
 }
 
 export async function setPrimaryPhoto(
   owner: PhotoOwner,
   photoId: number,
   pool: PgPool = db(),
-): Promise<null | Photo> {
+): Promise<null | CardPhoto> {
   const column = ownerColumn(owner.kind)
+  const table = linkTable(owner.kind)
 
   // A transaction because the partial unique index allows exactly one primary
-  // row per card: the old one has to be cleared before the new one is set, and
+  // link per card: the old one has to be cleared before the new one is set, and
   // a crash between the two would otherwise leave a card with no main photo.
   return withTransaction(pool, async (client) => {
     const exists = await client.query(
-      `SELECT 1 FROM "catalog"."photo" WHERE "${column}" = $1 AND "id" = $2`,
+      `SELECT 1 FROM "catalog"."${table}" WHERE "${column}" = $1 AND "photo_id" = $2`,
       [owner.id, photoId],
     )
     if ((exists.rowCount ?? 0) === 0) return null
 
     await client.query(
-      `UPDATE "catalog"."photo" SET "is_primary" = false
-       WHERE "${column}" = $1 AND "is_primary" AND "id" <> $2`,
+      `UPDATE "catalog"."${table}" SET "is_primary" = false
+       WHERE "${column}" = $1 AND "is_primary" AND "photo_id" <> $2`,
+      [owner.id, photoId],
+    )
+    await client.query(
+      `UPDATE "catalog"."${table}" SET "is_primary" = true
+       WHERE "${column}" = $1 AND "photo_id" = $2`,
       [owner.id, photoId],
     )
 
-    const result = await client.query<PhotoRow>(
-      `UPDATE "catalog"."photo" SET "is_primary" = true
-       WHERE "${column}" = $1 AND "id" = $2
-       RETURNING ${PHOTO_COLUMNS}`,
-      [owner.id, photoId],
-    )
-
-    return toPhoto(result.rows[0])
-  })
+    return getCardPhoto(owner, photoId, client as unknown as PgPool)
+  }).then((photo) => (photo ? { ...photo, isPrimary: true } : null))
 }
 
-export async function deletePhoto(
+// Takes a picture off a card. If no card shows it any more it is deleted
+// outright, file and all — a bin on a card means the picture is gone, not that
+// it has moved to a library nobody asked to fill.
+export async function unlinkPhoto(
   owner: PhotoOwner,
   photoId: number,
   pool: PgPool = db(),
 ): Promise<boolean> {
   const column = ownerColumn(owner.kind)
+  const table = linkTable(owner.kind)
 
-  const removed = await withTransaction(pool, async (client) => {
-    const result = await client.query<PhotoRow>(
-      `DELETE FROM "catalog"."photo" WHERE "${column}" = $1 AND "id" = $2 RETURNING ${PHOTO_COLUMNS}`,
+  const orphanedKey = await withTransaction(pool, async (client) => {
+    const removed = await client.query<{ is_primary: boolean }>(
+      `DELETE FROM "catalog"."${table}" WHERE "${column}" = $1 AND "photo_id" = $2
+       RETURNING "is_primary"`,
       [owner.id, photoId],
     )
+    if ((removed.rowCount ?? 0) === 0) return null
 
-    const row = result.rows[0]
-    if (!row) return null
-
-    // Deleting the main photo must not leave the card without one: the oldest
-    // remaining picture takes over.
-    if (row.is_primary) {
+    // Removing the main photo must not leave the card without one: the oldest
+    // remaining attachment takes over.
+    if (removed.rows[0].is_primary) {
       await client.query(
-        `UPDATE "catalog"."photo" SET "is_primary" = true
-         WHERE "id" = (SELECT "id" FROM "catalog"."photo" WHERE "${column}" = $1 ORDER BY "id" ASC LIMIT 1)`,
+        `UPDATE "catalog"."${table}" SET "is_primary" = true
+         WHERE ("${column}", "photo_id") = (
+           SELECT "${column}", "photo_id" FROM "catalog"."${table}"
+           WHERE "${column}" = $1 ORDER BY "created_at" ASC, "photo_id" ASC LIMIT 1
+         )`,
         [owner.id],
       )
     }
 
-    // Files are shared between rows: the storage key is the checksum, so the
-    // same picture on two cards is one file. It is only unlinked when the last
-    // row pointing at it is gone.
-    const stillUsed = await client.query(
-      `SELECT 1 FROM "catalog"."photo" WHERE "storage_key" = $1 LIMIT 1`,
-      [row.storage_key],
-    )
-
-    return (stillUsed.rowCount ?? 0) === 0 ? row.storage_key : ''
+    return dropIfUnused(client, [photoId])
   })
 
-  if (removed === null) return false
-  if (removed) await deletePhotoFile(removed)
+  if (orphanedKey === null) return false
+  for (const key of orphanedKey) await deletePhotoFile(key)
   return true
 }
 
@@ -309,14 +325,21 @@ export async function deletePhoto(
 // Everything above answers "what does this card look like". The functions
 // below answer "what is on our disk", which is a different question with a
 // different screen behind it: an operator cleaning up after an import that
-// pulled in the wrong pictures.
+// pulled in the wrong pictures. One picture appears once here, however many
+// cards show it.
+
+export type PhotoOwnerRef = {
+  id: number
+  // Whether this picture is the one heading that card. A property of the
+  // pairing, so it belongs here rather than on the picture.
+  isPrimary: boolean
+  kind: PhotoOwnerKind
+  name: string
+}
 
 export type LibraryPhoto = Photo & {
-  // 'tool', 'case', or null for a photo nobody has placed yet.
-  ownerKind: null | PhotoOwnerKind
-  // The name of that tool or case. Empty for an unowned photo, which the
-  // screen shows as "bez przypisania".
-  ownerName: string
+  // Every card showing this picture. Empty while nobody has placed it.
+  owners: PhotoOwnerRef[]
 }
 
 export type LibraryPage = {
@@ -341,26 +364,43 @@ export async function listAllPhotos(
   const direction = query.direction === 'asc' ? 'ASC' : 'DESC'
 
   const result = await pool.query<
-    PhotoRow & { case_name: null | string; tool_name: null | string; total_count: string }
+    PhotoRow & { owners: null | PhotoOwnerRef[]; total_count: string }
   >(
     `
-      SELECT
-        ${PHOTO_COLUMNS.split(',')
-          .map((column) => `"p".${column.trim()}`)
-          .join(', ')},
-        "t"."name" AS "tool_name",
-        "c"."name" AS "case_name",
-        count(*) OVER () AS "total_count"
+      WITH "owners" AS (
+        SELECT "l"."photo_id",
+               jsonb_agg(jsonb_build_object('kind', 'tool', 'id', "t"."id", 'name', "t"."name",
+                                            'isPrimary', "l"."is_primary")
+                         ORDER BY "t"."name") AS "refs",
+               string_agg("t"."name" || ' ' || "t"."brand" || ' ' || "t"."model", ' ') AS "text"
+        FROM "catalog"."photo_tool" AS "l"
+        JOIN "catalog"."tool" AS "t" ON "t"."id" = "l"."tool_id"
+        GROUP BY "l"."photo_id"
+        UNION ALL
+        SELECT "l"."photo_id",
+               jsonb_agg(jsonb_build_object('kind', 'case', 'id', "c"."id", 'name', "c"."name",
+                                            'isPrimary', "l"."is_primary")
+                         ORDER BY "c"."name"),
+               string_agg("c"."name" || ' ' || "c"."manufacturer", ' ')
+        FROM "catalog"."photo_case" AS "l"
+        JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "l"."case_id"
+        GROUP BY "l"."photo_id"
+      ),
+      "rolled" AS (
+        SELECT "photo_id",
+               jsonb_agg("ref") AS "refs",
+               string_agg("text", ' ') AS "text"
+        FROM "owners", LATERAL jsonb_array_elements("refs") AS "ref"
+        GROUP BY "photo_id"
+      )
+      SELECT ${PREFIXED_COLUMNS},
+             COALESCE("r"."refs", '[]'::jsonb) AS "owners",
+             count(*) OVER () AS "total_count"
       FROM "catalog"."photo" AS "p"
-      -- LEFT: a photo without an owner is still a photo, and the library is
-      -- where it is waiting to be given one.
-      LEFT JOIN "catalog"."tool" AS "t" ON "t"."id" = "p"."tool_id"
-      LEFT JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "p"."case_id"
-      WHERE ($1::text IS NULL OR "t"."name" ILIKE $1 OR "t"."brand" ILIKE $1 OR "t"."model" ILIKE $1
-             OR "c"."name" ILIKE $1 OR "c"."manufacturer" ILIKE $1)
+      LEFT JOIN "rolled" AS "r" ON "r"."photo_id" = "p"."id"
+      WHERE ($1::text IS NULL OR "r"."text" ILIKE $1)
         AND ($2::text IS NULL OR "p"."source" = $2)
-        AND ($3::boolean IS NULL
-             OR ("p"."tool_id" IS NOT NULL OR "p"."case_id" IS NOT NULL) = $3)
+        AND ($3::boolean IS NULL OR ("r"."photo_id" IS NOT NULL) = $3)
       ORDER BY "p"."created_at" ${direction}, "p"."id" ${direction}
       LIMIT $4 OFFSET $5
     `,
@@ -374,14 +414,10 @@ export async function listAllPhotos(
   )
 
   return {
-    items: result.rows.map((row) => {
-      const photo = toPhoto(row)
-      return {
-        ...photo,
-        ownerKind: photo.toolId !== null ? 'tool' : photo.caseId !== null ? 'case' : null,
-        ownerName: row.tool_name ?? row.case_name ?? '',
-      }
-    }),
+    items: result.rows.map((row) => ({
+      ...toPhoto(row),
+      owners: (row.owners ?? []).map((owner) => ({ ...owner, id: Number(owner.id) })),
+    })),
     limit: query.limit,
     offset: query.offset,
     // No rows means no matches, not an empty page of an unknown total.
@@ -390,51 +426,33 @@ export async function listAllPhotos(
 }
 
 export type AttachResult = {
-  attached: Photo[]
+  attached: CardPhoto[]
   failed: { id: number; reason: string }[]
 }
 
-// Puts photos that already exist onto a tool or a case.
-//
-// Two different things, deliberately, depending on where the photo is now. An
-// unowned one is **moved**: it keeps its id and leaves the unassigned list,
-// which is what "przypisz" means to the person doing it. One that already
-// belongs to another card is **copied** — the same picture can legitimately
-// illustrate a tool and the case it lives in, and since files are addressed by
-// checksum the copy is a row, not another megabyte.
+// Puts pictures that already exist onto a card. With the links in their own
+// table this is one insert each: nothing moves, nothing is copied, and the
+// library keeps showing the picture because the library is about pictures.
 export async function attachPhotosTo(
   owner: PhotoOwner,
   photoIds: number[],
   actorId: number,
   pool: PgPool = db(),
 ): Promise<AttachResult> {
-  const attached: Photo[] = []
+  const attached: CardPhoto[] = []
   const failed: { id: number; reason: string }[] = []
 
   for (const photoId of photoIds) {
-    const source = await getPhotoById(photoId, pool)
-    if (!source) {
+    if (!(await getPhotoById(photoId, pool))) {
       failed.push({ id: photoId, reason: 'Nie ma takiego zdjęcia' })
-      continue
-    }
-    if (ownerIdOf(source, owner.kind) === owner.id) {
-      failed.push({ id: photoId, reason: 'To zdjęcie już jest na tej karcie' })
       continue
     }
 
     try {
-      const photo =
-        ownerOf(source) === null
-          ? await moveToOwner(owner, photoId, pool)
-          : await copyToOwner(owner, source, actorId, pool)
-
-      if (photo) attached.push(photo)
-      else failed.push({ id: photoId, reason: 'Nie udało się przypisać' })
+      attached.push(await linkPhoto(owner, photoId, actorId, pool))
     } catch (error) {
-      // The unique index on (owner, checksum): this card already shows this
-      // picture, under another row.
-      if ((error as { code?: string }).code === '23505') {
-        failed.push({ id: photoId, reason: 'Takie zdjęcie już jest na tej karcie' })
+      if (error instanceof PhotoAlreadyExistsError) {
+        failed.push({ id: photoId, reason: error.message })
         continue
       }
       throw error
@@ -444,69 +462,16 @@ export async function attachPhotosTo(
   return { attached, failed }
 }
 
-async function moveToOwner(
-  owner: PhotoOwner,
-  photoId: number,
-  pool: PgPool,
-): Promise<null | Photo> {
-  const column = ownerColumn(owner.kind)
-
-  const result = await pool.query<PhotoRow>(
-    `
-      UPDATE "catalog"."photo"
-      SET "${column}" = $1,
-          -- The first photo of a card is its main one, whether it arrived by
-          -- upload or by being assigned here.
-          "is_primary" = NOT EXISTS (
-            SELECT 1 FROM "catalog"."photo" WHERE "${column}" = $1
-          )
-      WHERE "id" = $2 AND "tool_id" IS NULL AND "case_id" IS NULL
-      RETURNING ${PHOTO_COLUMNS}
-    `,
-    [owner.id, photoId],
-  )
-
-  const row = result.rows[0]
-  return row ? toPhoto(row) : null
-}
-
-async function copyToOwner(
-  owner: PhotoOwner,
-  source: StoredPhotoRow,
-  actorId: number,
-  pool: PgPool,
-): Promise<Photo> {
-  return insertPhoto(
-    {
-      attribution: source.attribution,
-      metadata: {
-        contentType: source.contentType,
-        height: source.height ?? 0,
-        width: source.width ?? 0,
-      },
-      owner,
-      source: source.source,
-      sourceUrl: source.sourceUrl,
-      stored: {
-        byteSize: source.byteSize,
-        checksum: source.checksum,
-        // The same file: content addressed, so a second card showing the same
-        // picture costs a row.
-        storageKey: source.storageKey,
-      },
-    },
-    actorId,
-    pool,
-  )
-}
-
 export type BulkDeleteResult = {
   deleted: number
-  // Cards whose main photo was among the deleted rows and now show a different
-  // one. Reported so the screen can say what else changed.
+  // Cards whose main photo was among the deleted pictures and now show a
+  // different one. Reported so the screen can say what else changed.
   promoted: PhotoOwner[]
 }
 
+// Deletes pictures outright, from every card at once. This is the library's
+// bin, and the library is about pictures rather than about one card's view of
+// them.
 export async function deletePhotosByIds(
   ids: number[],
   pool: PgPool = db(),
@@ -514,51 +479,37 @@ export async function deletePhotosByIds(
   if (ids.length === 0) return { deleted: 0, promoted: [] }
 
   const { promoted, removed, storageKeys } = await withTransaction(pool, async (client) => {
-    const deleted = await client.query<{
-      case_id: null | string
-      is_primary: boolean
-      storage_key: string
-      tool_id: null | string
-    }>(
-      `DELETE FROM "catalog"."photo" WHERE "id" = ANY($1::bigint[])
-       RETURNING "tool_id", "case_id", "storage_key", "is_primary"`,
+    // Which cards are about to lose their main photo, read before the rows go.
+    const orphaned: PhotoOwner[] = []
+    for (const kind of ['tool', 'case'] as const) {
+      const found = await client.query<{ owner_id: string }>(
+        `SELECT "${ownerColumn(kind)}" AS "owner_id" FROM "catalog"."${linkTable(kind)}"
+         WHERE "photo_id" = ANY($1::bigint[]) AND "is_primary"`,
+        [ids],
+      )
+      for (const row of found.rows) orphaned.push({ id: Number(row.owner_id), kind })
+    }
+
+    const deleted = await client.query<{ storage_key: string }>(
+      `DELETE FROM "catalog"."photo" WHERE "id" = ANY($1::bigint[]) RETURNING "storage_key"`,
       [ids],
     )
 
-    const orphaned = (kind: PhotoOwnerKind): number[] => {
-      const column = kind === 'tool' ? 'tool_id' : 'case_id'
-      return [
-        ...new Set(
-          deleted.rows
-            .filter((row) => row.is_primary && row[column] !== null)
-            .map((row) => Number(row[column])),
-        ),
-      ]
-    }
-
-    // A card that lost its main photo gets the oldest remaining one, exactly
-    // as a single delete does. One statement per kind of card.
+    // The links went with the pictures, so each of those cards now takes its
+    // oldest remaining attachment — the same promotion a single delete does.
     const promotedOwners: PhotoOwner[] = []
-    for (const kind of ['tool', 'case'] as const) {
-      const ownerIds = orphaned(kind)
-      if (ownerIds.length === 0) continue
-
-      const column = ownerColumn(kind)
-      const result = await client.query<{ owner_id: string }>(
-        `
-          UPDATE "catalog"."photo" SET "is_primary" = true
-          WHERE "id" IN (
-            SELECT DISTINCT ON ("${column}") "id"
-            FROM "catalog"."photo"
-            WHERE "${column}" = ANY($1::bigint[])
-            ORDER BY "${column}", "id" ASC
-          )
-          RETURNING "${column}" AS "owner_id"
-        `,
-        [ownerIds],
+    for (const owner of orphaned) {
+      const column = ownerColumn(owner.kind)
+      const table = linkTable(owner.kind)
+      const result = await client.query(
+        `UPDATE "catalog"."${table}" SET "is_primary" = true
+         WHERE ("${column}", "photo_id") = (
+           SELECT "${column}", "photo_id" FROM "catalog"."${table}"
+           WHERE "${column}" = $1 ORDER BY "created_at" ASC, "photo_id" ASC LIMIT 1
+         )`,
+        [owner.id],
       )
-
-      for (const row of result.rows) promotedOwners.push({ id: Number(row.owner_id), kind })
+      if ((result.rowCount ?? 0) > 0) promotedOwners.push(owner)
     }
 
     // Files are shared by checksum, so a key is only unlinked once no row
@@ -585,8 +536,67 @@ export async function deletePhotosByIds(
   return { deleted: removed, promoted }
 }
 
+// Deletes any of these pictures that no card shows any more, and answers with
+// the files that nothing points at. Shared by the per-card bin and by deleting
+// a whole card.
+async function dropIfUnused(
+  client: { query: PgPool['query'] },
+  photoIds: number[],
+): Promise<string[]> {
+  if (photoIds.length === 0) return []
+
+  const deleted = await client.query<{ storage_key: string }>(
+    `
+      DELETE FROM "catalog"."photo" AS "p"
+      WHERE "p"."id" = ANY($1::bigint[])
+        AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_tool" WHERE "photo_id" = "p"."id")
+        AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_case" WHERE "photo_id" = "p"."id")
+      RETURNING "storage_key"
+    `,
+    [photoIds],
+  )
+
+  const keys = [...new Set(deleted.rows.map((row) => row.storage_key))]
+  if (keys.length === 0) return []
+
+  const stillUsed = await client.query<{ storage_key: string }>(
+    `SELECT DISTINCT "storage_key" FROM "catalog"."photo" WHERE "storage_key" = ANY($1::text[])`,
+    [keys],
+  )
+  const used = new Set(stillUsed.rows.map((row) => row.storage_key))
+
+  return keys.filter((key) => !used.has(key))
+}
+
+// Called when a whole tool or case goes. Its links cascade away with it; this
+// clears the pictures that nothing shows any more, so deleting a card still
+// takes its photographs with it rather than filling the library.
+export async function dropOrphanedPhotos(photoIds: number[], pool: PgPool = db()): Promise<number> {
+  if (photoIds.length === 0) return 0
+
+  const keys = await withTransaction(pool, (client) => dropIfUnused(client, photoIds))
+  for (const key of keys) await deletePhotoFile(key)
+
+  return keys.length
+}
+
+// Which pictures a card shows, by id. Read before the card is deleted, so the
+// orphans can be found after its links have cascaded away.
+export async function photoIdsOf(owner: PhotoOwner, pool: PgPool = db()): Promise<number[]> {
+  const result = await pool.query<{ photo_id: string }>(
+    `SELECT "photo_id" FROM "catalog"."${linkTable(owner.kind)}" WHERE "${ownerColumn(owner.kind)}" = $1`,
+    [owner.id],
+  )
+
+  return result.rows.map((row) => Number(row.photo_id))
+}
+
 function toStored(row: PhotoRow): StoredPhotoRow {
-  return { ...toPhoto(row), checksum: row.checksum, storageKey: row.storage_key }
+  return { ...toCardPhoto(row), checksum: row.checksum, storageKey: row.storage_key }
+}
+
+function toCardPhoto(row: PhotoRow): CardPhoto {
+  return { ...toPhoto(row), isPrimary: row.is_primary ?? false }
 }
 
 function toPhoto(row: PhotoRow): Photo {
@@ -595,7 +605,6 @@ function toPhoto(row: PhotoRow): Photo {
   return {
     attribution: row.attribution,
     byteSize: Number(row.byte_size),
-    caseId: row.case_id === null ? null : Number(row.case_id),
     contentType: row.content_type,
     createdAt:
       row.created_at instanceof Date
@@ -605,12 +614,10 @@ function toPhoto(row: PhotoRow): Photo {
     derivedFrom: row.derived_from === null ? null : Number(row.derived_from),
     height: row.height === null ? null : Number(row.height),
     id,
-    isPrimary: row.is_primary,
     source: (PHOTO_SOURCES as readonly string[]).includes(row.source)
       ? (row.source as PhotoSource)
       : 'upload',
     sourceUrl: row.source_url,
-    toolId: row.tool_id === null ? null : Number(row.tool_id),
     url: photoUrl(id),
     width: row.width === null ? null : Number(row.width),
   }
