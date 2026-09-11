@@ -128,6 +128,32 @@ conventions come from uses sharp for the same reason.
 `PhotoNotSuitableError`, which the route answers as 422; a missing or failing
 AI service is a different error and a different status.
 
+## Organizer
+
+`catalog.organizer` is one arrangement — a case, a name and an ordinal number —
+and `catalog.organizer_tool` says which tools are in it. Every rule of the
+feature is a constraint rather than a check in a handler:
+
+- one case per organizer, several organizers per case (a toolbox with three
+  drawers is three arrangements of the same box) — a `case_id` column with
+  `ON DELETE CASCADE`, so deleting the box takes the arrangements;
+- a tool is in at most one organizer — a **unique index on `tool_id` alone** in
+  the link table, which is what "1:1 from the tool's side" means in SQL;
+- deleting a tool takes it out — `ON DELETE CASCADE` on the other end.
+
+The link table rather than an `organizer_id` on the tool is deliberate:
+`catalog.tool` knows nothing about organizers, and removing the feature would
+not touch a tool card. The same reasoning as the photo links.
+
+`GET /api/tools?inOrganizer=false` is what the wizard offers in its second
+step. It is a filter on the tool list rather than an endpoint of its own,
+because "tools not in an organizer" is a question about tools.
+
+The list query pulls the case, its main photo, and every tool with its own in
+one statement — a screen of twenty organizers would otherwise be forty-one
+requests. Watch the shape of it: the window count has to sit between the column
+list and the `FROM`, which is why those are two constants and not one.
+
 ## Duplicating a card
 
 `POST /api/tools/:id/duplicate` is one `INSERT ... SELECT`, so a copy cannot

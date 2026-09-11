@@ -142,3 +142,49 @@ Earlier shapes of this table are migrated in place, idempotently: `tool_photo`
 is renamed to `photo`, the owner columns are read into the link tables, rows
 sharing a checksum are merged into the oldest of each group (with the links and
 any `derived_from` repointed at it), and the columns are then dropped.
+
+### `catalog.organizer`
+
+One arrangement: a case, a name, and the number painted on the box.
+
+| Column                     | Type                              | Notes                               |
+| -------------------------- | --------------------------------- | ----------------------------------- |
+| `id`                       | `bigint` identity                 |                                     |
+| `number`                   | `integer`                         | Unique, CHECK `> 0`. **Not** the id |
+| `name`                     | `text`                            | Required, CHECK non-blank           |
+| `description`              | `text`                            |                                     |
+| `case_id`                  | `bigint` → `catalog.tool_case`    | Required, `ON DELETE CASCADE`       |
+| `created_by`, `updated_by` | `bigint` → `account.user_account` | `ON DELETE SET NULL`                |
+| `created_at`, `updated_at` | `timestamptz`                     |                                     |
+
+The number is unique and deliberately separate from the id: ids are ours and
+change when a row is recreated, while this one is painted on a box and has to
+survive that. A `POST` without one takes `max(number) + 1` inside the inserting
+transaction, so two people creating at once cannot both read the same maximum.
+
+`case_id` is required and cascades. One case may hold several organizers — a
+toolbox with three drawers is three arrangements of the same box — and deleting
+the box deletes them, because an arrangement has no meaning without it.
+
+### `catalog.organizer_tool`
+
+Which tools are in which organizer.
+
+| Column                     | Type                           | Notes                    |
+| -------------------------- | ------------------------------ | ------------------------ |
+| `organizer_id`             | `bigint` → `catalog.organizer` | `ON DELETE CASCADE`      |
+| `tool_id`                  | `bigint` → `catalog.tool`      | `ON DELETE CASCADE`      |
+| `created_by`, `created_at` |                                | When it was put in there |
+
+The primary key is the pair; a **unique index on `tool_id` alone** is what makes
+it one-to-one from the tool's side. A tool lies in exactly one place, and the
+database says so rather than a handler remembering to check — `INSERT` for a
+tool that is already somewhere fails with 23505, which the API answers as 409
+rather than moving it silently.
+
+A link table rather than an `organizer_id` column on the tool, so `catalog.tool`
+knows nothing about organizers: removing the feature would not touch a tool
+card. The same reasoning as the photo links above.
+
+Deleting a tool takes it out of its organizer and changes nothing else — the
+arrangement is still an arrangement with one fewer thing in it.
