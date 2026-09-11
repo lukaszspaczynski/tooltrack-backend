@@ -19,6 +19,7 @@ import { readRequestBody, requestUrl } from './request-body-limit'
 import { enforceRoutePolicy } from './route-guard'
 import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
+import * as cases from './routes/cases'
 import * as media from './routes/media'
 import * as photos from './routes/photos'
 import * as settings from './routes/settings'
@@ -40,6 +41,7 @@ type RouteMatch = {
 const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
+const CASE_DETAIL_PATTERN = /^\/api\/cases\/(\d+)$/
 
 // Photos belong to a tool or to a case on identical terms, so one set of
 // patterns serves both. Group 1 is the segment — "tools" or "cases" — which
@@ -90,6 +92,23 @@ const ROUTES = [
   'GET /api/tools/:id/photos/:photoId/cutout/preview/:checksum',
   'POST /api/tools/:id/photos/:photoId/cutout/commit',
   'GET /api/tools/:id/photo-suggestions',
+  'GET /api/cases',
+  'POST /api/cases',
+  'GET /api/cases/systems',
+  'GET /api/cases/:id',
+  'PATCH /api/cases/:id',
+  'DELETE /api/cases/:id',
+  'GET /api/cases/:id/photos',
+  'POST /api/cases/:id/photos',
+  'POST /api/cases/:id/photos/attach',
+  'GET /api/cases/:id/photos/:photoId/file',
+  'PATCH /api/cases/:id/photos/:photoId',
+  'DELETE /api/cases/:id/photos/:photoId',
+  'POST /api/cases/:id/photos/:photoId/cutout',
+  'POST /api/cases/:id/photos/:photoId/cutout/preview',
+  'GET /api/cases/:id/photos/:photoId/cutout/preview/:checksum',
+  'POST /api/cases/:id/photos/:photoId/cutout/commit',
+  'GET /api/cases/:id/photo-suggestions',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
   'PATCH /api/me/search-engines/:provider',
@@ -206,6 +225,10 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   if (path === '/api/tools/categories') return methodHandler(method, { GET: tools.categoriesGET })
   if (path === '/api/tools') return methodHandler(method, { GET: tools.GET, POST: tools.POST })
 
+  // Same ordering rule as categories above: the list of systems before the
+  // pattern that would read "systems" as the name of a case.
+  if (path === '/api/cases/systems') return methodHandler(method, { GET: cases.systemsGET })
+  if (path === '/api/cases') return methodHandler(method, { GET: cases.GET, POST: cases.POST })
 
   // Longest first: /photos/7/file must not be read as the photo detail route.
   const photoFile = PHOTO_FILE_PATTERN.exec(path)
@@ -300,6 +323,14 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     )
   }
 
+  const caseDetail = CASE_DETAIL_PATTERN.exec(path)
+  if (caseDetail) {
+    return methodHandler(
+      method,
+      { DELETE: cases.detailDELETE, GET: cases.detailGET, PATCH: cases.detailPATCH },
+      { id: caseDetail[1] },
+    )
+  }
 
   if (path === '/api/settings/search-engines') {
     return methodHandler(method, { GET: settings.enginesGET })

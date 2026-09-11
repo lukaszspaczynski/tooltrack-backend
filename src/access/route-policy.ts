@@ -9,7 +9,7 @@
 
 import { hasCapability, isActiveUser, type Capability, type User } from './roles'
 
-export type RouteDomain = 'auth' | 'public' | 'settings' | 'tools' | 'users'
+export type RouteDomain = 'auth' | 'cases' | 'public' | 'settings' | 'tools' | 'users'
 
 export type RouteCheck =
   // Reachable without a session. The handler still decides what it answers.
@@ -59,6 +59,24 @@ const RULES: readonly Rule[] = [
     domain: 'tools',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/tools\/categories$/,
+  },
+  {
+    // Same shape as the tool rules, and above the :id pattern for the same
+    // reason: otherwise a request for the system list looks like a case named
+    // "systems".
+    domain: 'cases',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/cases\/systems$/,
+  },
+  {
+    domain: 'cases',
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
+    pattern: /^\/api\/cases$/,
+  },
+  {
+    domain: 'cases',
+    methods: { DELETE: WRITE_CATALOG, GET: READ_CATALOG, PATCH: WRITE_CATALOG },
+    pattern: /^\/api\/cases\/[^/]+$/,
   },
   {
     domain: 'tools',

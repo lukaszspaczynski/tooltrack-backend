@@ -204,6 +204,25 @@ test('the domain label survives an unclassified path', () => {
   assert.equal(routeRequirement('/api/users/7/sessions', 'DELETE').domain, 'users')
 })
 
+test('cases are the catalog, read to look and write to change', () => {
+  for (const path of ['/api/cases', '/api/cases/42', '/api/cases/systems']) {
+    assert.equal(allows(path, 'GET', user('viewer')), true, path)
+  }
+
+  assert.equal(allows('/api/cases', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/cases', 'POST', user('editor')), true)
+  assert.equal(allows('/api/cases/42', 'PATCH', user('viewer')), false)
+  assert.equal(allows('/api/cases/42', 'DELETE', user('editor')), true)
+})
+
+test('the list of systems sits above the case detail pattern', () => {
+  // Or the request would be read as a case named "systems". Both rules happen
+  // to ask for the same thing today, which is exactly why the order has to be
+  // asserted rather than trusted.
+  assert.equal(routeRequirement('/api/cases/systems', 'GET').check.kind, 'capability')
+  assert.equal(routeRequirement('/api/cases/systems', 'DELETE').check.kind, 'deny')
+})
+
 test('a photo of a case is guarded exactly like a photo of a tool', () => {
   // One handler serves both paths. A rule covering only one of them would
   // leave the other unclassified, and the guard turns unclassified into a 403

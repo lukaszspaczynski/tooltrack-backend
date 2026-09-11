@@ -16,11 +16,11 @@ handler runs. Two refusals are possible and they mean different things:
 
 ## Roles
 
-| Capability                                                  | viewer | editor | admin |
-| ----------------------------------------------------------- | :----: | :----: | :---: |
-| `catalog.read` — browse and search the catalog              |   ●    |   ●    |   ●   |
-| `catalog.write` — add, edit, delete tools, cases and photos |        |   ●    |   ●   |
-| `users.manage` — list users, change roles                   |        |        |   ●   |
+| Capability                                     | viewer | editor | admin |
+| ---------------------------------------------- | :----: | :----: | :---: |
+| `catalog.read` — browse and search the catalog |   ●    |   ●    |   ●   |
+| `catalog.write` — add, edit, delete tools, cases and photos      |        |   ●    |   ●   |
+| `users.manage` — list users, change roles      |        |        |   ●   |
 
 New accounts are always `viewer`.
 
@@ -142,6 +142,87 @@ name cannot be cleared. `200 { tool }`, `404`, or `409` on a duplicate serial.
   "updatedAt": "2026-01-02T00:00:00.000Z"
 }
 ```
+
+## Cases
+
+A case is the box the tools live in. Name and manufacturer are required;
+everything else comes off a spec sheet, and a spec sheet is something you have
+or you do not. Measurements are `null` when nobody has taken them — never `0`,
+which would be a claim about a box with no height.
+
+### `GET /api/cases` — `catalog.read`
+
+| Parameter      | Meaning                                       | Default |
+| -------------- | --------------------------------------------- | ------- |
+| `q`            | Name, manufacturer, system, EAN, SKU, notes   | —       |
+| `manufacturer` | Exact match, case-insensitive                 | —       |
+| `system`       | Exact match, case-insensitive                 | —       |
+| `sort`         | `name`, `capacityL`, `createdAt`, `updatedAt` | `name`  |
+| `order`        | `asc` or `desc`                               | `desc`  |
+| `limit`        | 1–200                                         | 50      |
+| `offset`       | ≥ 0                                           | 0       |
+
+`200 { items, total, limit, offset }`. Each item is a case plus
+`primaryPhotoUrl`, so a grid can show thumbnails without a request per row.
+Sorting by capacity puts the unmeasured cases last rather than first.
+
+### `GET /api/cases/systems` — `catalog.read`
+
+`200 { systems: [{ system, count }] }` — read from the cases themselves, the
+same way tool categories are.
+
+### `POST /api/cases` — `catalog.write`
+
+`name` and `manufacturer` are required. Measurements accept a number, a numeric
+string, or a string with a Polish comma (`"4,5"`); `null` and `""` both mean
+"not known". Millimetres must be whole numbers, litres and kilograms may carry
+two decimals. `201 { case }`.
+
+### `GET /api/cases/:id` — `catalog.read`
+
+`200 { case }` or `404`.
+
+### `PATCH /api/cases/:id` — `catalog.write`
+
+Any subset of the create body. An omitted field is left alone; an explicit
+`null` clears a measurement, which is how a number copied off the wrong spec
+sheet gets removed. `200 { case }`.
+
+### `DELETE /api/cases/:id` — `catalog.write`
+
+`200 { ok: true }`. The photos of the case go with it — the foreign key
+cascades.
+
+### The case object
+
+```json
+{
+  "id": 2,
+  "name": "Qbrick System PRO Toolbox 2.0",
+  "manufacturer": "Qbrick",
+  "system": "PRO",
+  "outerLengthMm": 450,
+  "outerWidthMm": 331,
+  "outerHeightMm": 240,
+  "innerLengthMm": 331,
+  "innerWidthMm": 245,
+  "innerHeightMm": 189,
+  "diagonalMm": 497,
+  "capacityL": 19,
+  "loadKg": 20,
+  "ean": "5901238254249",
+  "sku": "SKRQTBPRO2CZAPG001",
+  "notes": "",
+  "createdBy": 1,
+  "updatedBy": 1,
+  "createdAt": "2026-09-11T18:12:33.370Z",
+  "updatedAt": "2026-09-11T18:12:33.370Z"
+}
+```
+
+The EAN and the SKU identify the product, not this box: two identical cases on
+the shelf are two rows carrying the same barcode, so neither is unique. That is
+the difference from a tool's serial number, which is one machine.
 
 ## Photos
 
