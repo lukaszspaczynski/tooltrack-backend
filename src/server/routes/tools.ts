@@ -7,6 +7,7 @@
 // answer to a question the policy already answers.
 
 import type { RouteContext } from '../route-context'
+import { placementsFor } from './organizers-store'
 import {
   copyPhotoLinks,
   dropOrphanedPhotos,
@@ -35,16 +36,17 @@ export async function GET(request: Request): Promise<Response> {
   // The main photo of every tool on the page, in one query. The grid shows
   // thumbnails, and asking per card would be twenty-four requests for one
   // screen.
-  const primary = await primaryPhotoIds(
-    'tool',
-    page.items.map((tool) => tool.id),
-  )
+  const ids = page.items.map((tool) => tool.id)
+  const primary = await primaryPhotoIds('tool', ids)
+  // Where each one lies. Two queries for a whole page rather than two per card.
+  const placements = await placementsFor(ids)
 
   return Response.json(
     {
       ...page,
       items: page.items.map((tool) => ({
         ...tool,
+        organizer: placements.get(tool.id) ?? null,
         primaryPhotoUrl: primary.has(tool.id) ? photoUrl(primary.get(tool.id)!) : null,
       })),
     },

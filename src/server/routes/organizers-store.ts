@@ -289,6 +289,60 @@ export async function removeTool(
   return (result.rowCount ?? 0) > 0
 }
 
+// Where each of these tools lies, for the catalog grid: the organizer's number
+// and the case it is in, with that case's main photo.
+//
+// One query for a whole page, like the thumbnails: asking per card would be a
+// request per row, and the catalog is read on a phone.
+export type ToolPlacement = {
+  caseId: number
+  caseName: string
+  casePhotoUrl: null | string
+  number: number
+  organizerId: number
+}
+
+export async function placementsFor(
+  toolIds: number[],
+  pool: PgPool = db(),
+): Promise<Map<number, ToolPlacement>> {
+  if (toolIds.length === 0) return new Map()
+
+  const result = await pool.query<{
+    case_id: string
+    case_name: string
+    case_photo_id: null | string
+    number: string
+    organizer_id: string
+    tool_id: string
+  }>(
+    `
+      SELECT "ot"."tool_id", "o"."id" AS "organizer_id", "o"."number",
+             "c"."id" AS "case_id", "c"."name" AS "case_name",
+             (SELECT "photo_id" FROM "catalog"."photo_case"
+              WHERE "case_id" = "c"."id" AND "is_primary" LIMIT 1) AS "case_photo_id"
+      FROM "catalog"."organizer_tool" AS "ot"
+      JOIN "catalog"."organizer" AS "o" ON "o"."id" = "ot"."organizer_id"
+      JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "o"."case_id"
+      WHERE "ot"."tool_id" = ANY($1::bigint[])
+    `,
+    [toolIds],
+  )
+
+  return new Map(
+    result.rows.map((row) => [
+      Number(row.tool_id),
+      {
+        caseId: Number(row.case_id),
+        caseName: row.case_name,
+        casePhotoUrl: row.case_photo_id === null ? null : photoUrl(Number(row.case_photo_id)),
+        number: Number(row.number),
+        organizerId: Number(row.organizer_id),
+      },
+    ]),
+  )
+}
+
 // How many organizers a case would take with it. The screen asks before it
 // deletes, because the arrangements are not obviously part of the box.
 export async function countOrganizersOfCase(caseId: number, pool: PgPool = db()): Promise<number> {

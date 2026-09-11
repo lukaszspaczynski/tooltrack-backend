@@ -85,6 +85,24 @@ Query parameters, all optional:
 { "items": [/* tools */], "total": 128, "limit": 50, "offset": 0 }
 ```
 
+Each item is a tool plus two things the grid needs and would otherwise ask for
+per card: `primaryPhotoUrl`, and `organizer` — where the tool lies.
+
+```json
+{
+  "organizer": {
+    "organizerId": 4,
+    "number": 4,
+    "caseId": 2,
+    "caseName": "Qbrick System PRO Toolbox 2.0",
+    "casePhotoUrl": "/api/photos/29/file"
+  }
+}
+```
+
+`null` for a tool nobody has put anywhere. Both are one query for the whole
+page, so a screen of tools costs three statements rather than one per row.
+
 A malformed `limit`, `offset` or `sort` is clamped or ignored rather than
 refused — a pasted link should still show the catalog. An unknown `condition`
 is a `400`, because silently listing everything would look like an answer.
