@@ -188,9 +188,9 @@
       "brand": "Bosch Home & Garden",
       "category": "Akumulatory",
       "condition": "good",
-      "model": "PBA 18V 4,0 Ah W-C",
-      "name": "Akumulator 18 V 4,0 Ah",
-      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm. Linia Power for All. Tabliczka: 18V 4.0Ah W-C, Li-Ion 5INR19/66-2, 72 Wh.",
+      "model": "PBA 18V 4.0Ah W-C",
+      "name": "Akumulator PBA 18V 4.0Ah W-C",
+      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm. Linia Power for All. Tabliczka na obudowie: 18V 4.0Ah W-C, Li-Ion 5INR19/66-2, 72 Wh. Nr katalogowy 1600A011T8, EAN 4053423202120. Napięcie 18,0 V, pojemność 4,0 Ah, wymiary 118 x 85 x 105 mm, waga 0,640 kg. Dane producenta: https://www.bosch-diy.com/pl/pl/p/pba-18v-4-0ah-w-c-1600a011t8",
       "serialNumber": ""
     },
     {
@@ -198,9 +198,9 @@
       "brand": "Bosch Professional",
       "category": "Akumulatory",
       "condition": "good",
-      "model": "ProCORE18V 4,0 Ah",
-      "name": "Akumulator 18 V 4,0 Ah",
-      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm.",
+      "model": "GBA 18V 5.0Ah",
+      "name": "Akumulator GBA 18V 5.0Ah",
+      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm. Nr katalogowy 1600A002U5, EAN 3165140791649. Napięcie 18,0 V, pojemność 5,0 Ah, wymiary 74 x 114 x 56 mm, waga 0,62 kg, Li-Ion. Dane producenta: https://www.bosch-professional.com/pl/pl/products/gba-18v-5-0ah-1600A002U5",
       "serialNumber": ""
     },
     {
@@ -208,9 +208,9 @@
       "brand": "Bosch Professional",
       "category": "Akumulatory",
       "condition": "good",
-      "model": "",
-      "name": "Akumulator 12 V",
-      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm. Starsza obudowa z napisem „powered by Li-Ion technology\". Pojemność niepotwierdzona — brak czytelnej tabliczki. Jedyny pakiet inny niż 18 V.",
+      "model": "GBA 12V 2.0Ah",
+      "name": "Akumulator GBA 12V 2.0Ah",
+      "notes": "Skrzynka 15 — Qbrick System PRO Toolcase 12,6 cm. Jedyny pakiet inny niż 18 V. Nr katalogowy 1600Z0002X, EAN 3165140730358. Napięcie 12,0 V, pojemność 2,0 Ah, waga 0,175 kg, Li-Ion. Pakiet w skrzynce ma starszą obudowę z napisem „powered by Li-Ion technology\" i nieczytelną tabliczkę — dane pochodzą z karty produktu. Dane producenta: https://www.bosch-professional.com/pl/pl/products/gba-12v-2-0ah-1600Z0002X",
       "serialNumber": ""
     }
   ]
