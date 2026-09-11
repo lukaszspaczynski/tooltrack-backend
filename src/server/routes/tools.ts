@@ -28,7 +28,10 @@ export async function GET(request: Request): Promise<Response> {
   // The main photo of every tool on the page, in one query. The grid shows
   // thumbnails, and asking per card would be twenty-four requests for one
   // screen.
-  const primary = await primaryPhotoIds(page.items.map((tool) => tool.id))
+  const primary = await primaryPhotoIds(
+    'tool',
+    page.items.map((tool) => tool.id),
+  )
 
   return Response.json(
     {

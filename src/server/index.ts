@@ -40,17 +40,25 @@ type RouteMatch = {
 const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
-const TOOL_PHOTOS_PATTERN = /^\/api\/tools\/(\d+)\/photos$/
-const TOOL_PHOTO_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)$/
-const TOOL_PHOTO_FILE_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/file$/
-const TOOL_PHOTO_CUTOUT_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout$/
-const CUTOUT_PREVIEW_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/preview$/
-const CUTOUT_PREVIEW_FILE_PATTERN =
-  /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/preview\/([0-9a-f]{64})$/
-const CUTOUT_COMMIT_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/commit$/
-// A photo by its own id, which is the only way to reach one with no tool.
+
+// Photos belong to a tool or to a case on identical terms, so one set of
+// patterns serves both. Group 1 is the segment — "tools" or "cases" — which
+// routes/photo-owner.ts reads back into an owner; nothing downstream branches
+// on it again.
+const OWNER = '(tools|cases)'
+const PHOTOS_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos$`)
+const PHOTO_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)$`)
+const PHOTO_FILE_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/file$`)
+const PHOTO_ATTACH_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/attach$`)
+const PHOTO_CUTOUT_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout$`)
+const CUTOUT_PREVIEW_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout/preview$`)
+const CUTOUT_PREVIEW_FILE_PATTERN = new RegExp(
+  `^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout/preview/([0-9a-f]{64})$`,
+)
+const CUTOUT_COMMIT_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout/commit$`)
+const SUGGESTIONS_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photo-suggestions$`)
+// A photo by its own id, which is the only way to reach one with no owner.
 const LIBRARY_FILE_PATTERN = /^\/api\/photos\/(\d+)\/file$/
-const TOOL_SUGGESTIONS_PATTERN = /^\/api\/tools\/(\d+)\/photo-suggestions$/
 const GLOBAL_ENGINE_PATTERN = /^\/api\/settings\/search-engines\/([a-z]+)$/
 const MY_ENGINE_PATTERN = /^\/api\/me\/search-engines\/([a-z]+)$/
 const USER_DETAIL_PATTERN = /^\/api\/users\/(\d+)$/
@@ -198,13 +206,14 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   if (path === '/api/tools/categories') return methodHandler(method, { GET: tools.categoriesGET })
   if (path === '/api/tools') return methodHandler(method, { GET: tools.GET, POST: tools.POST })
 
+
   // Longest first: /photos/7/file must not be read as the photo detail route.
-  const photoFile = TOOL_PHOTO_FILE_PATTERN.exec(path)
+  const photoFile = PHOTO_FILE_PATTERN.exec(path)
   if (photoFile) {
     return methodHandler(
       method,
       { GET: photos.fileGET },
-      { id: photoFile[1], photoId: photoFile[2] },
+      { id: photoFile[2], owner: photoFile[1], photoId: photoFile[3] },
     )
   }
 
@@ -214,7 +223,12 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     return methodHandler(
       method,
       { GET: photos.cutoutPreviewGET },
-      { checksum: previewFile[3], id: previewFile[1], photoId: previewFile[2] },
+      {
+        checksum: previewFile[4],
+        id: previewFile[2],
+        owner: previewFile[1],
+        photoId: previewFile[3],
+      },
     )
   }
 
@@ -223,7 +237,7 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     return methodHandler(
       method,
       { POST: photos.cutoutPreviewPOST },
-      { id: preview[1], photoId: preview[2] },
+      { id: preview[2], owner: preview[1], photoId: preview[3] },
     )
   }
 
@@ -232,37 +246,49 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     return methodHandler(
       method,
       { POST: photos.cutoutCommitPOST },
-      { id: commit[1], photoId: commit[2] },
+      { id: commit[2], owner: commit[1], photoId: commit[3] },
     )
   }
 
-  const cutout = TOOL_PHOTO_CUTOUT_PATTERN.exec(path)
+  const cutout = PHOTO_CUTOUT_PATTERN.exec(path)
   if (cutout) {
-    return methodHandler(method, { POST: photos.cutoutPOST }, { id: cutout[1], photoId: cutout[2] })
+    return methodHandler(
+      method,
+      { POST: photos.cutoutPOST },
+      { id: cutout[2], owner: cutout[1], photoId: cutout[3] },
+    )
   }
 
-  const photoDetail = TOOL_PHOTO_PATTERN.exec(path)
+  const photoDetail = PHOTO_PATTERN.exec(path)
   if (photoDetail) {
     return methodHandler(
       method,
       { DELETE: photos.detailDELETE, PATCH: photos.detailPATCH },
-      { id: photoDetail[1], photoId: photoDetail[2] },
+      { id: photoDetail[2], owner: photoDetail[1], photoId: photoDetail[3] },
     )
   }
 
-  const attach = /^\/api\/tools\/(\d+)\/photos\/attach$/.exec(path)
+  const attach = PHOTO_ATTACH_PATTERN.exec(path)
   if (attach) {
-    return methodHandler(method, { POST: photos.attachPOST }, { id: attach[1] })
+    return methodHandler(method, { POST: photos.attachPOST }, { id: attach[2], owner: attach[1] })
   }
 
-  const toolPhotos = TOOL_PHOTOS_PATTERN.exec(path)
-  if (toolPhotos) {
-    return methodHandler(method, { GET: photos.listGET, POST: photos.POST }, { id: toolPhotos[1] })
+  const cardPhotos = PHOTOS_PATTERN.exec(path)
+  if (cardPhotos) {
+    return methodHandler(
+      method,
+      { GET: photos.listGET, POST: photos.POST },
+      { id: cardPhotos[2], owner: cardPhotos[1] },
+    )
   }
 
-  const suggestions = TOOL_SUGGESTIONS_PATTERN.exec(path)
+  const suggestions = SUGGESTIONS_PATTERN.exec(path)
   if (suggestions) {
-    return methodHandler(method, { GET: photos.suggestionsGET }, { id: suggestions[1] })
+    return methodHandler(
+      method,
+      { GET: photos.suggestionsGET },
+      { id: suggestions[2], owner: suggestions[1] },
+    )
   }
 
   const toolDetail = TOOL_DETAIL_PATTERN.exec(path)
@@ -273,6 +299,7 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
       { id: toolDetail[1] },
     )
   }
+
 
   if (path === '/api/settings/search-engines') {
     return methodHandler(method, { GET: settings.enginesGET })

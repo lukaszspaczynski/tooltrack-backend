@@ -1,12 +1,17 @@
-// Photos of a tool: list, add, promote, remove, serve, and the on-demand
-// search that suggests where a picture could come from.
+// Photos of a tool or of a case: list, add, promote, remove, serve, and the
+// on-demand search that suggests where a picture could come from.
 //
-//   GET    /api/tools/:id/photos               catalog.read
-//   POST   /api/tools/:id/photos               catalog.write  (raw bytes or JSON links)
-//   GET    /api/tools/:id/photos/:photoId/file catalog.read
-//   PATCH  /api/tools/:id/photos/:photoId      catalog.write  ({ isPrimary: true })
-//   DELETE /api/tools/:id/photos/:photoId      catalog.write
-//   GET    /api/tools/:id/photo-suggestions    catalog.write
+//   GET    /api/{tools,cases}/:id/photos               catalog.read
+//   POST   /api/{tools,cases}/:id/photos               catalog.write  (raw bytes or JSON links)
+//   POST   /api/{tools,cases}/:id/photos/attach        catalog.write
+//   GET    /api/{tools,cases}/:id/photos/:photoId/file catalog.read
+//   PATCH  /api/{tools,cases}/:id/photos/:photoId      catalog.write  ({ isPrimary: true })
+//   DELETE /api/{tools,cases}/:id/photos/:photoId      catalog.write
+//   GET    /api/{tools,cases}/:id/photo-suggestions    catalog.write
+//
+// One module for both because a case carries pictures on exactly the same
+// terms as a tool. Which of the two is in the path arrives as an owner (see
+// photo-owner.ts) and is the only difference that reaches the SQL.
 //
 // An upload arrives as the raw file in the request body with its own
 // content-type, not as multipart/form-data. One file per request needs no
@@ -19,10 +24,12 @@ import { ImageConversionError, toStoredPng } from '../image-convert'
 import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
 import { PhotoNotSuitableError } from '../cutout-local'
 import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
+import { getCase } from './cases-store'
 import { readCutoutConfig } from './cutout-settings-store'
 import { parseAttachIds } from './media-input'
 import { parseCutoutCommitInput, parseCutoutRunInput } from './settings-input'
 import {
+  defaultCaseQuery,
   defaultQuery,
   MAX_SUGGESTIONS_PER_ENGINE,
   PhotoSearchUnavailableError,
@@ -38,14 +45,21 @@ import {
 } from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import {
-  attachPhotosToTool,
+  OWNER_LABELS,
+  ownerPath,
+  parseOwnerId,
+  parsePhotoOwner,
+  type PhotoOwner,
+} from './photo-owner'
+import {
+  attachPhotosTo,
   deletePhoto,
   getPhoto,
   insertPhoto,
   listPhotos,
   PhotoAlreadyExistsError,
   setPrimaryPhoto,
-  type ToolPhoto,
+  type Photo,
 } from './photos-store'
 import { getTool } from './tools-store'
 
@@ -61,24 +75,29 @@ type LinkInput = {
   url?: string
 }
 
+// What the routes need to know about whichever card this is: that it exists,
+// and — for the suggestions — what to type into a search engine on its behalf.
+type OwnerCard = {
+  searchQuery: string
+}
+
 export async function listGET(_request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return toolNotFound()
+  const owner = parsePhotoOwner(context.params)
+  if (!owner) return ownerNotFound(context)
 
   return Response.json(
-    { photos: await listPhotos(toolId) },
+    { photos: await listPhotos(owner) },
     { headers: { 'cache-control': 'no-store' } },
   )
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return toolNotFound()
+  const owner = parsePhotoOwner(context.params)
+  if (!owner) return ownerNotFound(context)
 
-  // The tool is checked before anything is stored: a photo of a card that does
+  // The card is checked before anything is stored: a photo of a card that does
   // not exist is a file nobody will ever delete.
-  const tool = await getTool(toolId)
-  if (!tool) return toolNotFound()
+  if (!(await loadOwner(owner))) return ownerNotFound(context)
 
   const actorId = context.user?.id
   if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -86,11 +105,15 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   const contentType = request.headers.get('content-type') ?? ''
 
   return contentType.startsWith('image/')
-    ? uploadBytes(request, toolId, actorId)
-    : importLinks(request, toolId, actorId)
+    ? uploadBytes(request, owner, actorId)
+    : importLinks(request, owner, actorId)
 }
 
-async function uploadBytes(request: Request, toolId: number, actorId: number): Promise<Response> {
+async function uploadBytes(
+  request: Request,
+  owner: PhotoOwner,
+  actorId: number,
+): Promise<Response> {
   const bytes = new Uint8Array(await request.arrayBuffer())
   if (bytes.byteLength === 0) return Response.json({ error: 'Pusty plik' }, { status: 400 })
 
@@ -109,7 +132,7 @@ async function uploadBytes(request: Request, toolId: number, actorId: number): P
   try {
     const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
     const photo = await insertPhoto(
-      { metadata: converted.metadata, source: 'upload', stored, toolId },
+      { metadata: converted.metadata, owner, source: 'upload', stored },
       actorId,
     )
 
@@ -125,7 +148,11 @@ async function uploadBytes(request: Request, toolId: number, actorId: number): P
 // One pasted address, or a batch picked from the suggestions. Both go through
 // the same path, because "save the three I ticked" is the same operation as
 // "save this one" repeated.
-async function importLinks(request: Request, toolId: number, actorId: number): Promise<Response> {
+async function importLinks(
+  request: Request,
+  owner: PhotoOwner,
+  actorId: number,
+): Promise<Response> {
   const body = (await readJson(request)) as null | ({ items?: LinkInput[] } & LinkInput)
   const items = normaliseLinks(body)
 
@@ -136,7 +163,7 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
     return Response.json({ error: `Maksymalnie ${MAX_IMPORT_ITEMS} zdjęć naraz` }, { status: 400 })
   }
 
-  const photos: ToolPhoto[] = []
+  const photos: Photo[] = []
   const failed: { error: string; url: string }[] = []
 
   for (const item of items) {
@@ -152,12 +179,12 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
           {
             attribution: item.attribution,
             metadata: converted.metadata,
+            owner,
             // A link someone pasted and a link someone ticked in the search
             // results are different provenance, and the card says which.
             source: item.fromSearch ? 'search' : 'url',
             sourceUrl: item.url,
             stored,
-            toolId,
           },
           actorId,
         ),
@@ -188,8 +215,8 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
   return Response.json({ failed, photos }, { status: 201 })
 }
 
-// POST /api/tools/:id/photos/:photoId/cutout/preview — run the cutout and show
-// it, without writing a photo.
+// POST .../photos/:photoId/cutout/preview — run the cutout and show it,
+// without writing a photo.
 //
 // The result goes into the preview cache, which expires on its own, so a
 // cutout nobody accepts costs nothing for long. Accepting it (commit, below)
@@ -200,13 +227,13 @@ export async function cutoutPreviewPOST(
   request: Request,
   context: RouteContext,
 ): Promise<Response> {
-  const ids = parsePhotoParams(context)
-  if (!ids) return photoNotFound()
+  const target = parsePhotoTarget(context)
+  if (!target) return photoNotFound()
 
   const parsed = parseCutoutRunInput(await readJson(request))
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
 
-  const original = await getPhoto(ids.toolId, ids.photoId)
+  const original = await getPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
   const bytes = await readPhotoBytes(original.storageKey)
@@ -230,7 +257,7 @@ export async function cutoutPreviewPOST(
         checksum: stored.checksum,
         contentType: png.metadata.contentType,
         height: png.metadata.height,
-        url: `/api/tools/${ids.toolId}/photos/${ids.photoId}/cutout/preview/${stored.checksum}`,
+        url: `${ownerPath(target.owner)}/photos/${target.photoId}/cutout/preview/${stored.checksum}`,
         width: png.metadata.width,
       },
       provider: cutout.provider,
@@ -265,10 +292,10 @@ export async function cutoutPreviewGET(
 }
 
 // POST .../cutout/commit — keep a preview. The bytes are already on disk; this
-// is the row that turns them into a photo of this tool.
+// is the row that turns them into a photo of this card.
 export async function cutoutCommitPOST(request: Request, context: RouteContext): Promise<Response> {
-  const ids = parsePhotoParams(context)
-  if (!ids) return photoNotFound()
+  const target = parsePhotoTarget(context)
+  if (!target) return photoNotFound()
 
   const actorId = context.user?.id
   if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -276,7 +303,7 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   const parsed = parseCutoutCommitInput(await readJson(request))
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
 
-  const original = await getPhoto(ids.toolId, ids.photoId)
+  const original = await getPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
   const preview = await readPreviewBytes(parsed.value.checksum)
@@ -300,10 +327,10 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
         attribution: original.attribution,
         derivedFrom: original.id,
         metadata,
+        owner: target.owner,
         source: 'edit',
         sourceUrl: original.sourceUrl,
         stored,
-        toolId: ids.toolId,
       },
       actorId,
     )
@@ -317,7 +344,7 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   }
 }
 
-// POST /api/tools/:id/photos/:photoId/cutout — the AI edit.
+// POST .../photos/:photoId/cutout — the one-click edit.
 //
 // It adds a photo rather than replacing one. The original stays, so a cutout
 // that mangled the tool is one delete away from undone, and the two are linked
@@ -325,14 +352,13 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
 // whether the cutout is better than the photograph is a judgement, and the
 // person looking at both makes it.
 export async function cutoutPOST(_request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  const photoId = parseId(context.params.photoId)
-  if (toolId === null || photoId === null) return photoNotFound()
+  const target = parsePhotoTarget(context)
+  if (!target) return photoNotFound()
 
   const actorId = context.user?.id
   if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const original = await getPhoto(toolId, photoId)
+  const original = await getPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
   const bytes = await readPhotoBytes(original.storageKey)
@@ -351,53 +377,37 @@ export async function cutoutPOST(_request: Request, context: RouteContext): Prom
         attribution: original.attribution,
         derivedFrom: original.id,
         metadata: png.metadata,
+        owner: target.owner,
         source: 'edit',
         sourceUrl: original.sourceUrl,
         stored,
-        toolId,
       },
       actorId,
     )
 
     return Response.json({ photo, provider: cutout.provider }, { status: 201 })
   } catch (error) {
-    // Two different failures needing two different answers: the service is
-    // unavailable (503 — try later, or configure one), or this photograph
-    // cannot be cut out (422 — try another photo). Only the first is ours.
-    if (error instanceof PhotoNotSuitableError) {
-      return Response.json({ error: error.message }, { status: 422 })
-    }
-    if (error instanceof PhotoEditUnavailableError) {
-      return Response.json({ error: error.message }, { status: 503 })
-    }
-    if (error instanceof PhotoAlreadyExistsError) {
-      // The cutout came back byte-identical to something already on the card,
-      // which in practice means it was cut out once before.
-      return Response.json({ error: 'Takie wycięcie już jest na tej karcie' }, { status: 409 })
-    }
-    throw error
+    return cutoutError(error)
   }
 }
 
-// POST /api/tools/:id/photos/attach — put photos that already exist on this
-// tool.
+// POST .../photos/attach — put photos that already exist on this card.
 //
 // The other half of being able to upload a picture before deciding what it is:
 // without this the library's unassigned shelf has no way out.
 export async function attachPOST(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return toolNotFound()
+  const owner = parsePhotoOwner(context.params)
+  if (!owner) return ownerNotFound(context)
 
   const actorId = context.user?.id
   if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const tool = await getTool(toolId)
-  if (!tool) return toolNotFound()
+  if (!(await loadOwner(owner))) return ownerNotFound(context)
 
   const parsed = parseAttachIds(await readJson(request))
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
 
-  const result = await attachPhotosToTool(toolId, parsed.value, actorId)
+  const result = await attachPhotosTo(owner, parsed.value, actorId)
 
   // Nothing attached is a refusal worth a status of its own; some of them
   // failing is normal and reported per photo.
@@ -412,11 +422,10 @@ export async function attachPOST(request: Request, context: RouteContext): Promi
 }
 
 export async function fileGET(_request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  const photoId = parseId(context.params.photoId)
-  if (toolId === null || photoId === null) return photoNotFound()
+  const target = parsePhotoTarget(context)
+  if (!target) return photoNotFound()
 
-  const photo = await getPhoto(toolId, photoId)
+  const photo = await getPhoto(target.owner, target.photoId)
   if (!photo) return photoNotFound()
 
   const bytes = await readPhotoBytes(photo.storageKey)
@@ -437,9 +446,8 @@ export async function fileGET(_request: Request, context: RouteContext): Promise
 }
 
 export async function detailPATCH(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  const photoId = parseId(context.params.photoId)
-  if (toolId === null || photoId === null) return photoNotFound()
+  const target = parsePhotoTarget(context)
+  if (!target) return photoNotFound()
 
   const body = (await readJson(request)) as null | { isPrimary?: unknown }
   // Promoting is the only edit a photo has. Everything else about it — its
@@ -448,38 +456,38 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
     return Response.json({ error: 'Jedyna zmiana to { "isPrimary": true }' }, { status: 400 })
   }
 
-  const photo = await setPrimaryPhoto(toolId, photoId)
+  const photo = await setPrimaryPhoto(target.owner, target.photoId)
   if (!photo) return photoNotFound()
 
   return Response.json({ photo })
 }
 
 export async function detailDELETE(_request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  const photoId = parseId(context.params.photoId)
-  if (toolId === null || photoId === null) return photoNotFound()
+  const target = parsePhotoTarget(context)
+  if (!target) return photoNotFound()
 
-  const deleted = await deletePhoto(toolId, photoId)
+  const deleted = await deletePhoto(target.owner, target.photoId)
   if (!deleted) return photoNotFound()
 
   return Response.json({ ok: true })
 }
 
 // The suggestions themselves: links and thumbnails, nothing downloaded. The
-// client shows them, the person ticks the ones that are actually this machine,
-// and POST /photos with those addresses is what puts bytes on our disk.
+// client shows them, the person ticks the ones that are actually this machine
+// or this box, and POST /photos with those addresses is what puts bytes on our
+// disk.
 export async function suggestionsGET(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return toolNotFound()
-
-  const tool = await getTool(toolId)
-  if (!tool) return toolNotFound()
+  const owner = parsePhotoOwner(context.params)
+  if (!owner) return ownerNotFound(context)
 
   const actorId = context.user?.id
   if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const card = await loadOwner(owner)
+  if (!card) return ownerNotFound(context)
+
   const asked = new URL(request.url).searchParams.get('q')?.trim()
-  const query = asked || defaultQuery(tool)
+  const query = asked || card.searchQuery
 
   try {
     // Which engines this account searches with is settings, not code: global
@@ -503,6 +511,19 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
     }
     throw error
   }
+}
+
+// Does this card exist, and what would we type into a search engine for it? A
+// tool is identified by its brand and model; a case by who makes it and what
+// it is called.
+async function loadOwner(owner: PhotoOwner): Promise<null | OwnerCard> {
+  if (owner.kind === 'tool') {
+    const tool = await getTool(owner.id)
+    return tool ? { searchQuery: defaultQuery(tool) } : null
+  }
+
+  const found = await getCase(owner.id)
+  return found ? { searchQuery: defaultCaseQuery(found) } : null
 }
 
 type NormalisedLink = { attribution?: string; fromSearch: boolean; url: string }
@@ -533,11 +554,11 @@ function normaliseLinks(body: null | ({ items?: LinkInput[] } & LinkInput)): Nor
   return []
 }
 
-function parsePhotoParams(context: RouteContext): null | { photoId: number; toolId: number } {
-  const toolId = parseId(context.params.id)
-  const photoId = parseId(context.params.photoId)
-  if (toolId === null || photoId === null) return null
-  return { photoId, toolId }
+function parsePhotoTarget(context: RouteContext): null | { owner: PhotoOwner; photoId: number } {
+  const owner = parsePhotoOwner(context.params)
+  const photoId = parseOwnerId(context.params.photoId)
+  if (!owner || photoId === null) return null
+  return { owner, photoId }
 }
 
 // Three different failures with three different answers: this photo cannot be
@@ -556,15 +577,13 @@ function cutoutError(error: unknown): Response {
   throw error
 }
 
-function parseId(value: string | undefined): null | number {
-  if (!value || !/^\d+$/.test(value)) return null
+// "Nie ma takiego narzędzia" or "Nie ma takiej skrzynki", decided by the path
+// the caller used, so a 404 never names the wrong kind of thing.
+function ownerNotFound(context: RouteContext): Response {
+  const owner = parsePhotoOwner(context.params)
+  const label = owner ? OWNER_LABELS[owner.kind] : OWNER_LABELS.tool
 
-  const parsed = Number(value)
-  return Number.isSafeInteger(parsed) ? parsed : null
-}
-
-function toolNotFound(): Response {
-  return Response.json({ error: 'Tool not found' }, { status: 404 })
+  return Response.json({ error: label }, { status: 404 })
 }
 
 function photoNotFound(): Response {

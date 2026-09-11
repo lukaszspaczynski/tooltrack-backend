@@ -64,13 +64,21 @@ identify the product, and owning two identical cases is normal.
 
 ## Photos
 
-`catalog.tool_photo` holds what a photo is; `src/server/photo-storage.ts` holds
+`catalog.photo` holds what a photo is; `src/server/photo-storage.ts` holds
 the bytes, in a directory keyed by checksum. Three modules exist because each
 answers a different question, and all three are pure enough to test:
 `image-metadata.ts` (what is this file, really — the upload gate),
 `image-fetch.ts` (may we fetch this URL — the SSRF gate), `photo-search.ts`
 (where do suggestions come from) and `photo-edit.ts` (the AI cutout). Every
 outbound request in the server goes through one of those three.
+
+A photo belongs to a tool, to a case, or to nothing yet. Two nullable columns
+with real foreign keys rather than an owner_kind/owner_id pair: deleting a case
+takes its photos with it without a line of application code. Every photo route
+and every function in `photos-store.ts` takes a `PhotoOwner`, and
+`routes/photo-owner.ts` is the only place a URL segment becomes a column name —
+the same fixed-map trick as `SORT_COLUMNS`. That is why there is one set of
+photo handlers and not two.
 
 Previews live in their own directory with a TTL (`photo-storage.ts`), apart
 from the photos on purpose: a directory nothing in the catalog points at can be

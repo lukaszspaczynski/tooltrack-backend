@@ -75,7 +75,7 @@ const RULES: readonly Rule[] = [
     // picture is part of the card.
     domain: 'tools',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/file$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/file$/,
   },
   {
     // The cutout writes a new photo, so it needs the capability to write one —
@@ -84,41 +84,41 @@ const RULES: readonly Rule[] = [
     // reach: all three paths ask for the same thing.
     domain: 'tools',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/cutout$/,
   },
   {
     domain: 'tools',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
   },
   {
     domain: 'tools',
     methods: { GET: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
   },
   {
     domain: 'tools',
     methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photos\/\d+$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+$/,
   },
   {
     domain: 'tools',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photos$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos$/,
   },
   {
     // Putting an existing photo on a tool changes the card, so it asks for
     // what changing a card asks for.
     domain: 'tools',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photos\/attach$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/attach$/,
   },
   {
     // Searching the web costs an API call and only exists to add a photo, so
     // it asks for the capability to add one. A viewer has no use for it.
     domain: 'tools',
     methods: { GET: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/photo-suggestions$/,
+    pattern: /^\/api\/(?:tools|cases)\/\d+\/photo-suggestions$/,
   },
   {
     // Everyone who may search needs to see which engines are on — that is what

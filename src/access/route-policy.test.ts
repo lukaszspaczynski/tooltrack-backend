@@ -203,3 +203,32 @@ test('the tools rule does not leak onto a longer path', () => {
 test('the domain label survives an unclassified path', () => {
   assert.equal(routeRequirement('/api/users/7/sessions', 'DELETE').domain, 'users')
 })
+
+test('a photo of a case is guarded exactly like a photo of a tool', () => {
+  // One handler serves both paths. A rule covering only one of them would
+  // leave the other unclassified, and the guard turns unclassified into a 403
+  // nobody can explain.
+  for (const kind of ['tools', 'cases']) {
+    assert.equal(allows(`/api/${kind}/4/photos`, 'GET', user('viewer')), true, kind)
+    assert.equal(allows(`/api/${kind}/4/photos`, 'POST', user('viewer')), false, kind)
+    assert.equal(allows(`/api/${kind}/4/photos`, 'POST', user('editor')), true, kind)
+
+    // The bytes are part of the card, so anyone who may read it may see them.
+    assert.equal(allows(`/api/${kind}/4/photos/9/file`, 'GET', user('viewer')), true, kind)
+
+    // Everything that changes a card, or spends a search or cutout call.
+    for (const path of [
+      `/api/${kind}/4/photos/attach`,
+      `/api/${kind}/4/photos/9/cutout`,
+      `/api/${kind}/4/photos/9/cutout/preview`,
+      `/api/${kind}/4/photos/9/cutout/commit`,
+    ]) {
+      assert.equal(allows(path, 'POST', user('viewer')), false, path)
+      assert.equal(allows(path, 'POST', user('editor')), true, path)
+    }
+
+    assert.equal(allows(`/api/${kind}/4/photos/9`, 'DELETE', user('editor')), true, kind)
+    assert.equal(allows(`/api/${kind}/4/photo-suggestions`, 'GET', user('viewer')), false, kind)
+    assert.equal(allows(`/api/${kind}/4/photo-suggestions`, 'GET', user('editor')), true, kind)
+  }
+})

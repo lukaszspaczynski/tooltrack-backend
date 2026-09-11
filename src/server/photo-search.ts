@@ -65,6 +65,21 @@ export function defaultQuery(tool: { brand: string; model: string; name: string 
   return parts.join(' ')
 }
 
+// The same question for a case. A case has no model number; what identifies
+// it is who makes it and what it is called. The names usually carry the maker
+// already ("Qbrick System PRO Toolbox 2.0"), and searching for "Qbrick Qbrick
+// System PRO..." finds less than searching for the name alone.
+export function defaultCaseQuery(item: { manufacturer: string; name: string }): string {
+  const name = item.name.trim()
+  const manufacturer = item.manufacturer.trim()
+
+  if (!manufacturer) return name
+  if (!name) return manufacturer
+  if (name.toLowerCase().includes(manufacturer.toLowerCase())) return name
+
+  return `${manufacturer} ${name}`
+}
+
 export type EngineRequest = {
   credentials: SearchCredentials
   provider: SearchProvider

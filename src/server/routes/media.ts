@@ -1,11 +1,12 @@
-// The photo library: every picture on our disk, across all tools.
+// The photo library: every picture on our disk, whatever it is a picture of.
 //
 //   GET  /api/photos          catalog.read
 //   POST /api/photos/delete   catalog.write
 //
-// A separate surface from /api/tools/:id/photos on purpose. That one answers
-// "what does this tool look like"; this one answers "what did we import", and
-// it exists for the cleanup after a batch that pulled in the wrong pictures.
+// A separate surface from the per-card photo routes on purpose. Those answer
+// "what does this tool or this case look like"; this one answers "what did we
+// import", and it exists for the cleanup after a batch that pulled in the
+// wrong pictures.
 //
 // Deleting is POST rather than DELETE-with-a-body: a body on DELETE is legal
 // but not universally carried by proxies, and this is a form submission with a
@@ -61,7 +62,7 @@ export async function uploadPOST(request: Request, context: RouteContext): Promi
   try {
     const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
     const photo = await insertPhoto(
-      { metadata: converted.metadata, source: 'upload', stored, toolId: null },
+      { metadata: converted.metadata, owner: null, source: 'upload', stored },
       actorId,
     )
 
@@ -115,7 +116,10 @@ export async function deletePOST(request: Request, _context: RouteContext): Prom
   // The client shows what actually happened rather than what was requested.
   return Response.json({
     deleted: result.deleted,
-    promotedTools: result.promotedTools,
+    // Which cards now show a different main photo, and what kind of card each
+    // one is: deleting the main picture of a case changes the shelf as much as
+    // deleting a tool's changes the catalog.
+    promoted: result.promoted,
     requested: parsed.value.length,
   })
 }

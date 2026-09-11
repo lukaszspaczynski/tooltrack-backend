@@ -86,3 +86,40 @@ the two apart in the database rather than only in the parser.
 The EAN and the SKU identify the product, not this box. Two identical cases on
 the shelf are two rows carrying the same barcode, which is why neither column
 is unique — the opposite of `tool.serial_number`, which is one machine.
+
+### `catalog.photo`
+
+Photos of tools and of cases. The bytes are not here: the row says what the
+file is and which storage key holds it, and `src/server/photo-storage.ts` owns
+the file. A database that also carried a few hundred megabytes of PNG is a
+database nobody wants to back up.
+
+| Column                      | Type                           | Notes                                      |
+| --------------------------- | ------------------------------ | ------------------------------------------ |
+| `id`                        | `bigint` identity              |                                            |
+| `tool_id`                   | `bigint` → `catalog.tool`      | `ON DELETE CASCADE`, NULL if not a tool's  |
+| `case_id`                   | `bigint` → `catalog.tool_case` | `ON DELETE CASCADE`, NULL if not a case's  |
+| `storage_key`, `checksum`   | `text`                         | Content addressed: same image, one file    |
+| `content_type`              | `text`                         | Always `image/png` since the PNG-only rule |
+| `byte_size`                 | `bigint`                       |                                            |
+| `width`, `height`           | `integer`                      |                                            |
+| `source`                    | `text`                         | `upload` \| `url` \| `search` \| `edit`    |
+| `source_url`, `attribution` | `text`                         | Where it came from, and whose it is        |
+| `is_primary`                | `boolean`                      | One per card, by partial unique index      |
+| `derived_from`              | `bigint` → `catalog.photo`     | The original a cutout was made from        |
+| `created_by`, `created_at`  |                                |                                            |
+
+Two owner columns rather than an `owner_kind`/`owner_id` pair, because a real
+foreign key is what makes deleting a case take its photos with it. A CHECK
+allows at most one of them to be set, and a second CHECK stops a row with
+neither from claiming to be a main photo of nothing.
+
+Three unique indexes carry the rules a route would otherwise have to remember:
+one primary per tool, one per case, and the same checksum only once per card.
+A fourth covers photos with no owner at all — in an index two NULLs are
+different values, so without it the same picture could sit in the library a
+hundred times.
+
+The table was called `tool_photo` when tools were the only thing with a
+picture. The DDL renames it, idempotently, rather than creating a second table:
+a case photo is the same row with a different owner.
