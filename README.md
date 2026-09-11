@@ -214,6 +214,30 @@ Catalog and part numbers (`SR1E7615AB`, `0611910000`, `6-TRE650`) are kept in
 the notes rather than in the serial number field: they identify a model, not
 the individual machine, and that field is unique per tool.
 
+## Importing the Qbrick cases
+
+The boxes themselves come from the manufacturer's product pages, frozen into
+`scripts/data/qbrick-cases.json` for the same reason the tool list is frozen: a
+catalog that changed because a shop restyled its spec table is a catalog nobody
+could trust twice. Each entry carries the page it was read from.
+
+```bash
+npm run qbrick:cases              # validate and report, writes nothing
+npm run qbrick:cases -- --apply   # insert what is missing
+```
+
+The catalog keeps one value per measurement, and two of these products do not
+have one. The drawer units list a capacity and a load **per drawer**, so the
+import stores the sum, takes the internal dimensions of the largest drawer, and
+writes the breakdown into the notes — where nothing is lost and nobody has to
+guess which drawer 4,5 L referred to.
+
+Validation is the parser the API uses, plus one rule of its own: internal
+dimensions larger than external ones mean a decimal point moved while somebody
+was copying a table. Re-running is safe — the importer dedupes on maker and
+name, because the EAN cannot be a key when owning two identical cases is
+normal.
+
 ## Looking at the data
 
 ```bash

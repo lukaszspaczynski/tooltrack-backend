@@ -20,7 +20,8 @@
     "start": "tsx src/server/index.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit --pretty false",
-    "user:admin": "tsx scripts/ensure-admin-user.ts"
+    "user:admin": "tsx scripts/ensure-admin-user.ts",
+    "qbrick:cases": "tsx scripts/import-qbrick-cases.ts"
   },
   "dependencies": {
     "dotenv": "16.4.7",
