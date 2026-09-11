@@ -62,7 +62,10 @@ outbound request in the server goes through one of those three.
 
 Previews live in their own directory with a TTL (`photo-storage.ts`), apart
 from the photos on purpose: a directory nothing in the catalog points at can be
-swept without asking whether a file is still needed. Keeping a preview copies
+swept without asking whether a file is still needed. The sweep runs at startup
+and on an unref'd timer as well as when a preview is written, so the last
+previews of an afternoon do not wait for the next person to use the feature.
+Keeping a preview copies
 it into the photo store, where nothing sweeps it.
 
 A cutout is an added photo, never an edit in place: `source: 'edit'` and

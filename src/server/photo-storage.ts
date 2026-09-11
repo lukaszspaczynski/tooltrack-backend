@@ -96,9 +96,24 @@ const DEFAULT_PREVIEW_TTL_MINUTES = 30
 // Not more often than this, however many previews are generated: the sweep
 // reads a directory, and doing that on every click would be work nobody asked
 // for.
-const SWEEP_INTERVAL_MS = 60_000
+const SWEEP_THROTTLE_MS = 60_000
+
+// How often the server sweeps on its own. Writing a preview is not enough to
+// keep the cache clean: the last previews of an afternoon would sit there
+// until somebody used the feature again, which might be next week.
+const SWEEP_EVERY_MS = 10 * 60 * 1000
 
 let lastSweep = 0
+
+// Called once at startup. The interval is unref'd so it cannot hold a script
+// or a test run open, and the first sweep happens immediately because the
+// previews from before a restart are exactly the ones nobody will write over.
+export function startPreviewSweeping(): void {
+  void sweepExpiredPreviews(true)
+
+  const timer = setInterval(() => void sweepExpiredPreviews(true), SWEEP_EVERY_MS)
+  timer.unref()
+}
 
 export function previewTtlMs(): number {
   const raw = process.env.TOOLTRACK_PREVIEW_TTL_MINUTES
@@ -169,7 +184,7 @@ export async function readPreviewBytes(checksum: string): Promise<null | CachedP
 
 export async function sweepExpiredPreviews(force = false): Promise<number> {
   const now = Date.now()
-  if (!force && now - lastSweep < SWEEP_INTERVAL_MS) return 0
+  if (!force && now - lastSweep < SWEEP_THROTTLE_MS) return 0
   lastSweep = now
 
   let names: string[]

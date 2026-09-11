@@ -168,8 +168,9 @@ until it is accepted. That is `preview` → `commit` in the API. The
 preview lands in a cache under `<media>/previews` and is swept after
 `TOOLTRACK_PREVIEW_TTL_MINUTES` (30 by default), so keeping one costs no second
 call to a paid service and discarding one costs nothing at all. The sweep runs
-opportunistically when a preview is written, at most once a minute — there is
-no cron in this server, and a preview cache does not deserve one.
+when a preview is written (at most once a minute), at startup, and on a timer
+that cannot hold the process open — there is no cron in this server, and a
+preview cache does not deserve one.
 
 The local method reads whatever is stored, which since the conversion above is
 always PNG. It still refuses a photograph with no plain background — that is a

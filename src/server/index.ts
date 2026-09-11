@@ -14,6 +14,7 @@ import 'dotenv/config'
 
 import { preflightResponse, withCorsHeaders } from './cors'
 import { routeErrorResponse } from './pg-error-response'
+import { startPreviewSweeping } from './photo-storage'
 import { readRequestBody, requestUrl } from './request-body-limit'
 import { enforceRoutePolicy } from './route-guard'
 import type { RouteHandler } from './route-context'
@@ -173,6 +174,11 @@ const port = Number.parseInt(process.env.PORT ?? '', 10) || DEFAULT_PORT
 server.listen(port, () => {
   console.log(`[api] listening on http://localhost:${port}`)
 })
+
+// Expired cutout previews are cleared on a timer as well as when one is
+// written: otherwise the last previews of an afternoon would sit on disk until
+// somebody used the feature again, which might be next week.
+startPreviewSweeping()
 
 function matchRoute(pathname: string, method: string): null | RouteMatch {
   const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
