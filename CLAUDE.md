@@ -60,6 +60,11 @@ answers a different question, and all three are pure enough to test:
 (where do suggestions come from) and `photo-edit.ts` (the AI cutout). Every
 outbound request in the server goes through one of those three.
 
+Previews live in their own directory with a TTL (`photo-storage.ts`), apart
+from the photos on purpose: a directory nothing in the catalog points at can be
+swept without asking whether a file is still needed. Keeping a preview copies
+it into the photo store, where nothing sweeps it.
+
 A cutout is an added photo, never an edit in place: `source: 'edit'` and
 `derived_from` pointing at the original. That is what makes the feature safe to
 press.

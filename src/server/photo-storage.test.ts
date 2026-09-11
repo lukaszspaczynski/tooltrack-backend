@@ -4,14 +4,21 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 
+import { utimes } from 'node:fs/promises'
+
 import {
   checksumOf,
   deletePhotoFile,
   mediaDir,
   photoPath,
+  previewDir,
+  previewTtlMs,
   readPhotoBytes,
+  readPreviewBytes,
   savePhotoBytes,
+  savePreviewBytes,
   storageKeyFor,
+  sweepExpiredPreviews,
 } from './photo-storage'
 
 async function withTempMediaDir(fn: () => Promise<void>): Promise<void> {
@@ -77,5 +84,90 @@ test('a key cannot escape the media directory', async () => {
 
     // A normal key resolves inside it.
     assert.ok(photoPath('ab/cd.jpg').startsWith(mediaDir() + '/'))
+  })
+})
+
+// --- Previews ------------------------------------------------------------
+
+async function age(checksum: string, minutes: number): Promise<void> {
+  // Backdating the file is how a test waits half an hour without waiting.
+  const when = new Date(Date.now() - minutes * 60 * 1000)
+  await utimes(join(previewDir(), `${checksum}.png`), when, when)
+}
+
+test('a preview comes back while it is fresh', async () => {
+  await withTempMediaDir(async () => {
+    const bytes = new TextEncoder().encode('pretend this is a cutout')
+
+    const stored = await savePreviewBytes(bytes)
+
+    assert.equal(stored.storageKey, `previews/${stored.checksum}.png`)
+    assert.deepEqual(await readPreviewBytes(stored.checksum), Buffer.from(bytes))
+  })
+})
+
+test('an expired preview reads as no preview', async () => {
+  await withTempMediaDir(async () => {
+    const stored = await savePreviewBytes(new TextEncoder().encode('stary podgląd'))
+
+    await age(stored.checksum, 31)
+
+    // The caller cannot tell "never existed" from "expired", and does not need
+    // to: both mean generate it again.
+    assert.equal(await readPreviewBytes(stored.checksum), null)
+  })
+})
+
+test('the sweep removes what has expired and leaves the rest', async () => {
+  await withTempMediaDir(async () => {
+    const old = await savePreviewBytes(new TextEncoder().encode('stary'))
+    const fresh = await savePreviewBytes(new TextEncoder().encode('świeży'))
+    await age(old.checksum, 45)
+
+    // force: the sweep normally runs at most once a minute, and a test should
+    // not depend on when the last one happened to be.
+    assert.equal(await sweepExpiredPreviews(true), 1)
+    assert.equal(await readPreviewBytes(old.checksum), null)
+    assert.deepEqual(await readPreviewBytes(fresh.checksum), Buffer.from('świeży'))
+  })
+})
+
+test('the lifetime is half an hour unless the environment says otherwise', (t) => {
+  t.after(() => {
+    delete process.env.TOOLTRACK_PREVIEW_TTL_MINUTES
+  })
+
+  assert.equal(previewTtlMs(), 30 * 60 * 1000)
+
+  process.env.TOOLTRACK_PREVIEW_TTL_MINUTES = '5'
+  assert.equal(previewTtlMs(), 5 * 60 * 1000)
+
+  // Zero would expire every preview before it could be looked at; anything
+  // unreadable is a typo in a deploy variable.
+  for (const bad of ['0', '-5', 'pół godziny', '1.5']) {
+    process.env.TOOLTRACK_PREVIEW_TTL_MINUTES = bad
+    assert.equal(previewTtlMs(), 30 * 60 * 1000, bad)
+  }
+})
+
+test('a preview key that is not a checksum is refused, not resolved', async () => {
+  await withTempMediaDir(async () => {
+    // The name comes from a URL; it is checked rather than trusted.
+    assert.equal(await readPreviewBytes('../../etc/passwd'), null)
+    assert.equal(await readPreviewBytes('nie-suma'), null)
+  })
+})
+
+test('previews live apart from photos, so a sweep cannot touch one', async () => {
+  await withTempMediaDir(async () => {
+    const photo = await savePhotoBytes(new TextEncoder().encode('prawdziwe zdjęcie'), 'image/png')
+    const preview = await savePreviewBytes(new TextEncoder().encode('podgląd'))
+    await age(preview.checksum, 60)
+
+    await sweepExpiredPreviews(true)
+
+    // The photo is in the store, which nothing sweeps.
+    assert.notEqual(await readPhotoBytes(photo.storageKey), null)
+    assert.equal(await readPreviewBytes(preview.checksum), null)
   })
 })

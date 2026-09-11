@@ -298,13 +298,18 @@ the person looking at it.
 }
 ```
 
-Nothing is written to the catalog. The bytes go to the media directory, which
-is content addressed, so showing and keeping touch the same file: an
-unaccepted preview costs one file and no row, and accepting costs no second
-call to a paid service.
+Nothing is written to the catalog. The bytes go to a **preview cache** —
+`<media>/previews`, swept after `TOOLTRACK_PREVIEW_TTL_MINUTES` (30 by
+default) — so a cutout nobody accepts disappears on its own instead of
+becoming a file the catalog has to explain. Accepting copies it into the photo
+store, which costs no second call to a paid service for a picture somebody has
+already seen.
 
 **`GET .../cutout/preview/:checksum`** — `tools.write`. The bytes, for the
-`<img>` on the right-hand side of the screen.
+`<img>` on the right-hand side of the screen. `404` once the preview has
+expired, and its `cache-control` never outlives the cache it came from — a
+browser holding a picture the server has already forgotten is how a save fails
+after a preview that still looked fine.
 
 **`POST .../cutout/commit`** — `tools.write`
 
@@ -313,9 +318,9 @@ call to a paid service.
 ```
 
 Turns a preview into a photo: `source: "edit"`, `derivedFrom` the original,
-`201 { photo }`. `409` if the preview is no longer on disk (an old tab, a
-cleaned media directory) — it is generated again rather than half-saved — or
-if that exact cutout is already on the card.
+`201 { photo }`. `409` if the preview has expired or was never made — an old tab, a swept
+cache — in which case it is generated again rather than half-saved; or if that
+exact cutout is already on the card.
 
 ### `GET /api/tools/:id/photo-suggestions` — `tools.write`
 

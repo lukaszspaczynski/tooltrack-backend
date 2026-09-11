@@ -164,9 +164,12 @@ refuses.
 
 The wand opens a screen rather than doing something immediately: method on the
 left of the parameters, original and result side by side, and nothing written
-until it is accepted. That is `preview` → `commit` in the API — the preview
-lands in the media directory, which is content addressed, so keeping it costs
-no second call to a paid service and discarding it costs one file.
+until it is accepted. That is `preview` → `commit` in the API. The
+preview lands in a cache under `<media>/previews` and is swept after
+`TOOLTRACK_PREVIEW_TTL_MINUTES` (30 by default), so keeping one costs no second
+call to a paid service and discarding one costs nothing at all. The sweep runs
+opportunistically when a preview is written, at most once a minute — there is
+no cron in this server, and a preview cache does not deserve one.
 
 The local method reads whatever is stored, which since the conversion above is
 always PNG. It still refuses a photograph with no plain background — that is a

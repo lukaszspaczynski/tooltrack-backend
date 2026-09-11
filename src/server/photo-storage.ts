@@ -10,7 +10,7 @@
 // one file, and a delete only unlinks when the last row referencing it goes.
 
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
 import { extensionFor } from './image-metadata'
@@ -77,4 +77,111 @@ export function photoPath(storageKey: string): string {
   }
 
   return path
+}
+
+// --- Previews ------------------------------------------------------------
+//
+// A cutout somebody has looked at but not kept. They live apart from the
+// photos on purpose: a directory nothing in the catalog points at can be swept
+// without ever asking whether a file is still needed, and a preview that is
+// never accepted must not become permanent because it happened to be written
+// to the same place as one that was.
+//
+// Kept for half an hour by default — long enough to compare two methods and
+// think about it, short enough that an afternoon of experimenting does not
+// accumulate.
+
+const DEFAULT_PREVIEW_TTL_MINUTES = 30
+
+// Not more often than this, however many previews are generated: the sweep
+// reads a directory, and doing that on every click would be work nobody asked
+// for.
+const SWEEP_INTERVAL_MS = 60_000
+
+let lastSweep = 0
+
+export function previewTtlMs(): number {
+  const raw = process.env.TOOLTRACK_PREVIEW_TTL_MINUTES
+  const parsed = Number(raw)
+  const minutes =
+    raw?.trim() && Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_PREVIEW_TTL_MINUTES
+
+  return minutes * 60 * 1000
+}
+
+export function previewDir(): string {
+  return join(mediaDir(), 'previews')
+}
+
+function previewPath(checksum: string): string {
+  // The name is a checksum and nothing else, so there is no path to escape
+  // with — but it is checked rather than trusted, like every other key here.
+  if (!/^[0-9a-f]{64}$/.test(checksum)) {
+    throw new Error(`Preview key is not a checksum: ${checksum}`)
+  }
+
+  return join(previewDir(), `${checksum}.png`)
+}
+
+export async function savePreviewBytes(bytes: Uint8Array): Promise<StoredPhoto> {
+  const checksum = checksumOf(bytes)
+
+  await mkdir(previewDir(), { recursive: true })
+  await writeFile(previewPath(checksum), bytes)
+  // Every write is also a chance to clear what has expired; there is no cron
+  // in this server and a preview cache does not deserve one.
+  void sweepExpiredPreviews()
+
+  return { byteSize: bytes.byteLength, checksum, storageKey: `previews/${checksum}.png` }
+}
+
+// Null for a preview that was never made, and for one that has expired — the
+// caller cannot tell the two apart and does not need to: both mean "generate
+// it again".
+export async function readPreviewBytes(checksum: string): Promise<null | Uint8Array> {
+  let path: string
+  try {
+    path = previewPath(checksum)
+  } catch {
+    return null
+  }
+
+  try {
+    const info = await stat(path)
+    if (Date.now() - info.mtimeMs > previewTtlMs()) return null
+
+    return await readFile(path)
+  } catch {
+    return null
+  }
+}
+
+export async function sweepExpiredPreviews(force = false): Promise<number> {
+  const now = Date.now()
+  if (!force && now - lastSweep < SWEEP_INTERVAL_MS) return 0
+  lastSweep = now
+
+  let names: string[]
+  try {
+    names = await readdir(previewDir())
+  } catch {
+    return 0
+  }
+
+  const ttl = previewTtlMs()
+  let removed = 0
+
+  for (const name of names) {
+    const path = join(previewDir(), name)
+    try {
+      const info = await stat(path)
+      if (now - info.mtimeMs <= ttl) continue
+      await rm(path, { force: true })
+      removed += 1
+    } catch {
+      // A file that vanished between readdir and stat is one less to remove.
+    }
+  }
+
+  return removed
 }

@@ -30,7 +30,13 @@ import {
 } from '../photo-search'
 import { credentialsForSearch, resolveProvidersFor } from './search-settings-store'
 import { readImageMetadata } from '../image-metadata'
-import { readPhotoBytes, savePhotoBytes, storageKeyFor } from '../photo-storage'
+import {
+  previewTtlMs,
+  readPhotoBytes,
+  readPreviewBytes,
+  savePhotoBytes,
+  savePreviewBytes,
+} from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import {
   attachPhotosToTool,
@@ -216,7 +222,9 @@ export async function cutoutPreviewPOST(
       parsed.value,
     )
     const png = await toStoredPng(cutout.bytes)
-    const stored = await savePhotoBytes(png.bytes, png.metadata.contentType)
+    // Into the preview cache, not the photo store: a cutout nobody accepts
+    // expires on its own instead of becoming a file the catalog has to explain.
+    const stored = await savePreviewBytes(png.bytes)
 
     return Response.json({
       preview: {
@@ -240,15 +248,17 @@ export async function cutoutPreviewGET(
   _request: Request,
   context: RouteContext,
 ): Promise<Response> {
-  const checksum = context.params.checksum
-  if (!/^[0-9a-f]{64}$/.test(checksum ?? '')) return photoNotFound()
+  const checksum = context.params.checksum ?? ''
 
-  const bytes = await readPhotoBytes(storageKeyFor(checksum, 'image/png'))
+  const bytes = await readPreviewBytes(checksum)
   if (!bytes) return photoNotFound()
 
   return new Response(bytes, {
     headers: {
-      'cache-control': 'private, max-age=3600',
+      // No longer than the cache it came from: a browser holding a picture the
+      // server has already forgotten is how a save fails after a preview that
+      // still looked fine.
+      'cache-control': `private, max-age=${Math.floor(previewTtlMs() / 1000)}`,
       'content-length': String(bytes.byteLength),
       'content-type': 'image/png',
       etag: `"${checksum}"`,
@@ -271,10 +281,9 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   const original = await getPhoto(ids.toolId, ids.photoId)
   if (!original) return photoNotFound()
 
-  const storageKey = storageKeyFor(parsed.value.checksum, 'image/png')
-  const bytes = await readPhotoBytes(storageKey)
-  // A preview that is no longer on disk — an old tab, a cleaned media
-  // directory — is asked for again rather than half-saved.
+  const bytes = await readPreviewBytes(parsed.value.checksum)
+  // Expired, or from a tab left open since yesterday. Asked for again rather
+  // than half-saved.
   if (!bytes) {
     return Response.json({ error: 'Podgląd wygasł — wygeneruj go ponownie' }, { status: 409 })
   }
@@ -283,6 +292,11 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   if (!metadata) return Response.json({ error: 'Podgląd jest uszkodzony' }, { status: 409 })
 
   try {
+    // Keeping it means copying it out of the cache into the photo store, where
+    // nothing sweeps it. Both are addressed by content, so the checksum — and
+    // the client's idea of what it accepted — does not change.
+    const stored = await savePhotoBytes(bytes, metadata.contentType)
+
     const photo = await insertPhoto(
       {
         attribution: original.attribution,
@@ -290,7 +304,7 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
         metadata,
         source: 'edit',
         sourceUrl: original.sourceUrl,
-        stored: { byteSize: bytes.byteLength, checksum: parsed.value.checksum, storageKey },
+        stored,
         toolId: ids.toolId,
       },
       actorId,
