@@ -34,6 +34,9 @@ export type ToolSort = 'createdAt' | 'name' | 'updatedAt'
 
 export type ToolQuery = {
   category: null | string
+  // true: only tools that are in no organizer — what the organizer wizard
+  // offers. null: everything, which is what every other screen wants.
+  inOrganizer: boolean | null
   condition: null | ToolCondition
   direction: 'asc' | 'desc'
   limit: number
@@ -125,6 +128,7 @@ export function parseToolQuery(params: URLSearchParams): Parsed<ToolQuery> {
 
   return valid({
     category: params.get('category')?.trim() || null,
+    inOrganizer: readBoolean(params.get('inOrganizer')),
     condition: conditionParam ? (conditionParam as ToolCondition) : null,
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
     limit: clampInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT),
@@ -151,4 +155,12 @@ function clampInteger(value: null | string, fallback: number, min: number, max: 
   const parsed = Number(value)
   if (value === null || value.trim() === '' || !Number.isInteger(parsed)) return fallback
   return Math.min(Math.max(parsed, min), max)
+}
+
+// Absent means "do not filter", which is not the same as false.
+function readBoolean(value: null | string): boolean | null {
+  const trimmed = value?.trim().toLowerCase()
+  if (trimmed === 'true') return true
+  if (trimmed === 'false') return false
+  return null
 }

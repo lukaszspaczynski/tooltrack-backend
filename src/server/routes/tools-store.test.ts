@@ -92,7 +92,9 @@ test('a filter that was not asked for is passed as null, not as SQL', async () =
 
   await listTools(query('category=Piły&condition=retired&limit=10&offset=20'), pool)
 
-  assert.deepEqual(calls[0].params, [null, 'Piły', 'retired', 10, 20])
+  // The organizer filter is null too: "do not filter" is not the same as
+  // "tools that are in no organizer".
+  assert.deepEqual(calls[0].params, [null, 'Piły', 'retired', 10, 20, null])
 })
 
 test('the sort key is chosen from a fixed map, never interpolated', async () => {

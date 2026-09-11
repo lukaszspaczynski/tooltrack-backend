@@ -97,6 +97,7 @@ test('the list query has usable defaults', () => {
   assert.deepEqual(parsed.value, {
     category: null,
     condition: null,
+    inOrganizer: null,
     direction: 'desc',
     limit: DEFAULT_LIMIT,
     offset: 0,

@@ -70,15 +70,16 @@ account is ended, including the caller's, so the client has to log in again.
 
 Query parameters, all optional:
 
-| Name        | Meaning                                                                    | Default     |
-| ----------- | -------------------------------------------------------------------------- | ----------- |
-| `q`         | Substring match over name, brand, model, serial number, category and notes | —           |
-| `category`  | Exact category, case-insensitive                                           | —           |
-| `condition` | One of `new`, `good`, `worn`, `needs_repair`, `retired`                    | —           |
-| `sort`      | `updatedAt`, `createdAt` or `name`                                         | `updatedAt` |
-| `order`     | `asc` or `desc`                                                            | `desc`      |
-| `limit`     | 1–200                                                                      | 50          |
-| `offset`    | ≥ 0                                                                        | 0           |
+| Name          | Meaning                                                                    | Default     |
+| ------------- | -------------------------------------------------------------------------- | ----------- |
+| `q`           | Substring match over name, brand, model, serial number, category and notes | —           |
+| `category`    | Exact category, case-insensitive                                           | —           |
+| `condition`   | One of `new`, `good`, `worn`, `needs_repair`, `retired`                    | —           |
+| `inOrganizer` | `false` for tools in no organizer — what the organizer wizard offers       | —           |
+| `sort`        | `updatedAt`, `createdAt` or `name`                                         | `updatedAt` |
+| `order`       | `asc` or `desc`                                                            | `desc`      |
+| `limit`       | 1–200                                                                      | 50          |
+| `offset`      | ≥ 0                                                                        | 0           |
 
 ```json
 { "items": [/* tools */], "total": 128, "limit": 50, "offset": 0 }
@@ -584,6 +585,75 @@ clears — as everywhere. The local method has no key, and sending one is a
 
 The only setting that is not a method: where the local method's threshold
 starts on the cutout screen. 1 to 765, where 765 is pure white.
+
+## Organizer
+
+Which tools live in which case. An organizer row is one arrangement: a case, a
+name, and an ordinal **number** — the one painted on the box and said out loud,
+deliberately not the id.
+
+The rules, all of them in the database rather than in a handler:
+
+- one case per organizer, and **a case may hold several organizers** (a toolbox
+  with three drawers is three arrangements of the same box);
+- **a tool is in at most one organizer**, by a unique index on the link table's
+  `tool_id`;
+- deleting a tool takes it out of its organizer and changes nothing else;
+- deleting a case deletes its organizers — the arrangement has no meaning
+  without the box, and the screen warns before it happens.
+
+### `GET /api/organizers` — `catalog.read`
+
+| Parameter | Meaning                                   | Default  |
+| --------- | ----------------------------------------- | -------- |
+| `q`       | Organizer name, description, or case name | —        |
+| `caseId`  | Only the organizers of one case           | —        |
+| `sort`    | `number` or `name`                        | `number` |
+| `order`   | `asc` or `desc`                           | `asc`    |
+| `limit`   | 1–200                                     | 50       |
+| `offset`  | ≥ 0                                       | 0        |
+
+`200 { items, total, limit, offset }`. Each item carries its case (with the
+case's main photo) and every tool in it (each with its own), so the list screen
+can draw a tile per organizer without a request per row.
+
+`caseId` is what a case's delete confirmation asks with.
+
+### `POST /api/organizers` — `catalog.write`
+
+```json
+{ "name": "Wiertarki", "caseId": 2, "description": "", "toolIds": [7, 9] }
+```
+
+`name` and `caseId` are required; `toolIds` is optional, because the wizard
+lets somebody set a case aside before deciding what goes in it. `number` may be
+given, and when it is not the server takes the next free one — inside the same
+transaction, so two people creating at once cannot both read the same maximum.
+
+`201 { organizer }`. `409` when the number is taken or one of the tools is
+already in another organizer — moving a tool out of somebody else's
+arrangement is a decision, not something to do silently. `404` when the case
+does not exist.
+
+### `GET|PATCH|DELETE /api/organizers/:id` — `catalog.read` / `catalog.write`
+
+A `PATCH` takes any of `name`, `description`, `number`, `caseId`. `caseId`
+cannot be cleared: an arrangement of nothing is not an arrangement.
+
+`DELETE` removes the arrangement only. The tools and the case stay; they simply
+stop being connected.
+
+### `POST /api/organizers/:id/tools` — `catalog.write`
+
+```json
+{ "toolIds": [7, 9] }
+```
+
+`200 { organizer }`, or `409` if one of them is already somewhere else.
+
+### `DELETE /api/organizers/:id/tools/:toolId` — `catalog.write`
+
+Takes one tool out. `200 { ok: true }`, or `404` if it was not in there.
 
 ## The photo library
 

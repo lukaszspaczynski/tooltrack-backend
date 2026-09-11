@@ -90,6 +90,11 @@ export async function listTools(query: ToolQuery, pool: PgPool = db()): Promise<
               OR "serial_number" ILIKE $1 OR "category" ILIKE $1 OR "notes" ILIKE $1))
         AND ($2::text IS NULL OR lower("category") = lower($2))
         AND ($3::text IS NULL OR "condition" = $3)
+        -- Whether this tool is in an organizer. The wizard asks for the ones
+        -- that are not, because a tool lies in exactly one place.
+        AND ($6::boolean IS NULL OR EXISTS (
+              SELECT 1 FROM "catalog"."organizer_tool" WHERE "tool_id" = "catalog"."tool"."id"
+            ) = $6)
       ORDER BY ${column} ${direction}, "id" DESC
       LIMIT $4 OFFSET $5
     `,
@@ -99,6 +104,7 @@ export async function listTools(query: ToolQuery, pool: PgPool = db()): Promise<
       query.condition,
       query.limit,
       query.offset,
+      query.inOrganizer,
     ],
   )
 

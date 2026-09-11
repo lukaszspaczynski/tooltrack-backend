@@ -21,6 +21,7 @@ import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
 import * as cases from './routes/cases'
 import * as media from './routes/media'
+import * as organizers from './routes/organizers'
 import * as photos from './routes/photos'
 import * as settings from './routes/settings'
 import * as tools from './routes/tools'
@@ -42,6 +43,9 @@ const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
 const TOOL_DUPLICATE_PATTERN = /^\/api\/tools\/(\d+)\/duplicate$/
+const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
+const ORGANIZER_TOOLS_PATTERN = /^\/api\/organizers\/(\d+)\/tools$/
+const ORGANIZER_TOOL_PATTERN = /^\/api\/organizers\/(\d+)\/tools\/(\d+)$/
 const CASE_DETAIL_PATTERN = /^\/api\/cases\/(\d+)$/
 
 // Photos belong to a tool or to a case on identical terms, so one set of
@@ -111,6 +115,13 @@ const ROUTES = [
   'GET /api/cases/:id/photos/:photoId/cutout/preview/:checksum',
   'POST /api/cases/:id/photos/:photoId/cutout/commit',
   'GET /api/cases/:id/photo-suggestions',
+  'GET /api/organizers',
+  'POST /api/organizers',
+  'GET /api/organizers/:id',
+  'PATCH /api/organizers/:id',
+  'DELETE /api/organizers/:id',
+  'POST /api/organizers/:id/tools',
+  'DELETE /api/organizers/:id/tools/:toolId',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
   'PATCH /api/me/search-engines/:provider',
@@ -229,6 +240,38 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
 
   // Same ordering rule as categories above: the list of systems before the
   // pattern that would read "systems" as the name of a case.
+  if (path === '/api/organizers') {
+    return methodHandler(method, { GET: organizers.GET, POST: organizers.POST })
+  }
+
+  // Longest first, as everywhere in this table.
+  const organizerTool = ORGANIZER_TOOL_PATTERN.exec(path)
+  if (organizerTool) {
+    return methodHandler(
+      method,
+      { DELETE: organizers.toolDELETE },
+      { id: organizerTool[1], toolId: organizerTool[2] },
+    )
+  }
+
+  const organizerTools = ORGANIZER_TOOLS_PATTERN.exec(path)
+  if (organizerTools) {
+    return methodHandler(method, { POST: organizers.toolsPOST }, { id: organizerTools[1] })
+  }
+
+  const organizerDetail = ORGANIZER_DETAIL_PATTERN.exec(path)
+  if (organizerDetail) {
+    return methodHandler(
+      method,
+      {
+        DELETE: organizers.detailDELETE,
+        GET: organizers.detailGET,
+        PATCH: organizers.detailPATCH,
+      },
+      { id: organizerDetail[1] },
+    )
+  }
+
   if (path === '/api/cases/systems') return methodHandler(method, { GET: cases.systemsGET })
   if (path === '/api/cases') return methodHandler(method, { GET: cases.GET, POST: cases.POST })
 

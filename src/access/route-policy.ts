@@ -9,7 +9,8 @@
 
 import { hasCapability, isActiveUser, type Capability, type User } from './roles'
 
-export type RouteDomain = 'auth' | 'cases' | 'public' | 'settings' | 'tools' | 'users'
+export type RouteDomain =
+  'auth' | 'cases' | 'organizers' | 'public' | 'settings' | 'tools' | 'users'
 
 export type RouteCheck =
   // Reachable without a session. The handler still decides what it answers.
@@ -59,6 +60,30 @@ const RULES: readonly Rule[] = [
     domain: 'tools',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/tools\/categories$/,
+  },
+  {
+    // The arrangement of tools in a case. Same split as everything else in the
+    // catalog: looking is read, changing is write.
+    domain: 'organizers',
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
+    pattern: /^\/api\/organizers$/,
+  },
+  {
+    domain: 'organizers',
+    methods: { DELETE: WRITE_CATALOG, GET: READ_CATALOG, PATCH: WRITE_CATALOG },
+    pattern: /^\/api\/organizers\/\d+$/,
+  },
+  {
+    // Putting a tool into an organizer, or taking it out. Neither touches the
+    // tool card, but both change what the catalog says is where.
+    domain: 'organizers',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/tools$/,
+  },
+  {
+    domain: 'organizers',
+    methods: { DELETE: WRITE_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/tools\/\d+$/,
   },
   {
     // Same shape as the tool rules, and above the :id pattern for the same

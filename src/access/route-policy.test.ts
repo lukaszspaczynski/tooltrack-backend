@@ -259,3 +259,22 @@ test('duplicating a tool writes a card, so it asks what writing a card asks', ()
   // link was followed.
   assert.equal(routeRequirement('/api/tools/42/duplicate', 'GET').check.kind, 'deny')
 })
+
+test('organizers are the catalog: read to look, write to arrange', () => {
+  assert.equal(allows('/api/organizers', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/organizers', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/organizers', 'POST', user('editor')), true)
+  assert.equal(allows('/api/organizers/4', 'PATCH', user('editor')), true)
+  assert.equal(allows('/api/organizers/4', 'DELETE', user('editor')), true)
+})
+
+test('putting a tool into an organizer is a write, and taking it out too', () => {
+  // Neither touches a tool card, but both change what the catalog says is
+  // where — which a viewer must not be able to do.
+  assert.equal(allows('/api/organizers/4/tools', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/organizers/4/tools', 'POST', user('editor')), true)
+  assert.equal(allows('/api/organizers/4/tools/9', 'DELETE', user('viewer')), false)
+  assert.equal(allows('/api/organizers/4/tools/9', 'DELETE', user('editor')), true)
+  // There is no way to read one tool's link on its own.
+  assert.equal(routeRequirement('/api/organizers/4/tools/9', 'GET').check.kind, 'deny')
+})
