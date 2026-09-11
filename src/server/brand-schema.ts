@@ -10,6 +10,12 @@ CREATE TABLE IF NOT EXISTS "catalog"."brand" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "name" text NOT NULL CHECK (btrim("name") <> ''),
   "notes" text NOT NULL DEFAULT '',
+  -- The maker's leading colour, as #rrggbb. Stored in one canonical form so
+  -- that CSS can use it directly and two spellings of the same colour cannot
+  -- both exist; the API accepts an "r g b" triple and normalises it here.
+  -- Empty means nobody has said, which is not the same as black.
+  "color" text NOT NULL DEFAULT ''
+    CHECK ("color" = '' OR "color" ~ '^#[0-9a-f]{6}$'),
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "updated_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
@@ -39,6 +45,13 @@ ALTER TABLE "catalog"."tool"
   REFERENCES "catalog"."brand"("id") ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS "catalog_tool_brand_id_idx" ON "catalog"."tool" ("brand_id");
+
+-- Databases that predate the colour.
+ALTER TABLE "catalog"."brand" ADD COLUMN IF NOT EXISTS "color" text NOT NULL DEFAULT '';
+ALTER TABLE "catalog"."brand" DROP CONSTRAINT IF EXISTS "brand_color_check";
+ALTER TABLE "catalog"."brand"
+  ADD CONSTRAINT "brand_color_check"
+  CHECK ("color" = '' OR "color" ~ '^#[0-9a-f]{6}$');
 
 -- The catalog held its brands as free text long before this table existed, and
 -- those strings are real data: every distinct one becomes a row, and every tool

@@ -215,13 +215,20 @@ arrangement is still an arrangement with one fewer thing in it.
 
 One row per maker.
 
-| Column                     | Type                              | Notes                     |
-| -------------------------- | --------------------------------- | ------------------------- |
-| `id`                       | `bigint` identity                 |                           |
-| `name`                     | `text`                            | Required, unique on lower |
-| `notes`                    | `text`                            |                           |
-| `created_by`, `updated_by` | `bigint` → `account.user_account` | `ON DELETE SET NULL`      |
-| `created_at`, `updated_at` | `timestamptz`                     |                           |
+| Column                     | Type                              | Notes                      |
+| -------------------------- | --------------------------------- | -------------------------- |
+| `id`                       | `bigint` identity                 |                            |
+| `name`                     | `text`                            | Required, unique on lower  |
+| `notes`                    | `text`                            |                            |
+| `color`                    | `text`                            | `#rrggbb` or `''`, CHECKed |
+| `created_by`, `updated_by` | `bigint` → `account.user_account` | `ON DELETE SET NULL`       |
+| `created_at`, `updated_at` | `timestamptz`                     |                            |
+
+The colour is stored in one canonical form — lowercase `#rrggbb` — enforced by
+a CHECK, so CSS can use it directly and two spellings of the same colour cannot
+both exist. The API accepts an `r g b` triple as well, because that is how a
+brand book gives it. Empty means nobody has said, which is not the same as
+black and is why the column is not null with a default rather than nullable.
 
 The unique index is case-insensitive: "Bosch" and "BOSCH" typed on two days are
 the same company, and two rows would split its tools in half.

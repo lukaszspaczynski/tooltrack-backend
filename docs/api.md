@@ -650,14 +650,22 @@ statement rather than two per row.
 
 ### `POST /api/brands` — `catalog.write`
 
-`{ "name": "Makita", "notes": "" }` → `201 { brand }`. `409` when the name is
-taken: "Bosch" and "BOSCH" typed on two days are the same company, and two rows
-would split its tools in half.
+`{ "name": "Makita", "notes": "", "color": "0 158 224" }` → `201 { brand }`.
+`409` when the name is taken: "Bosch" and "BOSCH" typed on two days are the same
+company, and two rows would split its tools in half.
+
+`color` is the maker's leading colour and is optional. It arrives as
+`#rrggbb`, as `rrggbb`, or as three numbers — `"18 36 71"`, `"18,36,71"`,
+`"rgb(18, 36, 71)"` — because that is how a brand book gives it, and comes back
+as lowercase `#rrggbb`, which CSS can use directly. One stored form means two
+spellings of the same colour cannot both exist. Empty means nobody has said,
+which is not the same as black. A channel outside 0–255, or anything that is
+not a colour, is a `400` rather than a silently dropped field.
 
 ### `GET|PATCH|DELETE /api/brands/:id` — `catalog.read` / `catalog.write`
 
-A `PATCH` takes `name` and `notes`. **Renaming rewrites the maker on its
-tools** in the same transaction — the card carries the name as text, and
+A `PATCH` takes `name`, `notes` and `color`. **Renaming rewrites the maker on
+its tools** in the same transaction — the card carries the name as text, and
 renaming one without the other leaves them telling different stories.
 
 `DELETE` removes the row. The tools stay and keep the maker's name as text;

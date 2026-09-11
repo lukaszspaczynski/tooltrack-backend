@@ -17,6 +17,7 @@ type Call = { params: unknown[]; text: string }
 
 function brandRow(overrides: Record<string, unknown> = {}) {
   return {
+    color: '#122447',
     created_at: '2026-01-01T00:00:00.000Z',
     created_by: '1',
     id: '1',
@@ -81,7 +82,7 @@ test('two makers cannot share a name, whatever the capitals', async () => {
   const { pool } = fakePool([], { code: '23505', on: /INSERT INTO "catalog"\."brand"/ })
 
   await assert.rejects(
-    () => createBrand({ name: 'Bosch', notes: '' }, 1, pool),
+    () => createBrand({ color: '', name: 'Bosch', notes: '' }, 1, pool),
     (error) => error instanceof BrandNameTakenError,
   )
 })

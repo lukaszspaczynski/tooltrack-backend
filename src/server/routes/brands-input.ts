@@ -9,6 +9,8 @@ export const DEFAULT_LIMIT = 100
 export const MAX_LIMIT = 500
 
 export type BrandFields = {
+  // '#rrggbb', lowercase, or '' for a maker whose colour nobody has said.
+  color: string
   name: string
   notes: string
 }
@@ -38,7 +40,10 @@ export function parseBrandCreate(body: unknown): Parsed<BrandFields> {
     return invalid(`notes must be at most ${MAX_NOTES_LENGTH} characters`)
   }
 
-  return valid({ name, notes })
+  const color = parseColor(body.color ?? '')
+  if (color === null) return invalid(COLOR_ERROR)
+
+  return valid({ color, name, notes })
 }
 
 export function parseBrandPatch(body: unknown): Parsed<BrandPatch> {
@@ -64,9 +69,53 @@ export function parseBrandPatch(body: unknown): Parsed<BrandPatch> {
     patch.notes = notes
   }
 
+  if ('color' in body) {
+    const color = parseColor(body.color)
+    if (color === null) return invalid(COLOR_ERROR)
+    patch.color = color
+  }
+
   if (Object.keys(patch).length === 0) return invalid('No editable fields in request body')
 
   return valid(patch)
+}
+
+const COLOR_ERROR = 'color must be #rrggbb, "r g b", or empty'
+
+// One colour, two spellings accepted. A leading colour is read off a logo or a
+// brand book, where it is given as three numbers; CSS wants it as hex. Both
+// arrive here and one form is stored, so a search or a comparison cannot miss
+// because somebody wrote the same colour differently.
+//
+// Null means "not a colour", which the caller turns into a 400. An empty
+// string is a colour nobody has said, and is allowed.
+export function parseColor(raw: unknown): null | string {
+  if (raw === null || raw === undefined) return ''
+
+  const value = typeof raw === 'string' ? raw.trim() : raw
+  if (typeof value !== 'string') return null
+  if (value === '') return ''
+
+  const hex = /^#?([0-9a-f]{6})$/i.exec(value)
+  if (hex) return `#${hex[1].toLowerCase()}`
+
+  // "18 36 71", "18,36,71", "rgb(18, 36, 71)" — all three turn up when the
+  // number is copied from somewhere.
+  const parts = value
+    .replace(/^rgb\s*\(/i, '')
+    .replace(/\)$/, '')
+    .split(/[\s,]+/)
+    .filter(Boolean)
+  if (parts.length !== 3) return null
+
+  const channels: number[] = []
+  for (const part of parts) {
+    const channel = Number(part)
+    if (!Number.isInteger(channel) || channel < 0 || channel > 255) return null
+    channels.push(channel)
+  }
+
+  return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
 }
 
 // The logo is a picture that already exists — the same library everything else

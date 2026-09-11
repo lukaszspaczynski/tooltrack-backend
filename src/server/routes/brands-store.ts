@@ -9,6 +9,8 @@ import type { BrandFields, BrandPatch, BrandQuery } from './brands-input'
 import { photoUrl } from './photos-store'
 
 export type Brand = {
+  // '#rrggbb', or '' when nobody has said.
+  color: string
   createdAt: string
   createdBy: null | number
   id: number
@@ -52,6 +54,7 @@ export class LogoTakenError extends Error {
 }
 
 type BrandRow = {
+  color: string
   created_at: Date | string
   created_by: null | number | string
   id: number | string
@@ -65,7 +68,7 @@ type BrandRow = {
 }
 
 const BRAND_COLUMNS = `
-  "b"."id", "b"."name", "b"."notes", "b"."created_by", "b"."updated_by",
+  "b"."id", "b"."name", "b"."notes", "b"."color", "b"."created_by", "b"."updated_by",
   "b"."created_at", "b"."updated_at",
   (SELECT "photo_id" FROM "catalog"."photo_brand" WHERE "brand_id" = "b"."id") AS "logo_photo_id",
   (SELECT count(*) FROM "catalog"."tool" WHERE "brand_id" = "b"."id") AS "tool_count"
@@ -148,6 +151,7 @@ export async function updateBrand(
   const params: unknown[] = [id, actorId]
 
   for (const [field, column] of [
+    ['color', 'color'],
     ['name', 'name'],
     ['notes', 'notes'],
   ] as const) {
@@ -254,6 +258,7 @@ export async function brandIdForName(name: string, pool: PgPool = db()): Promise
 
 function toBrand(row: BrandRow): Brand {
   return {
+    color: row.color,
     createdAt: toIsoString(row.created_at),
     createdBy: row.created_by === null ? null : Number(row.created_by),
     id: Number(row.id),
