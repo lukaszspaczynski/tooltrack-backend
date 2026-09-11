@@ -23,9 +23,10 @@ export type ToolPhoto = {
   isPrimary: boolean
   source: PhotoSource
   sourceUrl: string
-  toolId: number
-  // Where the bytes are served from. The client never sees the storage key:
-  // that is an implementation detail of where files happen to live today.
+  // Null while the photo belongs to no tool.
+  toolId: null | number
+  // Where the bytes are served from. Addressed by the photo's own id rather
+  // than through a tool, because a photo may not have one.
   url: string
   width: null | number
 }
@@ -59,7 +60,7 @@ type PhotoRow = {
   source: string
   source_url: string
   storage_key: string
-  tool_id: number | string
+  tool_id: null | number | string
   width: null | number
 }
 
@@ -69,8 +70,8 @@ const PHOTO_COLUMNS = `
   "derived_from", "created_by", "created_at"
 `
 
-export function photoUrl(toolId: number, photoId: number): string {
-  return `/api/tools/${toolId}/photos/${photoId}/file`
+export function photoUrl(photoId: number): string {
+  return `/api/photos/${photoId}/file`
 }
 
 export async function listPhotos(toolId: number, pool: PgPool = db()): Promise<ToolPhoto[]> {
@@ -109,6 +110,21 @@ export async function primaryPhotoIds(
   return new Map(result.rows.map((row) => [Number(row.tool_id), Number(row.id)]))
 }
 
+// By id alone, for the routes that serve bytes and for anything holding an
+// unattached photo.
+export async function getPhotoById(
+  photoId: number,
+  pool: PgPool = db(),
+): Promise<null | StoredPhotoRow> {
+  const result = await pool.query<PhotoRow>(
+    `SELECT ${PHOTO_COLUMNS} FROM "catalog"."tool_photo" WHERE "id" = $1`,
+    [photoId],
+  )
+
+  const row = result.rows[0]
+  return row ? { ...toPhoto(row), checksum: row.checksum, storageKey: row.storage_key } : null
+}
+
 export async function getPhoto(
   toolId: number,
   photoId: number,
@@ -131,7 +147,8 @@ export async function insertPhoto(
     source: PhotoSource
     sourceUrl?: string
     stored: StoredPhoto
-    toolId: number
+    // Null for a photo that belongs to no tool yet.
+    toolId: null | number
   },
   actorId: number,
   pool: PgPool = db(),
@@ -144,10 +161,16 @@ export async function insertPhoto(
            "width", "height", "source", "source_url", "attribution", "is_primary",
            "derived_from", "created_by")
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+          -- Cast, because tool_id may be null and a bare parameter that is
+          -- null everywhere it appears has no type Postgres can infer: the
+          -- whole insert fails with "could not determine data type of
+          -- parameter $1".
+          $1::bigint, $2, $3, $4, $5, $6, $7, $8, $9, $10,
           -- The first photo of a tool is its main one. Nobody should have to
-          -- upload a picture and then tell the app it is the picture.
-          NOT EXISTS (SELECT 1 FROM "catalog"."tool_photo" WHERE "tool_id" = $1),
+          -- upload a picture and then tell the app it is the picture. A photo
+          -- with no tool is the main photo of nothing.
+          $1::bigint IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM "catalog"."tool_photo" WHERE "tool_id" = $1::bigint),
           $11, $12
         )
         RETURNING ${PHOTO_COLUMNS}
@@ -257,6 +280,7 @@ export async function deletePhoto(
 // pulled in the wrong pictures.
 
 export type LibraryPhoto = ToolPhoto & {
+  // Empty for an unattached photo, which the screen shows as "bez narzędzia".
   toolName: string
 }
 
@@ -269,6 +293,8 @@ export type LibraryPage = {
 
 export async function listAllPhotos(
   query: {
+    // null means "both": attached and unattached.
+    assigned: boolean | null
     direction: 'asc' | 'desc'
     limit: number
     offset: number
@@ -279,7 +305,7 @@ export async function listAllPhotos(
 ): Promise<LibraryPage> {
   const direction = query.direction === 'asc' ? 'ASC' : 'DESC'
 
-  const result = await pool.query<PhotoRow & { tool_name: string; total_count: string }>(
+  const result = await pool.query<PhotoRow & { tool_name: null | string; total_count: string }>(
     `
       SELECT
         ${PHOTO_COLUMNS.split(',')
@@ -288,26 +314,139 @@ export async function listAllPhotos(
         "t"."name" AS "tool_name",
         count(*) OVER () AS "total_count"
       FROM "catalog"."tool_photo" AS "p"
-      JOIN "catalog"."tool" AS "t" ON "t"."id" = "p"."tool_id"
+      -- LEFT: a photo without a tool is still a photo, and the library is
+      -- where it is waiting to be given one.
+      LEFT JOIN "catalog"."tool" AS "t" ON "t"."id" = "p"."tool_id"
       WHERE ($1::text IS NULL OR "t"."name" ILIKE $1 OR "t"."brand" ILIKE $1 OR "t"."model" ILIKE $1)
         AND ($2::text IS NULL OR "p"."source" = $2)
+        AND ($3::boolean IS NULL OR ("p"."tool_id" IS NOT NULL) = $3)
       ORDER BY "p"."created_at" ${direction}, "p"."id" ${direction}
-      LIMIT $3 OFFSET $4
+      LIMIT $4 OFFSET $5
     `,
     [
       query.search === null ? null : `%${query.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`,
       query.source,
+      query.assigned,
       query.limit,
       query.offset,
     ],
   )
 
   return {
-    items: result.rows.map((row) => ({ ...toPhoto(row), toolName: row.tool_name })),
+    items: result.rows.map((row) => ({ ...toPhoto(row), toolName: row.tool_name ?? '' })),
     limit: query.limit,
     offset: query.offset,
     total: Number(result.rows[0]?.total_count ?? 0),
   }
+}
+
+export type AttachResult = {
+  attached: ToolPhoto[]
+  failed: { id: number; reason: string }[]
+}
+
+// Puts photos that already exist onto a tool.
+//
+// Two different things, deliberately, depending on where the photo is now. An
+// unattached one is **moved**: it keeps its id and leaves the unassigned list,
+// which is what "przypisz" means to the person doing it. One that already
+// belongs to another tool is **copied** — the same picture can legitimately
+// illustrate two tools, and since files are addressed by checksum the copy is
+// a row, not another megabyte.
+export async function attachPhotosToTool(
+  toolId: number,
+  photoIds: number[],
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<AttachResult> {
+  const attached: ToolPhoto[] = []
+  const failed: { id: number; reason: string }[] = []
+
+  for (const photoId of photoIds) {
+    const source = await getPhotoById(photoId, pool)
+    if (!source) {
+      failed.push({ id: photoId, reason: 'Nie ma takiego zdjęcia' })
+      continue
+    }
+    if (source.toolId === toolId) {
+      failed.push({ id: photoId, reason: 'To zdjęcie już jest na tej karcie' })
+      continue
+    }
+
+    try {
+      const photo =
+        source.toolId === null
+          ? await moveToTool(toolId, photoId, pool)
+          : await copyToTool(toolId, source, actorId, pool)
+
+      if (photo) attached.push(photo)
+      else failed.push({ id: photoId, reason: 'Nie udało się przypisać' })
+    } catch (error) {
+      // The unique index on (tool_id, checksum): this tool already shows this
+      // picture, under another row.
+      if ((error as { code?: string }).code === '23505') {
+        failed.push({ id: photoId, reason: 'Takie zdjęcie już jest na tej karcie' })
+        continue
+      }
+      throw error
+    }
+  }
+
+  return { attached, failed }
+}
+
+async function moveToTool(
+  toolId: number,
+  photoId: number,
+  pool: PgPool,
+): Promise<null | ToolPhoto> {
+  const result = await pool.query<PhotoRow>(
+    `
+      UPDATE "catalog"."tool_photo"
+      SET "tool_id" = $1,
+          -- The first photo of a tool is its main one, whether it arrived by
+          -- upload or by being assigned here.
+          "is_primary" = NOT EXISTS (
+            SELECT 1 FROM "catalog"."tool_photo" WHERE "tool_id" = $1
+          )
+      WHERE "id" = $2 AND "tool_id" IS NULL
+      RETURNING ${PHOTO_COLUMNS}
+    `,
+    [toolId, photoId],
+  )
+
+  const row = result.rows[0]
+  return row ? toPhoto(row) : null
+}
+
+async function copyToTool(
+  toolId: number,
+  source: StoredPhotoRow,
+  actorId: number,
+  pool: PgPool,
+): Promise<ToolPhoto> {
+  return insertPhoto(
+    {
+      attribution: source.attribution,
+      metadata: {
+        contentType: source.contentType,
+        height: source.height ?? 0,
+        width: source.width ?? 0,
+      },
+      source: source.source,
+      sourceUrl: source.sourceUrl,
+      stored: {
+        byteSize: source.byteSize,
+        checksum: source.checksum,
+        // The same file: content addressed, so a second card showing the same
+        // picture costs a row.
+        storageKey: source.storageKey,
+      },
+      toolId,
+    },
+    actorId,
+    pool,
+  )
 }
 
 export type BulkDeleteResult = {
@@ -380,7 +519,7 @@ export async function deletePhotosByIds(
 
 function toPhoto(row: PhotoRow): ToolPhoto {
   const id = Number(row.id)
-  const toolId = Number(row.tool_id)
+  const toolId = row.tool_id === null ? null : Number(row.tool_id)
 
   return {
     attribution: row.attribution,
@@ -400,7 +539,7 @@ function toPhoto(row: PhotoRow): ToolPhoto {
       : 'upload',
     sourceUrl: row.source_url,
     toolId,
-    url: photoUrl(toolId, id),
+    url: photoUrl(id),
     width: row.width === null ? null : Number(row.width),
   }
 }

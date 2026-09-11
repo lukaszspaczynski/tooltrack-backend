@@ -35,7 +35,7 @@ export async function GET(request: Request): Promise<Response> {
       ...page,
       items: page.items.map((tool) => ({
         ...tool,
-        primaryPhotoUrl: primary.has(tool.id) ? photoUrl(tool.id, primary.get(tool.id)!) : null,
+        primaryPhotoUrl: primary.has(tool.id) ? photoUrl(primary.get(tool.id)!) : null,
       })),
     },
     { headers: { 'cache-control': 'no-store' } },

@@ -17,12 +17,13 @@ function query(search: string) {
 
 test('the library opens on the newest photos', () => {
   assert.deepEqual(query(''), {
+    // Both kinds by default: the library is everything on disk.
+    assigned: null,
     direction: 'desc',
     limit: DEFAULT_MEDIA_LIMIT,
     offset: 0,
     search: null,
     source: null,
-    unusedOnly: false,
   })
 })
 
@@ -33,6 +34,13 @@ test('filters are read, nonsense is clamped', () => {
   assert.equal(query('limit=banana').limit, DEFAULT_MEDIA_LIMIT)
   assert.equal(query('offset=-3').offset, 0)
   assert.equal(query('q=%20').search, null)
+})
+
+test('the assigned filter takes true or false, and nothing else', () => {
+  assert.equal(query('assigned=true').assigned, true)
+  assert.equal(query('assigned=false').assigned, false)
+  assert.equal(query('assigned=').assigned, null)
+  assert.equal(parseMediaQuery(new URLSearchParams('assigned=moze')).ok, false)
 })
 
 test('an unknown source is an error, not silently ignored', () => {

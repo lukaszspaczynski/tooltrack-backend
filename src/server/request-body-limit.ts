@@ -14,7 +14,7 @@ const DEFAULT_MAX_BODY_BYTES = 1024 * 1024
 // Photo uploads arrive as the raw file in the body, so they cannot live under
 // the JSON cap. Which paths those are is decided here rather than in the route,
 // because the cap has to be applied while the bytes are still arriving.
-const PHOTO_UPLOAD_PATTERN = /^\/api\/tools\/\d+\/photos\/?$/
+const PHOTO_UPLOAD_PATTERN = /^\/api\/(?:tools\/\d+\/)?photos\/?$/
 
 export type BodyResult =
   { body: undefined | Uint8Array; ok: true } | { ok: false; response: Response }

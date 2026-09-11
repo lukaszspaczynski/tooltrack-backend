@@ -57,7 +57,29 @@ ALTER TABLE "catalog"."tool_photo"
   ADD COLUMN IF NOT EXISTS "derived_from" bigint
   REFERENCES "catalog"."tool_photo"("id") ON DELETE SET NULL;
 
-COMMENT ON TABLE "catalog"."tool_photo" IS 'Photos of a tool. Bytes live in the media directory, keyed by checksum.';
+-- A photo may belong to no tool. Pictures arrive before anyone decides what
+-- they are: a batch off a phone at the end of a day, something found while
+-- looking for something else. Forcing a tool at that moment is how photos end
+-- up on the wrong card.
+ALTER TABLE "catalog"."tool_photo" ALTER COLUMN "tool_id" DROP NOT NULL;
+
+-- Unattached photos have no tool to be the main photo of. The partial unique
+-- index below already allows only one primary per tool; this stops a row from
+-- claiming to be the main photo of nothing.
+ALTER TABLE "catalog"."tool_photo" DROP CONSTRAINT IF EXISTS "tool_photo_primary_needs_tool";
+ALTER TABLE "catalog"."tool_photo"
+  ADD CONSTRAINT "tool_photo_primary_needs_tool"
+  CHECK (NOT "is_primary" OR "tool_id" IS NOT NULL);
+
+-- The unique index on (tool_id, checksum) does not constrain unattached rows:
+-- in an index, two NULLs are different values. Without this, the same picture
+-- could sit in the library a hundred times.
+CREATE UNIQUE INDEX IF NOT EXISTS "catalog_tool_photo_unassigned_checksum_idx"
+  ON "catalog"."tool_photo" ("checksum")
+  WHERE "tool_id" IS NULL;
+
+COMMENT ON TABLE "catalog"."tool_photo" IS 'Photos. Attached to a tool or not; bytes live in the media directory, keyed by checksum.';
+COMMENT ON COLUMN "catalog"."tool_photo"."tool_id" IS 'The tool this photo illustrates, or NULL while it is unassigned.';
 COMMENT ON COLUMN "catalog"."tool_photo"."derived_from" IS 'The photo this one was cut out from, when source = edit.';
 `
 
