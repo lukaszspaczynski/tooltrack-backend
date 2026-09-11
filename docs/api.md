@@ -202,6 +202,25 @@ JPEG, PNG, GIF or WebP — decided by reading the file, not by trusting its
 content type — and `413` above the size cap. An address pointing into a private network is
 refused as a failed item, never fetched.
 
+### `POST /api/tools/:id/photos/attach` — `tools.write`
+
+```json
+{ "photoIds": [24, 25] }
+```
+
+Puts photos that already exist on this tool — the other half of being able to
+upload a picture before deciding what it is. Two different things depending on
+where the photo is now:
+
+- **unattached** — it is _moved_: it keeps its id and leaves the unassigned
+  shelf, which is what "assign" means to the person doing it;
+- **on another tool** — it is _copied_. The same picture can legitimately
+  illustrate two tools, and since files are addressed by checksum the copy is a
+  row, not another megabyte.
+
+`201 { photos, failed }`; one id that no longer exists does not lose the rest.
+`409` when none of them could be attached — already on this card, or gone.
+
 ### `GET /api/tools/:id/photos/:photoId/file` — `tools.read`
 
 The bytes, with `cache-control: private, immutable` and the checksum as `ETag`.
@@ -459,13 +478,14 @@ a batch that pulled in the wrong pictures.
 
 ### `GET /api/photos` — `tools.read`
 
-| Parameter | Meaning                                                                   | Default |
-| --------- | ------------------------------------------------------------------------- | ------- |
-| `q`       | Matches the **tool** — name, brand, model. A photo has no name of its own | —       |
-| `source`  | `upload`, `url` or `search`                                               | —       |
-| `order`   | `asc` or `desc` by upload time                                            | `desc`  |
-| `limit`   | 1–200                                                                     | 48      |
-| `offset`  | ≥ 0                                                                       | 0       |
+| Parameter  | Meaning                                                                   | Default |
+| ---------- | ------------------------------------------------------------------------- | ------- |
+| `q`        | Matches the **tool** — name, brand, model. A photo has no name of its own | —       |
+| `source`   | `upload`, `url`, `search` or `edit`                                       | —       |
+| `assigned` | `true` for photos that belong to a tool, `false` for those still waiting  | both    |
+| `order`    | `asc` or `desc` by upload time                                            | `desc`  |
+| `limit`    | 1–200                                                                     | 48      |
+| `offset`   | ≥ 0                                                                       | 0       |
 
 ```json
 {
@@ -478,7 +498,25 @@ a batch that pulled in the wrong pictures.
 }
 ```
 
-Each entry is the photo record from `/api/tools/:id/photos` plus `toolName`.
+Each entry is the photo record from `/api/tools/:id/photos` plus `toolName`,
+which is empty for a photo that has no tool. `toolId` is then `null`, and the
+photo is reached through `url` — `/api/photos/:id/file` — because there is no
+tool to reach it through.
+
+### `POST /api/photos` — `tools.write`
+
+An upload that belongs to no tool. The raw file as the body, like the per-tool
+upload, converted to PNG the same way. `201 { photo }` with `toolId: null`.
+
+Pictures arrive before anyone decides what they are: a batch off a phone at the
+end of a day, something found while looking for something else. Forcing a tool
+at that moment is how photos end up on the wrong card. `409` if that exact
+picture is already waiting in the library.
+
+### `GET /api/photos/:id/file` — `tools.read`
+
+The bytes of any photo, by its own id. The per-tool path still serves the same
+file; this one is what a photo with no tool can be reached through at all.
 
 ### `POST /api/photos/delete` — `tools.write`
 

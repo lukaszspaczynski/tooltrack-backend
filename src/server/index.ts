@@ -47,6 +47,8 @@ const CUTOUT_PREVIEW_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/pre
 const CUTOUT_PREVIEW_FILE_PATTERN =
   /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/preview\/([0-9a-f]{64})$/
 const CUTOUT_COMMIT_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/commit$/
+// A photo by its own id, which is the only way to reach one with no tool.
+const LIBRARY_FILE_PATTERN = /^\/api\/photos\/(\d+)\/file$/
 const TOOL_SUGGESTIONS_PATTERN = /^\/api\/tools\/(\d+)\/photo-suggestions$/
 const GLOBAL_ENGINE_PATTERN = /^\/api\/settings\/search-engines\/([a-z]+)$/
 const MY_ENGINE_PATTERN = /^\/api\/me\/search-engines\/([a-z]+)$/
@@ -70,6 +72,7 @@ const ROUTES = [
   'DELETE /api/tools/:id',
   'GET /api/tools/:id/photos',
   'POST /api/tools/:id/photos',
+  'POST /api/tools/:id/photos/attach',
   'GET /api/tools/:id/photos/:photoId/file',
   'PATCH /api/tools/:id/photos/:photoId',
   'DELETE /api/tools/:id/photos/:photoId',
@@ -85,6 +88,8 @@ const ROUTES = [
   'PATCH /api/settings/cutout',
   'PATCH /api/settings/cutout/:method',
   'GET /api/photos',
+  'POST /api/photos',
+  'GET /api/photos/:id/file',
   'POST /api/photos/delete',
   'GET /api/users',
   'PATCH /api/users/:id',
@@ -239,6 +244,11 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     )
   }
 
+  const attach = /^\/api\/tools\/(\d+)\/photos\/attach$/.exec(path)
+  if (attach) {
+    return methodHandler(method, { POST: photos.attachPOST }, { id: attach[1] })
+  }
+
   const toolPhotos = TOOL_PHOTOS_PATTERN.exec(path)
   if (toolPhotos) {
     return methodHandler(method, { GET: photos.listGET, POST: photos.POST }, { id: toolPhotos[1] })
@@ -291,7 +301,14 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
 
   // The library sits above /api/tools/… in the file only because it reads as
   // its own surface; the paths cannot collide.
-  if (path === '/api/photos') return methodHandler(method, { GET: media.GET })
+  if (path === '/api/photos') {
+    return methodHandler(method, { GET: media.GET, POST: media.uploadPOST })
+  }
+
+  const libraryFile = LIBRARY_FILE_PATTERN.exec(path)
+  if (libraryFile) {
+    return methodHandler(method, { GET: media.fileGET }, { id: libraryFile[1] })
+  }
   if (path === '/api/photos/delete') return methodHandler(method, { POST: media.deletePOST })
 
   if (path === '/api/users') return methodHandler(method, { GET: users.GET })

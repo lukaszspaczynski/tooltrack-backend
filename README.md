@@ -117,11 +117,20 @@ Keys given as `GOOGLE_SEARCH_API_KEY` / `GOOGLE_SEARCH_CX` /
 through the screen wins over them. Credentials never leave the server — the
 settings API reports only whether a key is set and its last four characters.
 
-`GET /api/photos` is the same collection from the other side — every picture
-on disk with the tool it belongs to — and `POST /api/photos/delete` removes up
-to two hundred of them at once. That pair exists for the cleanup after an
-import that pulled in the wrong pictures, which the per-tool gallery is the
-wrong shape for.
+`GET /api/photos` is the same collection from the other side — every picture on
+disk with the tool it belongs to, or with none — and `POST /api/photos/delete`
+removes up to two hundred of them at once. That pair exists for the cleanup
+after an import that pulled in the wrong pictures, which the per-tool gallery
+is the wrong shape for.
+
+A photo does not have to belong to a tool. `POST /api/photos` uploads one that
+does not: pictures arrive before anyone decides what they are — a batch off a
+phone at the end of a day — and forcing a tool at that moment is how photos end
+up on the wrong card. `?assigned=false` finds them again, and
+`POST /api/tools/:id/photos/attach` is the way out of that shelf: an unattached
+photo is **moved** onto the tool, keeping its id, while one that already
+belongs to another tool is **copied**, which costs a row rather than a second
+file.
 
 ### Cutting the tool out
 

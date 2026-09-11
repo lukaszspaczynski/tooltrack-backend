@@ -59,6 +59,12 @@ test('cutout settings: everyone reads, only an admin changes', () => {
 
 test('the photo library reads with the catalog and deletes with tools.write', () => {
   assert.equal(allows('/api/photos', 'GET', user('viewer')), true)
+  // Uploading a photo that belongs to no tool is still writing to the catalog.
+  assert.equal(allows('/api/photos', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/photos', 'POST', user('editor')), true)
+  // Bytes by photo id, for the photos that have no tool to be reached through.
+  assert.equal(allows('/api/photos/7/file', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/photos/7/file', 'GET', null), false)
   assert.equal(allows('/api/photos', 'GET', null), false)
   assert.equal(allows('/api/photos/delete', 'POST', user('viewer')), false)
   assert.equal(allows('/api/photos/delete', 'POST', user('editor')), true)
@@ -131,6 +137,12 @@ test('adding, promoting and removing a photo needs tools.write', () => {
   assert.equal(allows('/api/tools/42/photos/7', 'PATCH', user('viewer')), false)
   assert.equal(allows('/api/tools/42/photos/7', 'PATCH', user('editor')), true)
   assert.equal(allows('/api/tools/42/photos/7', 'DELETE', user('editor')), true)
+})
+
+test('attaching an existing photo changes the card, so it needs tools.write', () => {
+  assert.equal(allows('/api/tools/42/photos/attach', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/tools/42/photos/attach', 'POST', user('editor')), true)
+  assert.equal(routeRequirement('/api/tools/42/photos/attach', 'GET').check.kind, 'deny')
 })
 
 test('the AI cutout needs tools.write', () => {

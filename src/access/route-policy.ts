@@ -107,6 +107,13 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/\d+\/photos$/,
   },
   {
+    // Putting an existing photo on a tool changes the card, so it asks for
+    // what changing a card asks for.
+    domain: 'tools',
+    methods: { POST: WRITE_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photos\/attach$/,
+  },
+  {
     // Searching the web costs an API call and only exists to add a photo, so
     // it asks for the capability to add one. A viewer has no use for it.
     domain: 'tools',
@@ -150,8 +157,14 @@ const RULES: readonly Rule[] = [
     // The whole photo library. Readable with the catalog, because the pictures
     // are the catalog; removable only by someone who may change it.
     domain: 'tools',
-    methods: { GET: READ_TOOLS },
+    methods: { GET: READ_TOOLS, POST: WRITE_TOOLS },
     pattern: /^\/api\/photos$/,
+  },
+  {
+    // The bytes of any photo, attached to a tool or not.
+    domain: 'tools',
+    methods: { GET: READ_TOOLS },
+    pattern: /^\/api\/photos\/\d+\/file$/,
   },
   {
     domain: 'tools',
