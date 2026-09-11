@@ -155,12 +155,12 @@ paint.
 
 For photographs taken on site there are two paid providers: **remove.bg**,
 built for exactly this and returning a transparent PNG, and **Gemini**, a
-general model that returns the tool on a plain white background instead. The
-method and both keys are set on the **Ustawienia** screen, like the search
-engines — `TOOLTRACK_PHOTO_EDIT`, `REMOVE_BG_API_KEY`, `GEMINI_API_KEY` and
-`TOOLTRACK_CUTOUT_THRESHOLD` remain as the bootstrap, and anything saved
-through the screen wins. `auto` tries local first and only pays when local
-refuses.
+general model that returns the tool on a plain white background instead. Which
+methods may be used, and their keys, are set on the **Ustawienia** screen, like
+the search engines — `REMOVE_BG_API_KEY`, `GEMINI_API_KEY` and
+`TOOLTRACK_CUTOUT_THRESHOLD` remain as the bootstrap for the keys and the
+threshold, and anything saved through the screen wins. There is no default
+method: whoever presses the wand picks one from what is available.
 
 The wand opens a screen rather than doing something immediately: method on the
 left of the parameters, original and result side by side, and nothing written
@@ -174,8 +174,8 @@ preview cache does not deserve one.
 
 The local method reads whatever is stored, which since the conversion above is
 always PNG. It still refuses a photograph with no plain background — that is a
-statement about the picture, not the format, and in `auto` mode it is what
-hands the photo to the AI provider.
+statement about the picture, not the format, and the 422 says so, so the person
+at the wand can pick a paid method for that one photo.
 
 The AI prompt is deliberately narrow: keep the tool exactly as it is, remove
 everything else, invent nothing. A cutout that "improves" the tool is a picture
