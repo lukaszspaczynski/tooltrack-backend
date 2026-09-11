@@ -50,6 +50,18 @@ docs/
 - **Stores take a pool argument** defaulting to `db()`, so a test hands in a
   recording fake instead of reaching Postgres.
 
+## Cases
+
+`catalog.tool_case` is the box the tools live in, and it is a thing rather than
+an attribute: a case has its own dimensions, its own barcode and its own
+photograph, and a crew talks about "skrzynka 04" as often as about the drill
+inside it. Name and manufacturer are required; every measurement is nullable,
+because a spec sheet is something you have or you do not, and `0` would be a
+claim about a box with no height.
+
+The EAN and the SKU are not unique, unlike a tool's serial number. They
+identify the product, and owning two identical cases is normal.
+
 ## Photos
 
 `catalog.tool_photo` holds what a photo is; `src/server/photo-storage.ts` holds

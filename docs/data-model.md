@@ -62,3 +62,27 @@ Search is `ILIKE` over six columns, with `%` and `_` escaped so a typed
 wildcard is a literal character. That is enough for a catalog of this size; if
 it stops being enough, the next step is a `tsvector` column and a GIN index,
 not a search service.
+
+### `catalog.tool_case`
+
+One row per case, box or drawer unit the tools are kept in.
+
+| Column                                    | Type                              | Notes                              |
+| ----------------------------------------- | --------------------------------- | ---------------------------------- |
+| `id`                                      | `bigint` identity                 |                                    |
+| `name`, `manufacturer`                    | `text`                            | Required, CHECK non-blank          |
+| `system`                                  | `text`                            | Free text, `''` when not filled in |
+| `outer_*_mm`, `inner_*_mm`, `diagonal_mm` | `integer`                         | NULL when unmeasured, CHECK `> 0`  |
+| `capacity_l`, `load_kg`                   | `numeric(8,2)`                    | NULL when unmeasured, CHECK `> 0`  |
+| `ean`, `sku`                              | `text`                            | Free text, **not** unique          |
+| `notes`                                   | `text`                            |                                    |
+| `created_by`, `updated_by`                | `bigint` → `account.user_account` | `ON DELETE SET NULL`               |
+| `created_at`, `updated_at`                | `timestamptz`                     |                                    |
+
+Measurements are nullable and never `0`: a box with no height does not exist,
+so zero cannot stand in for "nobody has measured it". The CHECK is what keeps
+the two apart in the database rather than only in the parser.
+
+The EAN and the SKU identify the product, not this box. Two identical cases on
+the shelf are two rows carrying the same barcode, which is why neither column
+is unique — the opposite of `tool.serial_number`, which is one machine.
