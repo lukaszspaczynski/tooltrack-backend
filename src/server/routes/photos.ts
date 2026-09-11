@@ -16,13 +16,16 @@
 // notices.
 
 import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
+import { PhotoNotSuitableError } from '../cutout-local'
+import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
 import { readImageMetadata } from '../image-metadata'
 import {
   defaultQuery,
-  MAX_SUGGESTIONS,
+  MAX_SUGGESTIONS_PER_ENGINE,
   PhotoSearchUnavailableError,
   searchPhotos,
 } from '../photo-search'
+import { credentialsForSearch, resolveProvidersFor } from './search-settings-store'
 import { readPhotoBytes, savePhotoBytes } from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import {
@@ -35,6 +38,13 @@ import {
   type ToolPhoto,
 } from './photos-store'
 import { getTool } from './tools-store'
+
+// How many links one request may import. Larger than a single engine's ten,
+// because with several engines enabled the suggestion grid holds more than one
+// engine's worth and someone may reasonably tick a screenful. Each one is
+// fetched server-side, so this is also the ceiling on how long the request can
+// take.
+const MAX_IMPORT_ITEMS = 30
 
 type LinkInput = {
   attribution?: string
@@ -106,8 +116,8 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
   if (items.length === 0) {
     return Response.json({ error: 'Podaj adres zdjęcia (url) albo listę (items)' }, { status: 400 })
   }
-  if (items.length > MAX_SUGGESTIONS) {
-    return Response.json({ error: `Maksymalnie ${MAX_SUGGESTIONS} zdjęć naraz` }, { status: 400 })
+  if (items.length > MAX_IMPORT_ITEMS) {
+    return Response.json({ error: `Maksymalnie ${MAX_IMPORT_ITEMS} zdjęć naraz` }, { status: 400 })
   }
 
   const photos: ToolPhoto[] = []
@@ -156,6 +166,64 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
   }
 
   return Response.json({ failed, photos }, { status: 201 })
+}
+
+// POST /api/tools/:id/photos/:photoId/cutout — the AI edit.
+//
+// It adds a photo rather than replacing one. The original stays, so a cutout
+// that mangled the tool is one delete away from undone, and the two are linked
+// by derivedFrom. The new photo does not become the main one on its own:
+// whether the cutout is better than the photograph is a judgement, and the
+// person looking at both makes it.
+export async function cutoutPOST(_request: Request, context: RouteContext): Promise<Response> {
+  const toolId = parseId(context.params.id)
+  const photoId = parseId(context.params.photoId)
+  if (toolId === null || photoId === null) return photoNotFound()
+
+  const actorId = context.user?.id
+  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const original = await getPhoto(toolId, photoId)
+  if (!original) return photoNotFound()
+
+  const bytes = await readPhotoBytes(original.storageKey)
+  if (!bytes) return photoNotFound()
+
+  try {
+    const cutout = await cutoutSubject(bytes, original.contentType)
+    const stored = await savePhotoBytes(cutout.bytes, cutout.metadata.contentType)
+
+    const photo = await insertPhoto(
+      {
+        attribution: original.attribution,
+        derivedFrom: original.id,
+        metadata: cutout.metadata,
+        source: 'edit',
+        sourceUrl: original.sourceUrl,
+        stored,
+        toolId,
+      },
+      actorId,
+    )
+
+    return Response.json({ photo, provider: cutout.provider }, { status: 201 })
+  } catch (error) {
+    // Two different failures needing two different answers: the service is
+    // unavailable (503 — try later, or configure one), or this photograph
+    // cannot be cut out (422 — try another photo). Only the first is ours.
+    if (error instanceof PhotoNotSuitableError) {
+      return Response.json({ error: error.message }, { status: 422 })
+    }
+    if (error instanceof PhotoEditUnavailableError) {
+      return Response.json({ error: error.message }, { status: 503 })
+    }
+    if (error instanceof PhotoAlreadyExistsError) {
+      // The cutout came back byte-identical to something already on the card,
+      // which in practice means it was cut out once before.
+      return Response.json({ error: 'Takie wycięcie już jest na tej karcie' }, { status: 409 })
+    }
+    throw error
+  }
 }
 
 export async function fileGET(_request: Request, context: RouteContext): Promise<Response> {
@@ -222,18 +290,31 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
   const tool = await getTool(toolId)
   if (!tool) return toolNotFound()
 
+  const actorId = context.user?.id
+  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
   const asked = new URL(request.url).searchParams.get('q')?.trim()
   const query = asked || defaultQuery(tool)
 
   try {
-    const result = await searchPhotos(query, MAX_SUGGESTIONS)
+    // Which engines this account searches with is settings, not code: global
+    // configuration an admin owns, narrowed by the switches each person keeps
+    // for themselves.
+    const providers = await resolveProvidersFor(actorId)
+    const credentials = await credentialsForSearch(providers)
+    const engines = providers.map((provider) => ({
+      credentials: credentials.get(provider) ?? { key: '', secret: '' },
+      provider,
+    }))
+
+    const result = await searchPhotos(query, engines, MAX_SUGGESTIONS_PER_ENGINE)
 
     return Response.json(result, { headers: { 'cache-control': 'no-store' } })
   } catch (error) {
     if (error instanceof PhotoSearchUnavailableError) {
       // 503, not 500: the catalog is fine, this one integration is not, and
       // the client should say so rather than look broken.
-      return Response.json({ error: error.message, provider: null }, { status: 503 })
+      return Response.json({ error: error.message, providers: [] }, { status: 503 })
     }
     throw error
   }

@@ -1,0 +1,37 @@
+// DDL for search engine configuration: the global one an admin owns, and the
+// per-account switches every user owns for themselves.
+
+export const SEARCH_SETTINGS_DDL = `
+CREATE TABLE IF NOT EXISTS "account"."search_engine" (
+  "provider" text PRIMARY KEY CHECK ("provider" IN ('google', 'brave', 'openverse')),
+  -- The global switch. An admin turning an engine off here stops it for
+  -- everyone, whatever each account prefers — that is how you stop spending
+  -- money on a provider without deleting its key.
+  "enabled" boolean NOT NULL DEFAULT true,
+  -- Credentials live here rather than only in the environment so they can be
+  -- changed without a deploy. They are never sent back to a client.
+  "api_key" text NOT NULL DEFAULT '',
+  "api_secret" text NOT NULL DEFAULT '',
+  "updated_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
+  "updated_at" timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- One row per account per engine, and only for the ones that account has an
+-- opinion about: no row means "use it", so a new engine is on for everybody
+-- the moment an admin configures it.
+CREATE TABLE IF NOT EXISTS "account"."user_search_engine" (
+  "user_id" bigint NOT NULL REFERENCES "account"."user_account"("id") ON DELETE CASCADE,
+  "provider" text NOT NULL,
+  "enabled" boolean NOT NULL,
+  "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
+  PRIMARY KEY ("user_id", "provider")
+);
+
+COMMENT ON TABLE "account"."search_engine" IS 'Global image-search configuration. Credentials never leave the server.';
+COMMENT ON TABLE "account"."user_search_engine" IS 'Per-account opt-outs. A missing row means the engine is used.';
+`
+
+export const SEARCH_SETTINGS_DROP_DDL = `
+DROP TABLE IF EXISTS "account"."user_search_engine";
+DROP TABLE IF EXISTS "account"."search_engine";
+`
