@@ -9,6 +9,13 @@
 
 @host = http://localhost:37411
 
+# The login below uses these. Keep your real password out of this file — it is
+# in the repository, and a password committed once is in the history for good.
+# docs/api.local.http is gitignored and holds a ready-made login request;
+# send it there and REST Client keeps the cookie for every request here.
+@login_email = ola@example.com
+@login_password = sekret1234
+
 ### Liveness. Never touches Postgres.
 GET {{host}}/healthz
 
@@ -30,8 +37,8 @@ POST {{host}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "ola@example.com",
-  "password": "sekret1234"
+  "email": "{{login_email}}",
+  "password": "{{login_password}}"
 }
 
 ### Who am I, and what may I do? Render menus from `capabilities`.

@@ -20,3 +20,6 @@ npm-debug.log*
 
 # Local Postgres data
 /.local/
+
+# Local credentials for docs/api.http — never in the repository.
+docs/api.local.http
