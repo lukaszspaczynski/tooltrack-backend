@@ -5,7 +5,9 @@ import { db, withTransaction, type PgPool } from '../db'
 import { deletePhotoFile, type StoredPhoto } from '../photo-storage'
 import type { ImageMetadata } from '../image-metadata'
 
-export type PhotoSource = 'search' | 'upload' | 'url'
+export const PHOTO_SOURCES = ['upload', 'url', 'search', 'edit'] as const
+
+export type PhotoSource = (typeof PHOTO_SOURCES)[number]
 
 export type ToolPhoto = {
   attribution: string
@@ -13,6 +15,9 @@ export type ToolPhoto = {
   contentType: string
   createdAt: string
   createdBy: null | number
+  // The photo this one was cut out from, when source is 'edit'. The original
+  // is never touched, so an unconvincing cutout is one delete away from undone.
+  derivedFrom: null | number
   height: null | number
   id: number
   isPrimary: boolean
@@ -47,6 +52,7 @@ type PhotoRow = {
   content_type: string
   created_at: Date | string
   created_by: null | number | string
+  derived_from: null | number | string
   height: null | number
   id: number | string
   is_primary: boolean
@@ -60,7 +66,7 @@ type PhotoRow = {
 const PHOTO_COLUMNS = `
   "id", "tool_id", "storage_key", "checksum", "content_type", "byte_size",
   "width", "height", "source", "source_url", "attribution", "is_primary",
-  "created_by", "created_at"
+  "derived_from", "created_by", "created_at"
 `
 
 export function photoUrl(toolId: number, photoId: number): string {
@@ -120,6 +126,7 @@ export async function getPhoto(
 export async function insertPhoto(
   input: {
     attribution?: string
+    derivedFrom?: number
     metadata: ImageMetadata
     source: PhotoSource
     sourceUrl?: string
@@ -134,13 +141,14 @@ export async function insertPhoto(
       `
         INSERT INTO "catalog"."tool_photo"
           ("tool_id", "storage_key", "checksum", "content_type", "byte_size",
-           "width", "height", "source", "source_url", "attribution", "is_primary", "created_by")
+           "width", "height", "source", "source_url", "attribution", "is_primary",
+           "derived_from", "created_by")
         VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
           -- The first photo of a tool is its main one. Nobody should have to
           -- upload a picture and then tell the app it is the picture.
           NOT EXISTS (SELECT 1 FROM "catalog"."tool_photo" WHERE "tool_id" = $1),
-          $11
+          $11, $12
         )
         RETURNING ${PHOTO_COLUMNS}
       `,
@@ -155,6 +163,7 @@ export async function insertPhoto(
         input.source,
         input.sourceUrl ?? '',
         input.attribution ?? '',
+        input.derivedFrom ?? null,
         actorId,
       ],
     )
@@ -240,6 +249,135 @@ export async function deletePhoto(
   return true
 }
 
+// --- The photo library ------------------------------------------------------
+//
+// Everything above answers "what does this tool look like". The two functions
+// below answer "what is on our disk", which is a different question with a
+// different screen behind it: an operator cleaning up after an import that
+// pulled in the wrong pictures.
+
+export type LibraryPhoto = ToolPhoto & {
+  toolName: string
+}
+
+export type LibraryPage = {
+  items: LibraryPhoto[]
+  limit: number
+  offset: number
+  total: number
+}
+
+export async function listAllPhotos(
+  query: {
+    direction: 'asc' | 'desc'
+    limit: number
+    offset: number
+    search: null | string
+    source: null | PhotoSource
+  },
+  pool: PgPool = db(),
+): Promise<LibraryPage> {
+  const direction = query.direction === 'asc' ? 'ASC' : 'DESC'
+
+  const result = await pool.query<PhotoRow & { tool_name: string; total_count: string }>(
+    `
+      SELECT
+        ${PHOTO_COLUMNS.split(',')
+          .map((column) => `"p".${column.trim()}`)
+          .join(', ')},
+        "t"."name" AS "tool_name",
+        count(*) OVER () AS "total_count"
+      FROM "catalog"."tool_photo" AS "p"
+      JOIN "catalog"."tool" AS "t" ON "t"."id" = "p"."tool_id"
+      WHERE ($1::text IS NULL OR "t"."name" ILIKE $1 OR "t"."brand" ILIKE $1 OR "t"."model" ILIKE $1)
+        AND ($2::text IS NULL OR "p"."source" = $2)
+      ORDER BY "p"."created_at" ${direction}, "p"."id" ${direction}
+      LIMIT $3 OFFSET $4
+    `,
+    [
+      query.search === null ? null : `%${query.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`,
+      query.source,
+      query.limit,
+      query.offset,
+    ],
+  )
+
+  return {
+    items: result.rows.map((row) => ({ ...toPhoto(row), toolName: row.tool_name })),
+    limit: query.limit,
+    offset: query.offset,
+    total: Number(result.rows[0]?.total_count ?? 0),
+  }
+}
+
+export type BulkDeleteResult = {
+  deleted: number
+  // Tools whose main photo was among the deleted rows and now show a
+  // different one. Reported so the screen can say what else changed.
+  promotedTools: number[]
+}
+
+export async function deletePhotosByIds(
+  ids: number[],
+  pool: PgPool = db(),
+): Promise<BulkDeleteResult> {
+  if (ids.length === 0) return { deleted: 0, promotedTools: [] }
+
+  const { promotedTools, removed, storageKeys } = await withTransaction(pool, async (client) => {
+    const deleted = await client.query<{
+      is_primary: boolean
+      storage_key: string
+      tool_id: string
+    }>(
+      `DELETE FROM "catalog"."tool_photo" WHERE "id" = ANY($1::bigint[])
+       RETURNING "tool_id", "storage_key", "is_primary"`,
+      [ids],
+    )
+
+    const orphanedTools = [
+      ...new Set(deleted.rows.filter((row) => row.is_primary).map((row) => Number(row.tool_id))),
+    ]
+
+    // A tool that lost its main photo gets the oldest remaining one, exactly
+    // as a single delete does. One statement for all of them.
+    const promoted = await client.query<{ tool_id: string }>(
+      `
+        UPDATE "catalog"."tool_photo" SET "is_primary" = true
+        WHERE "id" IN (
+          SELECT DISTINCT ON ("tool_id") "id"
+          FROM "catalog"."tool_photo"
+          WHERE "tool_id" = ANY($1::bigint[])
+          ORDER BY "tool_id", "id" ASC
+        )
+        RETURNING "tool_id"
+      `,
+      [orphanedTools],
+    )
+
+    // Files are shared by checksum, so a key is only unlinked once no row
+    // anywhere points at it.
+    const keys = [...new Set(deleted.rows.map((row) => row.storage_key))]
+    const stillUsed = await client.query<{ storage_key: string }>(
+      `SELECT DISTINCT "storage_key" FROM "catalog"."tool_photo" WHERE "storage_key" = ANY($1::text[])`,
+      [keys],
+    )
+    const used = new Set(stillUsed.rows.map((row) => row.storage_key))
+
+    return {
+      promotedTools: promoted.rows.map((row) => Number(row.tool_id)),
+      removed: deleted.rows.length,
+      storageKeys: keys.filter((key) => !used.has(key)),
+    }
+  })
+
+  // Outside the transaction: a failed unlink must not roll back rows that are
+  // already gone. An orphaned file is a wasted byte; a row pointing at a
+  // deleted file is a broken photo.
+  for (const key of storageKeys) await deletePhotoFile(key)
+
+  return { deleted: removed, promotedTools }
+}
+
 function toPhoto(row: PhotoRow): ToolPhoto {
   const id = Number(row.id)
   const toolId = Number(row.tool_id)
@@ -253,10 +391,11 @@ function toPhoto(row: PhotoRow): ToolPhoto {
         ? row.created_at.toISOString()
         : new Date(row.created_at).toISOString(),
     createdBy: row.created_by === null ? null : Number(row.created_by),
+    derivedFrom: row.derived_from === null ? null : Number(row.derived_from),
     height: row.height === null ? null : Number(row.height),
     id,
     isPrimary: row.is_primary,
-    source: (['search', 'upload', 'url'] as const).includes(row.source as PhotoSource)
+    source: (PHOTO_SOURCES as readonly string[]).includes(row.source)
       ? (row.source as PhotoSource)
       : 'upload',
     sourceUrl: row.source_url,
