@@ -237,6 +237,30 @@ test('the library lists a picture once, with every card that shows it', async ()
   assert.deepEqual(calls[0].params, ['%makita%', 'search', null, 48, 0])
 })
 
+test('a picture that is a brand logo says so, and is still unplaced', async () => {
+  // A logo is not on a card: it cannot be attached through the photo routes
+  // and does not count as assigned. It is, however, what a delete would
+  // quietly take away, so the library carries it.
+  const { pool } = fakePool([
+    [
+      {
+        ...photoRow(),
+        logo_for_brand: { id: '3', name: 'Bosch Professional' },
+        owners: [],
+        total_count: '1',
+      },
+    ],
+  ])
+
+  const page = await listAllPhotos(
+    { assigned: null, direction: 'desc', limit: 48, offset: 0, search: null, source: null },
+    pool,
+  )
+
+  assert.deepEqual(page.items[0].logoForBrand, { id: 3, name: 'Bosch Professional' })
+  assert.deepEqual(page.items[0].owners, [])
+})
+
 test('an unplaced picture is still a picture', async () => {
   const { pool } = fakePool([[{ ...photoRow(), owners: [], total_count: '1' }]])
 

@@ -766,6 +766,12 @@ Each entry is the picture plus `owners`: every card showing it, as
 placed yet, which is reached through `url` — `/api/photos/:id/file` — because
 there is no card to reach it through.
 
+It also carries `logoForBrand`: `{ id, name }` when the picture is a maker's
+logo, null otherwise. A logo is **not** an owner — it is not on a card, cannot
+be attached through the photo routes, and does not make the picture count as
+assigned by the `assigned` filter. It is, however, what a delete would quietly
+take away, so a screen that offers to delete has to be able to say so.
+
 A picture appears **once** here however many cards use it. That is the
 difference from the per-card routes: this screen is about what is on our disk,
 and one photograph is one thing on the disk.

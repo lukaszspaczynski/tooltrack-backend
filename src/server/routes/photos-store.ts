@@ -354,6 +354,11 @@ export type PhotoOwnerRef = {
 }
 
 export type LibraryPhoto = Photo & {
+  // The brand this picture is the logo of, if any. Not an owner: a logo is not
+  // "on a card", cannot be attached through the photo routes, and does not
+  // make the picture count as assigned. It is, however, the thing a delete
+  // would quietly take away, so the screen has to be told.
+  logoForBrand: null | { id: number; name: string }
   // Every card showing this picture. Empty while nobody has placed it.
   owners: PhotoOwnerRef[]
 }
@@ -380,7 +385,11 @@ export async function listAllPhotos(
   const direction = query.direction === 'asc' ? 'ASC' : 'DESC'
 
   const result = await pool.query<
-    PhotoRow & { owners: null | PhotoOwnerRef[]; total_count: string }
+    PhotoRow & {
+      logo_for_brand: null | { id: number | string; name: string }
+      owners: null | PhotoOwnerRef[]
+      total_count: string
+    }
   >(
     `
       WITH "owners" AS (
@@ -411,6 +420,10 @@ export async function listAllPhotos(
       )
       SELECT ${PREFIXED_COLUMNS},
              COALESCE("r"."refs", '[]'::jsonb) AS "owners",
+             (SELECT jsonb_build_object('id', "b"."id", 'name', "b"."name")
+              FROM "catalog"."photo_brand" AS "pb"
+              JOIN "catalog"."brand" AS "b" ON "b"."id" = "pb"."brand_id"
+              WHERE "pb"."photo_id" = "p"."id") AS "logo_for_brand",
              count(*) OVER () AS "total_count"
       FROM "catalog"."photo" AS "p"
       LEFT JOIN "rolled" AS "r" ON "r"."photo_id" = "p"."id"
@@ -432,6 +445,11 @@ export async function listAllPhotos(
   return {
     items: result.rows.map((row) => ({
       ...toPhoto(row),
+      // Nullish rather than null: the column is absent from a row the caller
+      // built by hand, and both absences mean the same thing.
+      logoForBrand: row.logo_for_brand
+        ? { id: Number(row.logo_for_brand.id), name: row.logo_for_brand.name }
+        : null,
       owners: (row.owners ?? []).map((owner) => ({ ...owner, id: Number(owner.id) })),
     })),
     limit: query.limit,
