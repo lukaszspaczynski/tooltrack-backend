@@ -20,6 +20,7 @@ import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch
 import { PhotoNotSuitableError } from '../cutout-local'
 import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
 import { readCutoutConfig } from './cutout-settings-store'
+import { parseAttachIds } from './media-input'
 import { parseCutoutCommitInput, parseCutoutRunInput } from './settings-input'
 import {
   defaultQuery,
@@ -32,6 +33,7 @@ import { readImageMetadata } from '../image-metadata'
 import { readPhotoBytes, savePhotoBytes, storageKeyFor } from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import {
+  attachPhotosToTool,
   deletePhoto,
   getPhoto,
   insertPhoto,
@@ -363,6 +365,38 @@ export async function cutoutPOST(_request: Request, context: RouteContext): Prom
     }
     throw error
   }
+}
+
+// POST /api/tools/:id/photos/attach — put photos that already exist on this
+// tool.
+//
+// The other half of being able to upload a picture before deciding what it is:
+// without this the library's unassigned shelf has no way out.
+export async function attachPOST(request: Request, context: RouteContext): Promise<Response> {
+  const toolId = parseId(context.params.id)
+  if (toolId === null) return toolNotFound()
+
+  const actorId = context.user?.id
+  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const tool = await getTool(toolId)
+  if (!tool) return toolNotFound()
+
+  const parsed = parseAttachIds(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const result = await attachPhotosToTool(toolId, parsed.value, actorId)
+
+  // Nothing attached is a refusal worth a status of its own; some of them
+  // failing is normal and reported per photo.
+  if (result.attached.length === 0) {
+    return Response.json(
+      { error: result.failed[0]?.reason ?? 'Nie udało się przypisać zdjęć', failed: result.failed },
+      { status: 409 },
+    )
+  }
+
+  return Response.json({ failed: result.failed, photos: result.attached }, { status: 201 })
 }
 
 export async function fileGET(_request: Request, context: RouteContext): Promise<Response> {
