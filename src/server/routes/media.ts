@@ -13,11 +13,13 @@
 // list in it.
 
 import { ImageConversionError, toStoredPng } from '../image-convert'
+import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
 import { readPhotoBytes, savePhotoBytes } from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import { parseDeleteIds, parseMediaQuery } from './media-input'
 import {
   deletePhotosByIds,
+  findPhotoByChecksum,
   getPhotoById,
   insertPhoto,
   listAllPhotos,
@@ -41,10 +43,16 @@ export async function GET(request: Request): Promise<Response> {
 // the library instead, and the filter on that screen is how you find them
 // again.
 //
-// The same raw-body upload as the per-tool one, and the same conversion to PNG.
+// The same raw-body upload as the per-card one, and the same conversion to
+// PNG — or, when the body is JSON, the same fetch from an address. A logo or a
+// manual is as likely to be a link somebody has as a file on their phone, and
+// the library is where both wait.
 export async function uploadPOST(request: Request, context: RouteContext): Promise<Response> {
   const actorId = context.user?.id
   if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const contentType = request.headers.get('content-type') ?? ''
+  if (!contentType.startsWith('image/')) return importFromUrl(request, actorId)
 
   const bytes = new Uint8Array(await request.arrayBuffer())
   if (bytes.byteLength === 0) return Response.json({ error: 'Pusty plik' }, { status: 400 })
@@ -71,6 +79,53 @@ export async function uploadPOST(request: Request, context: RouteContext): Promi
   )
 
   return Response.json({ photo }, { status: 201 })
+}
+
+// POST /api/photos with { url } — the same picture, fetched here rather than
+// sent. Every guard the per-card import uses applies: the address is checked
+// before anything is opened, the bytes decide what the file really is, and
+// whatever it turns out to be is stored as PNG.
+async function importFromUrl(request: Request, actorId: number): Promise<Response> {
+  const body = (await readJson(request)) as null | { attribution?: unknown; url?: unknown }
+  const url = typeof body?.url === 'string' ? body.url.trim() : ''
+  if (!url) return Response.json({ error: 'Podaj adres zdjęcia (url)' }, { status: 400 })
+
+  try {
+    const fetched = await fetchRemoteImage(url, maxPhotoBytes())
+    const converted = await toStoredPng(fetched.bytes)
+    const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
+
+    // Asked before writing, because the checksum is unique and the answer is
+    // otherwise indistinguishable: a screen that says "added" about a picture
+    // that was already here sends somebody looking for a row that is not new.
+    const existing = await findPhotoByChecksum(stored.checksum)
+
+    const photo = await insertPhoto(
+      {
+        attribution: typeof body?.attribution === 'string' ? body.attribution : undefined,
+        metadata: converted.metadata,
+        source: 'url',
+        sourceUrl: url,
+        stored,
+      },
+      actorId,
+    )
+
+    // The flag as well as the status: the client reads bodies, not codes, and
+    // "already here" is the difference between a screen that grew a row and
+    // one that did not.
+    return Response.json({ created: existing === null, photo }, { status: existing ? 200 : 201 })
+  } catch (error) {
+    // A bad address, a page that is not an image, or something too large: all
+    // of them are about what was asked for, not about this server.
+    if (error instanceof ImageFetchError || error instanceof ImageConversionError) {
+      return Response.json({ error: error.message }, { status: 422 })
+    }
+    if (error instanceof TypeError) {
+      return Response.json({ error: 'Nie udało się pobrać zdjęcia' }, { status: 422 })
+    }
+    throw error
+  }
 }
 
 // GET /api/photos/:id/file — the bytes, by the photo's own id.

@@ -772,8 +772,22 @@ and one photograph is one thing on the disk.
 
 ### `POST /api/photos` — `catalog.write`
 
-An upload that belongs to nothing. The raw file as the body, like the per-card
-upload, converted to PNG the same way. `201 { photo }` with no `owners`.
+An upload that belongs to nothing, in either of two shapes.
+
+**The raw file as the body**, like the per-card upload, converted to PNG the
+same way. `201 { photo }` with no `owners`.
+
+**`{ "url": "https://…" }`** when the body is JSON: the server fetches it
+instead, through the same guards — the address is checked before anything is
+opened, the bytes decide what the file really is, and whatever it turns out to
+be is stored as PNG. A bad address, a page that is not an image or something
+too large is a `422` about what was asked for. A logo or a manual is as likely
+to be a link somebody has as a file on their phone.
+
+Both answer `{ created, photo }`. `created` is false — and the status `200`
+rather than `201` — when those bytes were already here: the picture comes back
+either way, because it is the same photograph, but a screen should not claim to
+have added a row it did not add.
 
 Pictures arrive before anyone decides what they are: a batch off a phone at the
 end of a day, something found while looking for something else. Forcing a card

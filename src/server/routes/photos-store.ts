@@ -128,6 +128,22 @@ export async function primaryPhotoIds(
   return new Map(result.rows.map((row) => [Number(row.owner_id), Number(row.photo_id)]))
 }
 
+// Whether these bytes are already a picture here. The checksum is unique, so
+// this is what tells "written" apart from "found" — which the library import
+// says out loud rather than claiming to have added something.
+export async function findPhotoByChecksum(
+  checksum: string,
+  pool: PgPool = db(),
+): Promise<null | Photo> {
+  const result = await pool.query<PhotoRow>(
+    `SELECT ${PHOTO_COLUMNS} FROM "catalog"."photo" WHERE "checksum" = $1`,
+    [checksum],
+  )
+
+  const row = result.rows[0]
+  return row ? toPhoto(row) : null
+}
+
 export async function getPhotoById(
   photoId: number,
   pool: PgPool = db(),
