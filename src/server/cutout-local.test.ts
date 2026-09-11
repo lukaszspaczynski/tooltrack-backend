@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { cutoutOptionsFromEnv, DEFAULT_CUTOUT_OPTIONS, planCutout } from './cutout-local'
+import sharp from 'sharp'
+
+import {
+  cutoutLocally,
+  cutoutOptions,
+  DEFAULT_CUTOUT_OPTIONS,
+  planCutout,
+  PhotoNotSuitableError,
+} from './cutout-local'
+import { readImageMetadata } from './image-metadata'
 
 // A canvas of RGBA bytes, so every case below is a picture described in code
 // rather than a binary fixture nobody can read in a diff.
@@ -152,20 +161,27 @@ test('a truncated pixel buffer is refused, not read past its end', () => {
   assert.equal(plan.ok, false)
 })
 
-test('the threshold is the one knob, and a nonsense value falls back', (t) => {
-  t.after(() => {
-    delete process.env.TOOLTRACK_CUTOUT_THRESHOLD
-  })
+test('the knobs take a value or fall back, one by one', () => {
+  assert.equal(cutoutOptions().threshold, DEFAULT_CUTOUT_OPTIONS.threshold)
+  assert.equal(cutoutOptions({ threshold: 700 }).threshold, 700)
+  assert.equal(cutoutOptions({ padding: 40 }).padding, 40)
 
-  assert.equal(cutoutOptionsFromEnv().threshold, DEFAULT_CUTOUT_OPTIONS.threshold)
-
-  process.env.TOOLTRACK_CUTOUT_THRESHOLD = '700'
-  assert.equal(cutoutOptionsFromEnv().threshold, 700)
-
-  for (const bad of ['banany', '0', '-5', '800']) {
-    process.env.TOOLTRACK_CUTOUT_THRESHOLD = bad
-    assert.equal(cutoutOptionsFromEnv().threshold, DEFAULT_CUTOUT_OPTIONS.threshold, bad)
+  // Zero and negatives are meaningless for a threshold, and above 765 — pure
+  // white — the whole frame would be background. A settings form, or a person
+  // typing into the cutout screen, can produce any of them.
+  for (const bad of [0, -5, 800, 1.5, Number.NaN]) {
+    assert.equal(
+      cutoutOptions({ threshold: bad }).threshold,
+      DEFAULT_CUTOUT_OPTIONS.threshold,
+      String(bad),
+    )
   }
+
+  // A bad padding falls back on its own without taking the threshold with it.
+  assert.deepEqual(
+    { padding: cutoutOptions({ padding: -1, threshold: 700 }).padding, threshold: 700 },
+    { padding: DEFAULT_CUTOUT_OPTIONS.padding, threshold: 700 },
+  )
 })
 
 test('a greyish background still works when the threshold is lowered', () => {
@@ -182,4 +198,41 @@ test('a greyish background still works when the threshold is lowered', () => {
   })
   assert.ok(plan.ok)
   assert.deepEqual(plan.box, { height: 20, width: 20, x: 40, y: 40 })
+})
+
+test('a WebP is read now, not refused', async () => {
+  // It used to be turned away: the previous decoder could not read WebP, which
+  // is most of what an image search returns. Everything goes through sharp
+  // now, and everything stored is PNG anyway.
+  const webp = await sharp({
+    create: { background: { b: 255, g: 255, r: 255 }, channels: 3, height: 100, width: 100 },
+  })
+    .composite([
+      {
+        input: await sharp({
+          create: { background: { b: 20, g: 20, r: 20 }, channels: 3, height: 30, width: 40 },
+        })
+          .png()
+          .toBuffer(),
+        left: 30,
+        top: 35,
+      },
+    ])
+    .webp()
+    .toBuffer()
+
+  const cutout = await cutoutLocally(new Uint8Array(webp))
+
+  const metadata = readImageMetadata(cutout)
+  assert.equal(metadata?.contentType, 'image/png')
+  // The frame was 100x100; what comes back is the dark square plus padding.
+  assert.ok(metadata!.width < 100 && metadata!.width >= 40, String(metadata?.width))
+  assert.ok(metadata!.height < 100 && metadata!.height >= 30, String(metadata?.height))
+})
+
+test('a file that is not an image is refused as unsuitable, not as a crash', async () => {
+  await assert.rejects(
+    () => cutoutLocally(new TextEncoder().encode('<html>hello</html>')),
+    PhotoNotSuitableError,
+  )
 })

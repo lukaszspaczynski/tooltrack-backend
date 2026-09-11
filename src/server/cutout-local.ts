@@ -5,6 +5,9 @@
 // everything that is not the background, and the background is everything
 // light that touches the edge of the frame. No model, no API key, no waiting.
 //
+// planCutout below is pure — pixels in, a mask and a box out — and everything
+// that touches an actual file goes through image-convert.ts.
+//
 // Two deliberate differences from the original. It floods the background in
 // from the border instead of taking the largest dark blob, so a white sticker
 // or a light label in the middle of a drill stays part of the tool rather than
@@ -14,7 +17,7 @@
 // It refuses rather than guesses. A photo taken on a workbench has no plain
 // background to flood, and half a cut-out bench is worse than no cutout.
 
-import { Jimp } from 'jimp'
+import { ImageConversionError, pngFromRgba, toRgba } from './image-convert'
 
 export type CutoutOptions = {
   // Largest share of the frame the object may cover. Above it there is nothing
@@ -60,15 +63,23 @@ export class PhotoNotSuitableError extends Error {
   }
 }
 
-export function cutoutOptionsFromEnv(): CutoutOptions {
-  const raw = process.env.TOOLTRACK_CUTOUT_THRESHOLD
-  const parsed = Number(raw)
-  const threshold =
-    raw?.trim() && Number.isInteger(parsed) && parsed > 0 && parsed <= 765
-      ? parsed
-      : DEFAULT_CUTOUT_OPTIONS.threshold
+// The tunable parts arrive as arguments — from settings, or from whoever is
+// standing in front of the cutout screen. A value that could not work (a
+// threshold above pure white, where the whole frame would be background) falls
+// back rather than producing a confusing refusal.
+export function cutoutOptions(
+  overrides: { padding?: number; threshold?: number } = {},
+): CutoutOptions {
+  return {
+    ...DEFAULT_CUTOUT_OPTIONS,
+    padding: whole(overrides.padding, 0, 200) ?? DEFAULT_CUTOUT_OPTIONS.padding,
+    threshold: whole(overrides.threshold, 1, 765) ?? DEFAULT_CUTOUT_OPTIONS.threshold,
+  }
+}
 
-  return { ...DEFAULT_CUTOUT_OPTIONS, threshold }
+function whole(value: number | undefined, min: number, max: number): number | undefined {
+  if (typeof value !== 'number' || !Number.isInteger(value)) return undefined
+  return value >= min && value <= max ? value : undefined
 }
 
 // The whole decision, as a pure function over RGBA bytes. Everything that
@@ -156,36 +167,43 @@ export function planCutout(
   }
 }
 
-export async function cutoutLocally(bytes: Uint8Array): Promise<Uint8Array> {
-  let image: Awaited<ReturnType<typeof Jimp.fromBuffer>>
+export async function cutoutLocally(
+  bytes: Uint8Array,
+  overrides: { padding?: number; threshold?: number } = {},
+): Promise<Uint8Array> {
+  let source: Awaited<ReturnType<typeof toRgba>>
   try {
-    image = await Jimp.fromBuffer(Buffer.from(bytes))
-  } catch {
-    throw new PhotoNotSuitableError('Nie udało się odczytać tego pliku jako obrazu')
+    source = await toRgba(bytes)
+  } catch (error) {
+    // A picture the decoder cannot read is a fact about the photo, not a fault
+    // in the server, so it gets the same 422 as one with no plain background.
+    throw new PhotoNotSuitableError(
+      error instanceof ImageConversionError ? error.message : 'Nie udało się odczytać zdjęcia',
+    )
   }
 
-  const { data, height, width } = image.bitmap
-  const plan = planCutout(data, width, height, cutoutOptionsFromEnv())
+  const { height, pixels, width } = source
+  const plan = planCutout(pixels, width, height, cutoutOptions(overrides))
   if (!plan.ok) throw new PhotoNotSuitableError(plan.reason)
 
-  const output = new Jimp({ color: 0x00000000, height: plan.box.height, width: plan.box.width })
+  // Transparent everywhere the mask is not: a fresh buffer is already zeroed,
+  // so only the tool has to be written into it.
+  const output = new Uint8Array(plan.box.width * plan.box.height * 4)
 
   for (let y = 0; y < plan.box.height; y += 1) {
     for (let x = 0; x < plan.box.width; x += 1) {
-      const source = (plan.box.y + y) * width + (plan.box.x + x)
-      const target = (y * plan.box.width + x) * 4
-      if (!plan.mask[source]) continue
+      const from = (plan.box.y + y) * width + (plan.box.x + x)
+      if (!plan.mask[from]) continue
 
-      output.bitmap.data[target] = data[source * 4]
-      output.bitmap.data[target + 1] = data[source * 4 + 1]
-      output.bitmap.data[target + 2] = data[source * 4 + 2]
-      output.bitmap.data[target + 3] = 255
+      const to = (y * plan.box.width + x) * 4
+      output[to] = pixels[from * 4]
+      output[to + 1] = pixels[from * 4 + 1]
+      output[to + 2] = pixels[from * 4 + 2]
+      output[to + 3] = 255
     }
   }
 
-  // PNG whatever went in: the result carries an alpha channel, and JPEG has
-  // none.
-  return new Uint8Array(await output.getBuffer('image/png'))
+  return pngFromRgba(output, plan.box.width, plan.box.height)
 }
 
 function lightMask(pixels: Uint8Array, total: number, threshold: number): Uint8Array {
