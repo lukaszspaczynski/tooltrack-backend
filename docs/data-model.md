@@ -87,6 +87,28 @@ The EAN and the SKU identify the product, not this box. Two identical cases on
 the shelf are two rows carrying the same barcode, which is why neither column
 is unique — the opposite of `tool.serial_number`, which is one machine.
 
+### `catalog.case_label_slot`
+
+Where a label goes on a case.
+
+| Column                     | Type                           | Notes               |
+| -------------------------- | ------------------------------ | ------------------- |
+| `id`                       | `bigint` identity              |                     |
+| `case_id`                  | `bigint` → `catalog.tool_case` | `ON DELETE CASCADE` |
+| `width_mm`, `height_mm`    | `integer`                      | CHECK `> 0`         |
+| `created_by`, `created_at` |                                |                     |
+
+A slot is a size and nothing else; what gets printed on it is a different
+question and not one this table answers.
+
+Unique on `(case_id, width_mm, height_mm)`: one case cannot list the same size
+twice, and adding it again is a mistake rather than a second place. Sizes
+repeat freely across cases, which is what a modular system is.
+
+Unlike the measurements on the case itself, these are `NOT NULL` and checked
+positive rather than nullable: "nobody measured the box" is a normal state, but
+a label slot with no width is not a slot.
+
 ### `catalog.photo`
 
 One row per picture. The bytes are not here: the row says what the file is and

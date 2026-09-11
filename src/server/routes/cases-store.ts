@@ -5,6 +5,21 @@
 import { db, type PgPool } from '../db'
 import type { CaseFields, CasePatch, CaseQuery } from './cases-input'
 
+// Where a label goes on this case: a size and nothing else. What gets printed
+// on it is a different question.
+export type LabelSlot = {
+  heightMm: number
+  id: number
+  widthMm: number
+}
+
+export class LabelSlotTakenError extends Error {
+  constructor(widthMm: number, heightMm: number) {
+    super(`Ta skrzynka ma już miejsce ${widthMm} x ${heightMm} mm`)
+    this.name = 'LabelSlotTakenError'
+  }
+}
+
 export type ToolCase = {
   capacityL: null | number
   createdAt: string
@@ -22,6 +37,7 @@ export type ToolCase = {
   outerHeightMm: null | number
   outerLengthMm: null | number
   outerWidthMm: null | number
+  labelSlots: LabelSlot[]
   sku: string
   system: string
   updatedAt: string
@@ -40,6 +56,8 @@ export type SystemCount = {
   system: string
 }
 
+type RawSlot = { heightMm: number | string; id: number | string; widthMm: number | string }
+
 type CaseRow = {
   capacity_l: null | number | string
   created_at: Date | string
@@ -50,6 +68,7 @@ type CaseRow = {
   inner_height_mm: null | number | string
   inner_length_mm: null | number | string
   inner_width_mm: null | number | string
+  label_slots?: null | RawSlot[]
   load_kg: null | number | string
   manufacturer: string
   name: string
@@ -141,7 +160,23 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
 
 export async function getCase(id: number, pool: PgPool = db()): Promise<null | ToolCase> {
   const result = await pool.query<CaseRow>(
-    `SELECT ${CASE_COLUMNS} FROM "catalog"."tool_case" WHERE "id" = $1`,
+    `
+      SELECT ${CASE_COLUMNS},
+        COALESCE(
+          (
+            SELECT jsonb_agg(
+                     jsonb_build_object('id', "s"."id", 'widthMm', "s"."width_mm",
+                                        'heightMm', "s"."height_mm")
+                     ORDER BY "s"."width_mm", "s"."height_mm"
+                   )
+            FROM "catalog"."case_label_slot" AS "s"
+            WHERE "s"."case_id" = "catalog"."tool_case"."id"
+          ),
+          '[]'::jsonb
+        ) AS "label_slots"
+      FROM "catalog"."tool_case"
+      WHERE "id" = $1
+    `,
     [id],
   )
 
@@ -218,6 +253,48 @@ export async function deleteCase(id: number, pool: PgPool = db()): Promise<boole
   return (result.rowCount ?? 0) > 0
 }
 
+export async function addLabelSlot(
+  caseId: number,
+  widthMm: number,
+  heightMm: number,
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<LabelSlot> {
+  try {
+    const result = await pool.query<{ height_mm: number; id: string; width_mm: number }>(
+      `
+        INSERT INTO "catalog"."case_label_slot" ("case_id", "width_mm", "height_mm", "created_by")
+        VALUES ($1, $2, $3, $4)
+        RETURNING "id", "width_mm", "height_mm"
+      `,
+      [caseId, widthMm, heightMm, actorId],
+    )
+
+    const row = result.rows[0]
+    return { heightMm: Number(row.height_mm), id: Number(row.id), widthMm: Number(row.width_mm) }
+  } catch (error) {
+    const code = (error as { code?: string }).code
+    // The pair is the key: the same size twice on one case is a mistake, not a
+    // second place.
+    if (code === '23505') throw new LabelSlotTakenError(widthMm, heightMm)
+    if (code === '23503') return Promise.reject(error)
+    throw error
+  }
+}
+
+export async function removeLabelSlot(
+  caseId: number,
+  slotId: number,
+  pool: PgPool = db(),
+): Promise<boolean> {
+  const result = await pool.query(
+    `DELETE FROM "catalog"."case_label_slot" WHERE "case_id" = $1 AND "id" = $2`,
+    [caseId, slotId],
+  )
+
+  return (result.rowCount ?? 0) > 0
+}
+
 // What the system filter offers, read from the cases themselves — the same
 // reasoning as tool categories: the shelf is where the systems come from.
 export async function listSystems(pool: PgPool = db()): Promise<SystemCount[]> {
@@ -254,6 +331,11 @@ function toCase(row: CaseRow): ToolCase {
     innerHeightMm: toNumber(row.inner_height_mm),
     innerLengthMm: toNumber(row.inner_length_mm),
     innerWidthMm: toNumber(row.inner_width_mm),
+    labelSlots: (row.label_slots ?? []).map((slot) => ({
+      heightMm: Number(slot.heightMm),
+      id: Number(slot.id),
+      widthMm: Number(slot.widthMm),
+    })),
     loadKg: toNumber(row.load_kg),
     manufacturer: row.manufacturer,
     name: row.name,

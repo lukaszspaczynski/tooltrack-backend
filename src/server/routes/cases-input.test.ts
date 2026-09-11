@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { parseCaseCreate, parseCasePatch, parseCaseQuery } from './cases-input'
+import { parseCaseCreate, parseCasePatch, parseCaseQuery, parseLabelSlot } from './cases-input'
 
 test('a case needs a name and a maker', () => {
   assert.equal(parseCaseCreate({ manufacturer: 'Qbrick' }).ok, false)
@@ -101,4 +101,27 @@ test('the filters are read from the query string', () => {
     },
     { direction: 'asc', manufacturer: 'Qbrick', search: 'toolbox', system: 'PRO' },
   )
+})
+
+test('a label slot is two millimetre sizes, and neither may be unknown', () => {
+  const parsed = parseLabelSlot({ heightMm: 40, widthMm: 30 })
+
+  assert.ok(parsed.ok)
+  assert.deepEqual(parsed.value, { heightMm: 40, widthMm: 30 })
+
+  // Null means "not measured" elsewhere in this file; a label with no width is
+  // not a label, so here it is refused rather than stored.
+  for (const body of [{ heightMm: 40 }, { widthMm: 30 }, { heightMm: null, widthMm: 30 }]) {
+    assert.equal(parseLabelSlot(body).ok, false, JSON.stringify(body))
+  }
+})
+
+test('a label slot is whole millimetres, and zero is not a size', () => {
+  for (const body of [
+    { heightMm: 40, widthMm: 0 },
+    { heightMm: -40, widthMm: 30 },
+    { heightMm: 40, widthMm: 30.5 },
+  ]) {
+    assert.equal(parseLabelSlot(body).ok, false, JSON.stringify(body))
+  }
 })

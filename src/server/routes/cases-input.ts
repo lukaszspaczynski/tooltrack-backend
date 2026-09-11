@@ -164,6 +164,25 @@ export function parseCasePatch(body: unknown): Parsed<CasePatch> {
 
 // The list query. A bad value here is clamped or dropped rather than refused:
 // a link someone pasted with `?limit=banana` should still show the shelf.
+// A label slot is a size and nothing else: width by height, in millimetres.
+export function parseLabelSlot(body: unknown): Parsed<{ heightMm: number; widthMm: number }> {
+  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+
+  const widthMm = parseMeasurement(body.widthMm, MAX_DIMENSION_MM, 0)
+  const heightMm = parseMeasurement(body.heightMm, MAX_DIMENSION_MM, 0)
+
+  // Null is "not known", which a label size cannot be: a slot with no width is
+  // not a slot.
+  if (widthMm === undefined || widthMm === null) {
+    return invalid(`widthMm must be a whole number of mm between 1 and ${MAX_DIMENSION_MM}`)
+  }
+  if (heightMm === undefined || heightMm === null) {
+    return invalid(`heightMm must be a whole number of mm between 1 and ${MAX_DIMENSION_MM}`)
+  }
+
+  return valid({ heightMm, widthMm })
+}
+
 export function parseCaseQuery(params: URLSearchParams): Parsed<CaseQuery> {
   return valid({
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',

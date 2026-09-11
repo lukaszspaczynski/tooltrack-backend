@@ -9,8 +9,18 @@
 // Photos of a case are not here: they are the same routes as a tool's, under
 // /api/cases/:id/photos, served by routes/photos.ts.
 
-import { parseCaseCreate, parseCasePatch, parseCaseQuery } from './cases-input'
-import { createCase, deleteCase, getCase, listCases, listSystems, updateCase } from './cases-store'
+import { parseCaseCreate, parseCasePatch, parseCaseQuery, parseLabelSlot } from './cases-input'
+import {
+  addLabelSlot,
+  createCase,
+  deleteCase,
+  getCase,
+  LabelSlotTakenError,
+  listCases,
+  listSystems,
+  removeLabelSlot,
+  updateCase,
+} from './cases-store'
 import { parseOwnerId } from './photo-owner'
 import { dropOrphanedPhotos, photoIdsOf, photoUrl, primaryPhotoIds } from './photos-store'
 import type { RouteContext } from '../route-context'
@@ -95,6 +105,45 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   await dropOrphanedPhotos(photoIds)
 
   return Response.json({ ok: true })
+}
+
+// POST /api/cases/:id/label-slots — one more place a label goes.
+export async function labelSlotPOST(request: Request, context: RouteContext): Promise<Response> {
+  const id = parseOwnerId(context.params.id)
+  if (id === null) return notFound()
+
+  const parsed = parseLabelSlot(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  // Checked before the insert so a missing case is a 404 about the case rather
+  // than a foreign key violation about a column nobody asked about.
+  if (!(await getCase(id))) return notFound()
+
+  try {
+    await addLabelSlot(id, parsed.value.widthMm, parsed.value.heightMm, actorId(context))
+  } catch (error) {
+    if (error instanceof LabelSlotTakenError) {
+      return Response.json({ error: error.message }, { status: 409 })
+    }
+    throw error
+  }
+
+  // The whole case comes back: the screen shows the slots together and would
+  // otherwise have to merge one into a list it already holds.
+  return Response.json({ case: await getCase(id) }, { status: 201 })
+}
+
+export async function labelSlotDELETE(_request: Request, context: RouteContext): Promise<Response> {
+  const id = parseOwnerId(context.params.id)
+  const slotId = parseOwnerId(context.params.slotId)
+  if (id === null || slotId === null) return notFound()
+
+  const removed = await removeLabelSlot(id, slotId)
+  if (!removed) {
+    return Response.json({ error: 'Ta skrzynka nie ma takiego miejsca' }, { status: 404 })
+  }
+
+  return Response.json({ case: await getCase(id) })
 }
 
 // The guard has already refused an anonymous caller on every write route, so

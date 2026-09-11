@@ -50,6 +50,8 @@ const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
 const ORGANIZER_TOOLS_PATTERN = /^\/api\/organizers\/(\d+)\/tools$/
 const ORGANIZER_TOOL_PATTERN = /^\/api\/organizers\/(\d+)\/tools\/(\d+)$/
 const CASE_DETAIL_PATTERN = /^\/api\/cases\/(\d+)$/
+const CASE_LABEL_SLOTS_PATTERN = /^\/api\/cases\/(\d+)\/label-slots$/
+const CASE_LABEL_SLOT_PATTERN = /^\/api\/cases\/(\d+)\/label-slots\/(\d+)$/
 
 // Photos belong to a tool or to a case on identical terms, so one set of
 // patterns serves both. Group 1 is the segment — "tools" or "cases" — which
@@ -107,6 +109,8 @@ const ROUTES = [
   'GET /api/cases/:id',
   'PATCH /api/cases/:id',
   'DELETE /api/cases/:id',
+  'POST /api/cases/:id/label-slots',
+  'DELETE /api/cases/:id/label-slots/:slotId',
   'GET /api/cases/:id/photos',
   'POST /api/cases/:id/photos',
   'POST /api/cases/:id/photos/attach',
@@ -404,6 +408,21 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
       { DELETE: tools.detailDELETE, GET: tools.detailGET, PATCH: tools.detailPATCH },
       { id: toolDetail[1] },
     )
+  }
+
+  // Longest first, as everywhere in this table.
+  const labelSlot = CASE_LABEL_SLOT_PATTERN.exec(path)
+  if (labelSlot) {
+    return methodHandler(
+      method,
+      { DELETE: cases.labelSlotDELETE },
+      { id: labelSlot[1], slotId: labelSlot[2] },
+    )
+  }
+
+  const labelSlots = CASE_LABEL_SLOTS_PATTERN.exec(path)
+  if (labelSlots) {
+    return methodHandler(method, { POST: cases.labelSlotPOST }, { id: labelSlots[1] })
   }
 
   const caseDetail = CASE_DETAIL_PATTERN.exec(path)

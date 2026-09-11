@@ -79,10 +79,31 @@ CREATE INDEX IF NOT EXISTS "catalog_tool_case_manufacturer_idx"
 CREATE INDEX IF NOT EXISTS "catalog_tool_case_system_idx"
   ON "catalog"."tool_case" (lower("system"));
 
+-- Where a label goes on a case. A slot is a size and nothing else: 30 x 40 mm
+-- on the front, 200 x 60 mm on the lid. What gets printed on it is a different
+-- question, and not one this table answers.
+CREATE TABLE IF NOT EXISTS "catalog"."case_label_slot" (
+  "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  "case_id" bigint NOT NULL REFERENCES "catalog"."tool_case"("id") ON DELETE CASCADE,
+  -- Millimetres, always as width x height of the outline. A label with no
+  -- width is not a label, so zero is refused rather than stored as "unknown".
+  "width_mm" integer NOT NULL CHECK ("width_mm" > 0),
+  "height_mm" integer NOT NULL CHECK ("height_mm" > 0),
+  "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
+  "created_at" timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- The pair is the key: one case cannot have the same size listed twice, and
+-- adding it again is a mistake rather than a second place. Sizes repeat freely
+-- across cases, which is the point of a modular system.
+CREATE UNIQUE INDEX IF NOT EXISTS "case_label_slot_size_idx"
+  ON "catalog"."case_label_slot" ("case_id", "width_mm", "height_mm");
+
 COMMENT ON SCHEMA "catalog" IS 'The ToolTrack tool catalog.';
 COMMENT ON TABLE "catalog"."tool" IS 'One row per physical tool, the card shown in the app.';
 COMMENT ON TABLE "catalog"."tool_case" IS 'One row per case, box or drawer unit the tools are kept in.';
 COMMENT ON COLUMN "catalog"."tool_case"."ean" IS 'Barcode of the product, not of this box: duplicates are expected.';
+COMMENT ON TABLE "catalog"."case_label_slot" IS 'Where a label goes on a case: a size in mm, unique per case.';
 `
 
 export const CATALOG_DROP_DDL = `

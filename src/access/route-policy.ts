@@ -122,6 +122,17 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/cases\/[^/]+$/,
   },
   {
+    // Where labels go on a case. Changing the case, so the same capability.
+    domain: 'cases',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/cases\/\d+\/label-slots$/,
+  },
+  {
+    domain: 'cases',
+    methods: { DELETE: WRITE_CATALOG },
+    pattern: /^\/api\/cases\/\d+\/label-slots\/\d+$/,
+  },
+  {
     domain: 'tools',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
     pattern: /^\/api\/tools$/,

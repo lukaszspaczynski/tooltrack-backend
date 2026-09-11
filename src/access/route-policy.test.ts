@@ -294,3 +294,11 @@ test('pointing a logo at a picture is a write, and so is taking it away', () => 
   // There is no reading of a logo on its own — it comes with the brand.
   assert.equal(routeRequirement('/api/brands/4/logo', 'GET').check.kind, 'deny')
 })
+
+test('where labels go is part of the case, and guarded like one', () => {
+  assert.equal(allows('/api/cases/4/label-slots', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/cases/4/label-slots', 'POST', user('editor')), true)
+  assert.equal(allows('/api/cases/4/label-slots/9', 'DELETE', user('editor')), true)
+  // They come with the case, so there is nothing to read on its own.
+  assert.equal(routeRequirement('/api/cases/4/label-slots', 'GET').check.kind, 'deny')
+})

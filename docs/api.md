@@ -225,6 +225,23 @@ sheet gets removed. `200 { case }`.
 `200 { ok: true }`. The photos of the case go with it — the foreign key
 cascades.
 
+### `POST /api/cases/:id/label-slots` — `catalog.write`
+
+Where a label goes on this case: `{ "widthMm": 30, "heightMm": 40 }`. Whole
+millimetres, always width by height of the outline, and neither may be zero —
+elsewhere on a case a missing measurement is null and means "nobody measured",
+but a label with no width is not a label.
+
+`201 { case }` — the whole case, so a screen showing the slots together does
+not have to merge one into a list it already holds. `409` when this case
+already has that size: the pair is the key, and adding it twice is a mistake
+rather than a second place. The same size on another case is fine, which is
+the point of a modular system.
+
+### `DELETE /api/cases/:id/label-slots/:slotId` — `catalog.write`
+
+`200 { case }`, or `404` when this case has no such slot.
+
 ### The case object
 
 ```json
@@ -245,6 +262,7 @@ cascades.
   "ean": "5901238254249",
   "sku": "SKRQTBPRO2CZAPG001",
   "notes": "",
+  "labelSlots": [{ "id": 1, "widthMm": 30, "heightMm": 40 }],
   "createdBy": 1,
   "updatedBy": 1,
   "createdAt": "2026-09-11T18:12:33.370Z",

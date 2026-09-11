@@ -62,6 +62,12 @@ claim about a box with no height.
 The EAN and the SKU are not unique, unlike a tool's serial number. They
 identify the product, and owning two identical cases is normal.
 
+`catalog.case_label_slot` is where a label goes: a size in millimetres, unique
+per case on the pair. Both values are NOT NULL and positive — the opposite of
+the case's own measurements, where null means "nobody measured" — because a
+slot with no width is not a slot. Only `getCase` carries them; the list does
+not, since a grid of cases has no use for them.
+
 ## Photos
 
 `catalog.photo` holds what a photo is; `src/server/photo-storage.ts` holds
