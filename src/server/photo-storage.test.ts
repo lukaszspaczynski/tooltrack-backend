@@ -133,10 +133,16 @@ test('the sweep removes what has expired and leaves the rest', async () => {
 })
 
 test('the lifetime is half an hour unless the environment says otherwise', (t) => {
+  // The variable belongs to whoever runs the tests — .env.example invites
+  // setting it — so it is restored rather than deleted, and cleared before the
+  // default is asserted.
+  const previous = process.env.TOOLTRACK_PREVIEW_TTL_MINUTES
   t.after(() => {
-    delete process.env.TOOLTRACK_PREVIEW_TTL_MINUTES
+    if (previous === undefined) delete process.env.TOOLTRACK_PREVIEW_TTL_MINUTES
+    else process.env.TOOLTRACK_PREVIEW_TTL_MINUTES = previous
   })
 
+  delete process.env.TOOLTRACK_PREVIEW_TTL_MINUTES
   assert.equal(previewTtlMs(), 30 * 60 * 1000)
 
   process.env.TOOLTRACK_PREVIEW_TTL_MINUTES = '5'
