@@ -1,68 +1,25 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { photoEditProvider, PhotoEditUnavailableError, pickGeminiImage } from './photo-edit'
+import {
+  assertAllowed,
+  PhotoEditUnavailableError,
+  pickGeminiImage,
+  type PhotoEditConfig,
+} from './photo-edit'
 
-function withEnv(values: Record<string, string | undefined>, fn: () => void): void {
-  const previous: Record<string, string | undefined> = {}
-  for (const [key, value] of Object.entries(values)) {
-    previous[key] = process.env[key]
-    if (value === undefined) delete process.env[key]
-    else process.env[key] = value
-  }
-  try {
-    fn()
-  } finally {
-    for (const [key, value] of Object.entries(previous)) {
-      if (value === undefined) delete process.env[key]
-      else process.env[key] = value
-    }
-  }
+function config(overrides: Partial<PhotoEditConfig> = {}): PhotoEditConfig {
+  return { allowed: ['local'], geminiKey: '', removeBgKey: '', ...overrides }
 }
 
-const NO_KEYS = {
-  GEMINI_API_KEY: undefined,
-  REMOVE_BG_API_KEY: undefined,
-  TOOLTRACK_PHOTO_EDIT: undefined,
-}
+test('a method the installation does not allow is refused before any bytes move', () => {
+  // The check is in one place, so neither screen can talk the server into
+  // spending a key it was told not to use.
+  assert.throws(() => assertAllowed(config(), 'removebg'), PhotoEditUnavailableError)
+  assert.throws(() => assertAllowed(config({ allowed: [] }), 'local'), PhotoEditUnavailableError)
 
-test('the local method is the default — it needs no key and costs nothing', () => {
-  withEnv(NO_KEYS, () => assert.equal(photoEditProvider(), 'local'))
-})
-
-test('a configured key does not silently start spending money', () => {
-  // Paying for a cutout is opted into by naming the provider, not by having a
-  // key lying in the environment.
-  withEnv({ ...NO_KEYS, GEMINI_API_KEY: 'g', REMOVE_BG_API_KEY: 'r' }, () =>
-    assert.equal(photoEditProvider(), 'local'),
-  )
-
-  withEnv({ ...NO_KEYS, REMOVE_BG_API_KEY: 'r', TOOLTRACK_PHOTO_EDIT: 'removebg' }, () =>
-    assert.equal(photoEditProvider(), 'removebg'),
-  )
-  withEnv({ ...NO_KEYS, GEMINI_API_KEY: 'g', TOOLTRACK_PHOTO_EDIT: 'gemini' }, () =>
-    assert.equal(photoEditProvider(), 'gemini'),
-  )
-})
-
-test('auto is its own mode: local first, a service only when local refuses', () => {
-  withEnv({ ...NO_KEYS, REMOVE_BG_API_KEY: 'r', TOOLTRACK_PHOTO_EDIT: 'auto' }, () =>
-    assert.equal(photoEditProvider(), 'auto'),
-  )
-  // Without any key it is still auto — the fallback simply has nowhere to go,
-  // and the local refusal reaches the caller unchanged.
-  withEnv({ ...NO_KEYS, TOOLTRACK_PHOTO_EDIT: 'auto' }, () =>
-    assert.equal(photoEditProvider(), 'auto'),
-  )
-})
-
-test('a named provider without its key is refused, not quietly swapped', () => {
-  withEnv({ ...NO_KEYS, GEMINI_API_KEY: 'g', TOOLTRACK_PHOTO_EDIT: 'removebg' }, () =>
-    assert.throws(() => photoEditProvider(), PhotoEditUnavailableError),
-  )
-  withEnv({ ...NO_KEYS, REMOVE_BG_API_KEY: 'r', TOOLTRACK_PHOTO_EDIT: 'none' }, () =>
-    assert.equal(photoEditProvider(), 'none'),
-  )
+  assertAllowed(config(), 'local')
+  assertAllowed(config({ allowed: ['local', 'gemini'] }), 'gemini')
 })
 
 test('the image is found wherever the model put it', () => {

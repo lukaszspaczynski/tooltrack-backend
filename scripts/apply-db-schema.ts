@@ -16,6 +16,7 @@ import pg from 'pg'
 import { ACCOUNT_DDL } from '../src/server/account-schema'
 import { CATALOG_DDL } from '../src/server/catalog-schema'
 import { PHOTO_DDL } from '../src/server/photo-schema'
+import { CUTOUT_SETTINGS_DDL } from '../src/server/cutout-settings-schema'
 import { SEARCH_SETTINGS_DDL } from '../src/server/search-settings-schema'
 
 const BATCHES = [
@@ -24,6 +25,7 @@ const BATCHES = [
   // After catalog: the photos hang off catalog.tool.
   { ddl: PHOTO_DDL, name: 'photos' },
   { ddl: SEARCH_SETTINGS_DDL, name: 'settings' },
+  { ddl: CUTOUT_SETTINGS_DDL, name: 'cutout-settings' },
 ] as const
 
 type BatchName = (typeof BATCHES)[number]['name']

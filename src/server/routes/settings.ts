@@ -15,7 +15,14 @@
 
 import { isSearchProvider } from '../search-engines'
 import type { RouteContext } from '../route-context'
-import { parseGlobalEngineInput, parseUserEngineInput } from './settings-input'
+import { readCutoutSettings, saveCutoutMethod, saveCutoutThreshold } from './cutout-settings-store'
+import { isCutoutMethod } from '../cutout-methods'
+import {
+  parseCutoutMethodInput,
+  parseCutoutThresholdInput,
+  parseGlobalEngineInput,
+  parseUserEngineInput,
+} from './settings-input'
 import { listEngineSettings, saveGlobalEngine, saveUserEngine } from './search-settings-store'
 
 export async function enginesGET(_request: Request, context: RouteContext): Promise<Response> {
@@ -74,6 +81,60 @@ async function enginesResponse(actorId: number) {
       (engine) => engine.configured && engine.globallyEnabled && engine.usedByMe,
     ).length,
   }
+}
+
+// GET /api/settings/cutout — readable by anyone who may read the catalog, for
+// the same reason the engine list is: whoever presses the wand should be able
+// to see which methods exist and why one is missing. No credential in it, only
+// whether a key is set.
+export async function cutoutGET(): Promise<Response> {
+  return Response.json(await readCutoutSettings(), { headers: { 'cache-control': 'no-store' } })
+}
+
+// PATCH /api/settings/cutout/:method — users.manage. One method's switch and
+// key, exactly like a search engine's.
+//
+// There is nothing per-account here, unlike the engines: which methods exist
+// decides what the installation spends, and that is not an individual
+// preference. Which of them runs on a given photo is chosen on the cutout
+// screen.
+export async function cutoutMethodPATCH(
+  request: Request,
+  context: RouteContext,
+): Promise<Response> {
+  const actorId = context.user?.id
+  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const method = context.params.method
+  if (!isCutoutMethod(method)) return notFound()
+
+  const parsed = parseCutoutMethodInput(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  // The local method has no key to set; accepting one would store a value
+  // nothing reads.
+  if (parsed.value.apiKey !== undefined && method === 'local') {
+    return Response.json({ error: 'Lokalna metoda nie używa klucza' }, { status: 400 })
+  }
+
+  await saveCutoutMethod(method, parsed.value, actorId)
+
+  return Response.json(await readCutoutSettings())
+}
+
+// PATCH /api/settings/cutout — users.manage. The one setting that is not a
+// method: the local method's threshold, which the cutout screen offers as a
+// starting point.
+export async function cutoutPATCH(request: Request, context: RouteContext): Promise<Response> {
+  const actorId = context.user?.id
+  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const parsed = parseCutoutThresholdInput(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  await saveCutoutThreshold(parsed.value.threshold, actorId)
+
+  return Response.json(await readCutoutSettings())
 }
 
 function notFound(): Response {

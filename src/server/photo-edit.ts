@@ -14,12 +14,35 @@
 import { cutoutLocally, PhotoNotSuitableError } from './cutout-local'
 import { readImageMetadata, type ImageMetadata } from './image-metadata'
 
-export type PhotoEditProvider = 'auto' | 'gemini' | 'local' | 'none' | 'removebg'
+// Which methods this installation allows, and the keys behind them. There is
+// no single configured "mode" any more: an admin says which methods may be
+// used, and the person in front of the cutout screen picks one of those.
+export type PhotoEditProvider = 'gemini' | 'local' | 'removebg'
+
+export type PhotoEditConfig = {
+  allowed: PhotoEditProvider[]
+  geminiKey: string
+  removeBgKey: string
+  threshold?: number
+}
 
 export type CutoutResult = {
   bytes: Uint8Array
   metadata: ImageMetadata
+  // Which method actually produced these bytes. With `auto` that is not known
+  // until it has run.
   provider: PhotoEditProvider
+}
+
+// What one run may change: which of the allowed methods to use, and the knobs
+// that method has.
+export type CutoutOverrides = {
+  method?: PhotoEditProvider
+  padding?: number
+  // remove.bg's own hint about what is in the picture. 'product' is what a
+  // tool on a bench is; 'auto' lets the service decide.
+  removeBgType?: 'auto' | 'product'
+  threshold?: number
 }
 
 const EDIT_TIMEOUT_MS = 60_000
@@ -44,71 +67,65 @@ export class PhotoEditUnavailableError extends Error {
   }
 }
 
-export function photoEditProvider(): PhotoEditProvider {
-  const configured = process.env.TOOLTRACK_PHOTO_EDIT?.trim().toLowerCase()
+// A method has to be one the installation allows. Checked before any bytes
+// move, and in one place, so neither the settings screen nor the cutout screen
+// can talk the server into spending a key it was told not to use.
+export function assertAllowed(config: PhotoEditConfig, provider: PhotoEditProvider): void {
+  if (config.allowed.includes(provider)) return
 
-  if (configured === 'none') return 'none'
-  if (configured === 'local') return 'local'
-  if (configured === 'auto') return 'auto'
-  if (configured === 'removebg' || configured === 'gemini') {
-    if (!aiKeyFor(configured)) {
-      throw new PhotoEditUnavailableError(
-        `Wycinanie ustawione na ${configured}, ale brakuje klucza API do tej usługi`,
-      )
-    }
-    return configured
-  }
-
-  // Local by default: no key, no cost, an answer in milliseconds, and the
-  // photos this catalog imports from a web search are exactly what it handles
-  // — a tool on a plain background. A paid service is opted into.
-  return 'local'
+  throw new PhotoEditUnavailableError(
+    `Metoda ${provider} nie jest dostępna — włącz ją i uzupełnij klucz w Ustawieniach`,
+  )
 }
 
-function aiKeyFor(provider: 'gemini' | 'removebg'): boolean {
-  const key = provider === 'removebg' ? process.env.REMOVE_BG_API_KEY : process.env.GEMINI_API_KEY
-  return Boolean(key?.trim())
+function keyFor(config: PhotoEditConfig, provider: 'gemini' | 'removebg'): string {
+  return (provider === 'removebg' ? config.removeBgKey : config.geminiKey).trim()
 }
 
-// Which paid service `auto` falls back to. remove.bg first: it is built for
-// this one job and returns real transparency, where a general model returns a
-// regenerated picture.
-function configuredAiProvider(): null | 'gemini' | 'removebg' {
-  if (aiKeyFor('removebg')) return 'removebg'
-  if (aiKeyFor('gemini')) return 'gemini'
-  return null
-}
-
-export async function cutoutSubject(bytes: Uint8Array, contentType: string): Promise<CutoutResult> {
-  const configured = photoEditProvider()
-  if (configured === 'none') {
-    throw new PhotoEditUnavailableError('Wycinanie narzędzia jest wyłączone na tym serwerze')
+export async function cutoutSubject(
+  bytes: Uint8Array,
+  contentType: string,
+  config: PhotoEditConfig,
+  overrides: CutoutOverrides = {},
+): Promise<CutoutResult> {
+  if (config.allowed.length === 0) {
+    throw new PhotoEditUnavailableError(
+      'Żadna metoda wycinania nie jest włączona — sprawdź Ustawienia',
+    )
   }
 
-  // `auto` tries the free local method first and only pays for a service when
-  // the photo is one the local method refuses — a picture from a workbench
-  // rather than from a catalogue.
-  if (configured === 'auto') {
-    try {
-      return finish(await cutoutLocally(bytes), 'local')
-    } catch (error) {
-      const fallback = error instanceof PhotoNotSuitableError ? configuredAiProvider() : null
-      if (!fallback) throw error
-      return finish(await callAi(fallback, bytes, contentType), fallback)
-    }
+  // No method named: the local one when it is allowed, otherwise whatever is.
+  // There is deliberately no "try the free one and fall back to a paid one"
+  // strategy — the cutout screen shows the refusal and the person decides
+  // whether this photo is worth a paid call.
+  const method =
+    overrides.method ?? (config.allowed.includes('local') ? 'local' : config.allowed[0])
+
+  assertAllowed(config, method)
+
+  if (method === 'local') {
+    return finish(
+      await cutoutLocally(bytes, {
+        padding: overrides.padding,
+        threshold: overrides.threshold ?? config.threshold,
+      }),
+      'local',
+    )
   }
 
-  if (configured === 'local') return finish(await cutoutLocally(bytes), 'local')
-
-  return finish(await callAi(configured, bytes, contentType), configured)
+  return finish(await callAi(method, bytes, contentType, config, overrides), method)
 }
 
 function callAi(
   provider: 'gemini' | 'removebg',
   bytes: Uint8Array,
   contentType: string,
+  config: PhotoEditConfig,
+  overrides: CutoutOverrides,
 ): Promise<Uint8Array> {
-  return provider === 'removebg' ? removeBg(bytes, contentType) : gemini(bytes, contentType)
+  return provider === 'removebg'
+    ? removeBg(bytes, contentType, keyFor(config, 'removebg'), overrides.removeBgType ?? 'auto')
+    : gemini(bytes, contentType, keyFor(config, 'gemini'))
 }
 
 // Whatever produced the bytes — a service or our own code — they are checked
@@ -122,26 +139,34 @@ function finish(result: Uint8Array, provider: PhotoEditProvider): CutoutResult {
   return { bytes: result, metadata, provider }
 }
 
-async function removeBg(bytes: Uint8Array, contentType: string): Promise<Uint8Array> {
+async function removeBg(
+  bytes: Uint8Array,
+  contentType: string,
+  apiKey: string,
+  type: 'auto' | 'product',
+): Promise<Uint8Array> {
   const form = new FormData()
   // Copied into a Buffer first: Blob wants its parts as ArrayBuffer-backed
   // values, and a Uint8Array view over a larger buffer would send the wrong
   // bytes.
   form.append('image_file', new Blob([Buffer.from(bytes)], { type: contentType }), 'photo')
   form.append('size', 'auto')
+  // Telling the service it is looking at a product rather than letting it
+  // guess measurably helps on tools photographed on a bench.
+  form.append('type', type)
   // A transparent PNG, which is what makes a cutout usable on any background.
   form.append('format', 'png')
 
   const response = await call('https://api.remove.bg/v1.0/removebg', {
     body: form,
-    headers: { 'X-Api-Key': process.env.REMOVE_BG_API_KEY ?? '' },
+    headers: { 'X-Api-Key': apiKey },
     method: 'POST',
   })
 
   return new Uint8Array(await response.arrayBuffer())
 }
 
-async function gemini(bytes: Uint8Array, contentType: string): Promise<Uint8Array> {
+async function gemini(bytes: Uint8Array, contentType: string, apiKey: string): Promise<Uint8Array> {
   const response = await call('https://generativelanguage.googleapis.com/v1beta/interactions', {
     body: JSON.stringify({
       input: [
@@ -152,7 +177,7 @@ async function gemini(bytes: Uint8Array, contentType: string): Promise<Uint8Arra
     }),
     headers: {
       'content-type': 'application/json',
-      'x-goog-api-key': process.env.GEMINI_API_KEY ?? '',
+      'x-goog-api-key': apiKey,
     },
     method: 'POST',
   })

@@ -15,10 +15,12 @@
 // framework is the kind of code that is wrong for a year before anyone
 // notices.
 
+import { ImageConversionError, toStoredPng } from '../image-convert'
 import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
 import { PhotoNotSuitableError } from '../cutout-local'
 import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
-import { readImageMetadata } from '../image-metadata'
+import { readCutoutConfig } from './cutout-settings-store'
+import { parseCutoutCommitInput, parseCutoutRunInput } from './settings-input'
 import {
   defaultQuery,
   MAX_SUGGESTIONS_PER_ENGINE,
@@ -26,7 +28,8 @@ import {
   searchPhotos,
 } from '../photo-search'
 import { credentialsForSearch, resolveProvidersFor } from './search-settings-store'
-import { readPhotoBytes, savePhotoBytes } from '../photo-storage'
+import { readImageMetadata } from '../image-metadata'
+import { readPhotoBytes, savePhotoBytes, storageKeyFor } from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import {
   deletePhoto,
@@ -84,18 +87,24 @@ async function uploadBytes(request: Request, toolId: number, actorId: number): P
   const bytes = new Uint8Array(await request.arrayBuffer())
   if (bytes.byteLength === 0) return Response.json({ error: 'Pusty plik' }, { status: 400 })
 
-  // The declared content-type is a claim; the bytes decide.
-  const metadata = readImageMetadata(bytes)
-  if (!metadata) {
-    return Response.json(
-      { error: 'Ten plik nie jest obrazem JPEG, PNG, GIF ani WebP' },
-      { status: 415 },
-    )
+  let converted: Awaited<ReturnType<typeof toStoredPng>>
+  try {
+    // The declared content-type is a claim; the bytes decide, and whatever
+    // they turn out to be is stored as PNG.
+    converted = await toStoredPng(bytes)
+  } catch (error) {
+    if (error instanceof ImageConversionError) {
+      return Response.json({ error: error.message }, { status: 415 })
+    }
+    throw error
   }
 
   try {
-    const stored = await savePhotoBytes(bytes, metadata.contentType)
-    const photo = await insertPhoto({ metadata, source: 'upload', stored, toolId }, actorId)
+    const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
+    const photo = await insertPhoto(
+      { metadata: converted.metadata, source: 'upload', stored, toolId },
+      actorId,
+    )
 
     return Response.json({ photo }, { status: 201 })
   } catch (error) {
@@ -126,13 +135,16 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
   for (const item of items) {
     try {
       const fetched = await fetchRemoteImage(item.url, maxPhotoBytes())
-      const stored = await savePhotoBytes(fetched.bytes, fetched.metadata.contentType)
+      // Search engines serve a great deal of WebP; it is converted here, once,
+      // rather than being a format every later step has to handle.
+      const converted = await toStoredPng(fetched.bytes)
+      const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
 
       photos.push(
         await insertPhoto(
           {
             attribution: item.attribution,
-            metadata: fetched.metadata,
+            metadata: converted.metadata,
             // A link someone pasted and a link someone ticked in the search
             // results are different provenance, and the card says which.
             source: item.fromSearch ? 'search' : 'url',
@@ -148,6 +160,7 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
       // reported next to the address that caused it.
       if (
         error instanceof ImageFetchError ||
+        error instanceof ImageConversionError ||
         error instanceof PhotoAlreadyExistsError ||
         error instanceof TypeError
       ) {
@@ -166,6 +179,128 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
   }
 
   return Response.json({ failed, photos }, { status: 201 })
+}
+
+// POST /api/tools/:id/photos/:photoId/cutout/preview — run the cutout and show
+// it, without writing a photo.
+//
+// The result is written to the media directory, which is content addressed, so
+// "show it" and "keep it" touch the same bytes: the preview is a file with no
+// row pointing at it, and the save below is the row. That is what makes an
+// unaccepted preview cost nothing but a file, and a save cost nothing at all —
+// in particular, no second call to a paid service to produce what the person
+// has already seen.
+export async function cutoutPreviewPOST(
+  request: Request,
+  context: RouteContext,
+): Promise<Response> {
+  const ids = parsePhotoParams(context)
+  if (!ids) return photoNotFound()
+
+  const parsed = parseCutoutRunInput(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const original = await getPhoto(ids.toolId, ids.photoId)
+  if (!original) return photoNotFound()
+
+  const bytes = await readPhotoBytes(original.storageKey)
+  if (!bytes) return photoNotFound()
+
+  try {
+    const cutout = await cutoutSubject(
+      bytes,
+      original.contentType,
+      await readCutoutConfig(),
+      parsed.value,
+    )
+    const png = await toStoredPng(cutout.bytes)
+    const stored = await savePhotoBytes(png.bytes, png.metadata.contentType)
+
+    return Response.json({
+      preview: {
+        byteSize: stored.byteSize,
+        checksum: stored.checksum,
+        contentType: png.metadata.contentType,
+        height: png.metadata.height,
+        url: `/api/tools/${ids.toolId}/photos/${ids.photoId}/cutout/preview/${stored.checksum}`,
+        width: png.metadata.width,
+      },
+      provider: cutout.provider,
+    })
+  } catch (error) {
+    return cutoutError(error)
+  }
+}
+
+// The bytes of a preview. Addressed by checksum, so nothing here can serve a
+// file that was not produced by a cutout somebody just ran.
+export async function cutoutPreviewGET(
+  _request: Request,
+  context: RouteContext,
+): Promise<Response> {
+  const checksum = context.params.checksum
+  if (!/^[0-9a-f]{64}$/.test(checksum ?? '')) return photoNotFound()
+
+  const bytes = await readPhotoBytes(storageKeyFor(checksum, 'image/png'))
+  if (!bytes) return photoNotFound()
+
+  return new Response(bytes, {
+    headers: {
+      'cache-control': 'private, max-age=3600',
+      'content-length': String(bytes.byteLength),
+      'content-type': 'image/png',
+      etag: `"${checksum}"`,
+    },
+  })
+}
+
+// POST .../cutout/commit — keep a preview. The bytes are already on disk; this
+// is the row that turns them into a photo of this tool.
+export async function cutoutCommitPOST(request: Request, context: RouteContext): Promise<Response> {
+  const ids = parsePhotoParams(context)
+  if (!ids) return photoNotFound()
+
+  const actorId = context.user?.id
+  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const parsed = parseCutoutCommitInput(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const original = await getPhoto(ids.toolId, ids.photoId)
+  if (!original) return photoNotFound()
+
+  const storageKey = storageKeyFor(parsed.value.checksum, 'image/png')
+  const bytes = await readPhotoBytes(storageKey)
+  // A preview that is no longer on disk — an old tab, a cleaned media
+  // directory — is asked for again rather than half-saved.
+  if (!bytes) {
+    return Response.json({ error: 'Podgląd wygasł — wygeneruj go ponownie' }, { status: 409 })
+  }
+
+  const metadata = readImageMetadata(bytes)
+  if (!metadata) return Response.json({ error: 'Podgląd jest uszkodzony' }, { status: 409 })
+
+  try {
+    const photo = await insertPhoto(
+      {
+        attribution: original.attribution,
+        derivedFrom: original.id,
+        metadata,
+        source: 'edit',
+        sourceUrl: original.sourceUrl,
+        stored: { byteSize: bytes.byteLength, checksum: parsed.value.checksum, storageKey },
+        toolId: ids.toolId,
+      },
+      actorId,
+    )
+
+    return Response.json({ photo }, { status: 201 })
+  } catch (error) {
+    if (error instanceof PhotoAlreadyExistsError) {
+      return Response.json({ error: 'Takie wycięcie już jest na tej karcie' }, { status: 409 })
+    }
+    throw error
+  }
 }
 
 // POST /api/tools/:id/photos/:photoId/cutout — the AI edit.
@@ -190,14 +325,18 @@ export async function cutoutPOST(_request: Request, context: RouteContext): Prom
   if (!bytes) return photoNotFound()
 
   try {
-    const cutout = await cutoutSubject(bytes, original.contentType)
-    const stored = await savePhotoBytes(cutout.bytes, cutout.metadata.contentType)
+    // Which method runs is settings, owned by an admin — see
+    // routes/cutout-settings-store.ts.
+    const cutout = await cutoutSubject(bytes, original.contentType, await readCutoutConfig())
+    // A service may hand back something other than PNG; the same door applies.
+    const png = await toStoredPng(cutout.bytes)
+    const stored = await savePhotoBytes(png.bytes, png.metadata.contentType)
 
     const photo = await insertPhoto(
       {
         attribution: original.attribution,
         derivedFrom: original.id,
-        metadata: cutout.metadata,
+        metadata: png.metadata,
         source: 'edit',
         sourceUrl: original.sourceUrl,
         stored,
@@ -346,6 +485,29 @@ function normaliseLinks(body: null | ({ items?: LinkInput[] } & LinkInput)): Nor
   }
 
   return []
+}
+
+function parsePhotoParams(context: RouteContext): null | { photoId: number; toolId: number } {
+  const toolId = parseId(context.params.id)
+  const photoId = parseId(context.params.photoId)
+  if (toolId === null || photoId === null) return null
+  return { photoId, toolId }
+}
+
+// Three different failures with three different answers: this photo cannot be
+// cut out (422), the service is unavailable (503), the result is already on
+// the card (409). Only the middle one is the server's problem.
+function cutoutError(error: unknown): Response {
+  if (error instanceof PhotoNotSuitableError) {
+    return Response.json({ error: error.message }, { status: 422 })
+  }
+  if (error instanceof PhotoEditUnavailableError) {
+    return Response.json({ error: error.message }, { status: 503 })
+  }
+  if (error instanceof PhotoAlreadyExistsError) {
+    return Response.json({ error: 'Takie wycięcie już jest na tej karcie' }, { status: 409 })
+  }
+  throw error
 }
 
 function parseId(value: string | undefined): null | number {
