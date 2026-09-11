@@ -43,6 +43,10 @@ const TOOL_PHOTOS_PATTERN = /^\/api\/tools\/(\d+)\/photos$/
 const TOOL_PHOTO_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)$/
 const TOOL_PHOTO_FILE_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/file$/
 const TOOL_PHOTO_CUTOUT_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout$/
+const CUTOUT_PREVIEW_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/preview$/
+const CUTOUT_PREVIEW_FILE_PATTERN =
+  /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/preview\/([0-9a-f]{64})$/
+const CUTOUT_COMMIT_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout\/commit$/
 const TOOL_SUGGESTIONS_PATTERN = /^\/api\/tools\/(\d+)\/photo-suggestions$/
 const GLOBAL_ENGINE_PATTERN = /^\/api\/settings\/search-engines\/([a-z]+)$/
 const MY_ENGINE_PATTERN = /^\/api\/me\/search-engines\/([a-z]+)$/
@@ -70,10 +74,16 @@ const ROUTES = [
   'PATCH /api/tools/:id/photos/:photoId',
   'DELETE /api/tools/:id/photos/:photoId',
   'POST /api/tools/:id/photos/:photoId/cutout',
+  'POST /api/tools/:id/photos/:photoId/cutout/preview',
+  'GET /api/tools/:id/photos/:photoId/cutout/preview/:checksum',
+  'POST /api/tools/:id/photos/:photoId/cutout/commit',
   'GET /api/tools/:id/photo-suggestions',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
   'PATCH /api/me/search-engines/:provider',
+  'GET /api/settings/cutout',
+  'PATCH /api/settings/cutout',
+  'PATCH /api/settings/cutout/:method',
   'GET /api/photos',
   'POST /api/photos/delete',
   'GET /api/users',
@@ -187,6 +197,34 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     )
   }
 
+  // Longest first, as everywhere in this table.
+  const previewFile = CUTOUT_PREVIEW_FILE_PATTERN.exec(path)
+  if (previewFile) {
+    return methodHandler(
+      method,
+      { GET: photos.cutoutPreviewGET },
+      { checksum: previewFile[3], id: previewFile[1], photoId: previewFile[2] },
+    )
+  }
+
+  const preview = CUTOUT_PREVIEW_PATTERN.exec(path)
+  if (preview) {
+    return methodHandler(
+      method,
+      { POST: photos.cutoutPreviewPOST },
+      { id: preview[1], photoId: preview[2] },
+    )
+  }
+
+  const commit = CUTOUT_COMMIT_PATTERN.exec(path)
+  if (commit) {
+    return methodHandler(
+      method,
+      { POST: photos.cutoutCommitPOST },
+      { id: commit[1], photoId: commit[2] },
+    )
+  }
+
   const cutout = TOOL_PHOTO_CUTOUT_PATTERN.exec(path)
   if (cutout) {
     return methodHandler(method, { POST: photos.cutoutPOST }, { id: cutout[1], photoId: cutout[2] })
@@ -222,6 +260,19 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
 
   if (path === '/api/settings/search-engines') {
     return methodHandler(method, { GET: settings.enginesGET })
+  }
+
+  if (path === '/api/settings/cutout') {
+    return methodHandler(method, { GET: settings.cutoutGET, PATCH: settings.cutoutPATCH })
+  }
+
+  const cutoutMethodPath = /^\/api\/settings\/cutout\/([a-z]+)$/.exec(path)
+  if (cutoutMethodPath) {
+    return methodHandler(
+      method,
+      { PATCH: settings.cutoutMethodPATCH },
+      { method: cutoutMethodPath[1] },
+    )
   }
 
   const globalEngine = GLOBAL_ENGINE_PATTERN.exec(path)

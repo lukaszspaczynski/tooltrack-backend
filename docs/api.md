@@ -192,10 +192,14 @@ screenful. The server fetches each one and stores it. `201 { photos, failed }`:
 one dead link out of ten does not lose the other nine, and `failed` says which
 address failed and why. Everything failing is a `422`.
 
+Whatever arrives — JPEG, GIF, WebP — is **converted to PNG before it is
+stored**, so every photo this API serves back is `image/png`. A PNG is kept
+byte for byte.
+
 Refusals worth handling: `409` the same image is already on this tool
-(compared by checksum, not by URL), `415` the file is not a JPEG, PNG, GIF or
-WebP — decided by reading the file, not by trusting its content type — and
-`413` above the size cap. An address pointing into a private network is
+(compared by checksum of the stored PNG, not by URL), `415` the file is not a
+JPEG, PNG, GIF or WebP — decided by reading the file, not by trusting its
+content type — and `413` above the size cap. An address pointing into a private network is
 refused as a failed item, never fetched.
 
 ### `GET /api/tools/:id/photos/:photoId/file` — `tools.read`
@@ -239,6 +243,60 @@ Three refusals, and they mean different things:
 
 Takes seconds rather than milliseconds. Clients should show progress on the
 photo it was started from.
+
+### The cutout screen: `preview` → `commit`
+
+One-click is not always what you want. These two split the same work so a
+person can see the result before anything is written.
+
+**`POST /api/tools/:id/photos/:photoId/cutout/preview`** — `tools.write`
+
+```json
+{ "method": "local", "threshold": 700, "padding": 20, "removeBgType": "product" }
+```
+
+Every field is optional. `method` is `local`, `removebg` or `gemini` and has to
+be one the installation allows — anything else answers 503, whether it came
+from this screen or from settings. Omitting it uses the local method when it is
+allowed. `threshold` and `padding` are the local method's knobs; `removeBgType`
+is remove.bg's hint about what it is looking at.
+
+There is no "try the free one and fall back to a paid one" mode. This screen
+shows the refusal, and whether a photo is worth a paid call is a decision for
+the person looking at it.
+
+```json
+{
+  "preview": {
+    "checksum": "…",
+    "url": "…",
+    "width": 200,
+    "height": 160,
+    "byteSize": 279,
+    "contentType": "image/png"
+  },
+  "provider": "local"
+}
+```
+
+Nothing is written to the catalog. The bytes go to the media directory, which
+is content addressed, so showing and keeping touch the same file: an
+unaccepted preview costs one file and no row, and accepting costs no second
+call to a paid service.
+
+**`GET .../cutout/preview/:checksum`** — `tools.write`. The bytes, for the
+`<img>` on the right-hand side of the screen.
+
+**`POST .../cutout/commit`** — `tools.write`
+
+```json
+{ "checksum": "…" }
+```
+
+Turns a preview into a photo: `source: "edit"`, `derivedFrom` the original,
+`201 { photo }`. `409` if the preview is no longer on disk (an old tab, a
+cleaned media directory) — it is generated again rather than half-saved — or
+if that exact cutout is already on the card.
 
 ### `GET /api/tools/:id/photo-suggestions` — `tools.write`
 
@@ -343,6 +401,54 @@ A value saved through this API wins. When none is stored, the engine falls back
 to its environment variable (`GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_CX`,
 `BRAVE_SEARCH_API_KEY`), which is what `keySource` reports. Openverse needs
 neither.
+
+### `GET /api/settings/cutout` — `tools.read`
+
+```json
+{
+  "methods": [
+    {
+      "method": "local",
+      "label": "Lokalny skrypt",
+      "configured": true,
+      "enabled": true,
+      "requiresKey": false,
+      "keyHint": "",
+      "keySource": "none"
+    }
+  ],
+  "threshold": 735,
+  "usable": 1
+}
+```
+
+The same shape as the engine list, and the same rule: readable by anyone who
+may read the catalog, because whoever presses the wand should be able to see
+which methods exist and why one is missing, and **never a credential** — only
+whether a key is set and its last four characters. `usable` counts the methods
+the cutout screen can offer; zero means the wand has nothing to run.
+
+There is no default method. Which one runs on a given photo is chosen on the
+cutout screen, from what is switched on here.
+
+### `PATCH /api/settings/cutout/:method` — `users.manage`
+
+```json
+{ "enabled": true, "apiKey": "…" }
+```
+
+`:method` is `local`, `removebg` or `gemini`. Omitted keeps, empty string
+clears — as everywhere. The local method has no key, and sending one is a
+`400` rather than a value nothing would read.
+
+### `PATCH /api/settings/cutout` — `users.manage`
+
+```json
+{ "threshold": 700 }
+```
+
+The only setting that is not a method: where the local method's threshold
+starts on the cutout screen. 1 to 765, where 765 is pure white.
 
 ## The photo library
 

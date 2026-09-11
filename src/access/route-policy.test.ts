@@ -49,6 +49,14 @@ test('search settings: everyone who searches reads them, only an admin edits the
   assert.equal(routeRequirement('/api/me/search-engines/google', 'DELETE').check.kind, 'deny')
 })
 
+test('cutout settings: everyone reads, only an admin changes', () => {
+  assert.equal(allows('/api/settings/cutout', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/settings/cutout', 'PATCH', user('editor')), false)
+  assert.equal(allows('/api/settings/cutout', 'PATCH', user('admin')), true)
+  // There is no per-account variant of this one, unlike the engines.
+  assert.equal(routeRequirement('/api/me/cutout', 'PATCH').check.kind, 'deny')
+})
+
 test('the photo library reads with the catalog and deletes with tools.write', () => {
   assert.equal(allows('/api/photos', 'GET', user('viewer')), true)
   assert.equal(allows('/api/photos', 'GET', null), false)
@@ -130,6 +138,33 @@ test('the AI cutout needs tools.write', () => {
   assert.equal(allows('/api/tools/42/photos/7/cutout', 'POST', user('editor')), true)
   // It writes a photo; reading one is not a way to trigger it.
   assert.equal(routeRequirement('/api/tools/42/photos/7/cutout', 'GET').check.kind, 'deny')
+})
+
+test('the cutout preview is not a cheaper way in than the cutout itself', () => {
+  const checksum = 'a'.repeat(64)
+
+  for (const path of [
+    '/api/tools/42/photos/7/cutout',
+    '/api/tools/42/photos/7/cutout/preview',
+    '/api/tools/42/photos/7/cutout/commit',
+  ]) {
+    assert.equal(allows(path, 'POST', user('viewer')), false, path)
+    assert.equal(allows(path, 'POST', user('editor')), true, path)
+  }
+
+  assert.equal(
+    allows(`/api/tools/42/photos/7/cutout/preview/${checksum}`, 'GET', user('editor')),
+    true,
+  )
+  assert.equal(
+    allows(`/api/tools/42/photos/7/cutout/preview/${checksum}`, 'GET', user('viewer')),
+    false,
+  )
+  // Anything that is not a checksum is not a preview.
+  assert.equal(
+    routeRequirement('/api/tools/42/photos/7/cutout/preview/abc', 'GET').check.kind,
+    'deny',
+  )
 })
 
 test('searching the web for photos needs tools.write, not tools.read', () => {

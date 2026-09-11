@@ -64,10 +64,22 @@ A cutout is an added photo, never an edit in place: `source: 'edit'` and
 `derived_from` pointing at the original. That is what makes the feature safe to
 press.
 
-`cutout-local.ts` is the default cutout and the only image processing in the
-tree: a pure function over RGBA bytes (background flood from the border,
-closing, largest component, crop) with `jimp` — pure JavaScript, no native
-build — around it to decode and encode. It refuses unsuitable photos with
+Which method runs, and the keys behind it, are settings owned by an admin —
+`routes/cutout-settings-store.ts`, with the same precedence rule as the search
+engines. `photo-edit.ts` and `cutout-local.ts` read no configuration of their
+own; it arrives as an argument, which is what keeps their logic testable.
+
+`image-convert.ts` is the only module that decodes or encodes a picture, and
+everything stored goes through it: one format on disk (PNG), one decoder to
+reason about. It uses **sharp**, which is a native dependency with prebuilt
+binaries — a deliberate reversal of the earlier "no native dependencies" rule,
+made when the pure-JavaScript decoder turned out not to read WebP, which is
+most of what an image search returns. The sibling project this repo's
+conventions come from uses sharp for the same reason.
+
+`cutout-local.ts` is the default cutout: a pure function over RGBA bytes
+(background flood from the border, closing, largest component, crop) with
+`image-convert.ts` on either side of it. It refuses unsuitable photos with
 `PhotoNotSuitableError`, which the route answers as 422; a missing or failing
 AI service is a different error and a different status.
 

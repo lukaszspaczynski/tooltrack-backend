@@ -78,12 +78,23 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/\d+\/photos\/\d+\/file$/,
   },
   {
-    // The AI cutout writes a new photo, so it needs the capability to write
-    // one — and it costs a call to a paid service, which a viewer must not be
-    // able to spend.
+    // The cutout writes a new photo, so it needs the capability to write one —
+    // and it can cost a call to a paid service, which a viewer must not be
+    // able to spend. The preview costs the same call, so it is not cheaper to
+    // reach: all three paths ask for the same thing.
     domain: 'tools',
     methods: { POST: WRITE_TOOLS },
     pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout$/,
+  },
+  {
+    domain: 'tools',
+    methods: { POST: WRITE_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
+  },
+  {
+    domain: 'tools',
+    methods: { GET: WRITE_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
   },
   {
     domain: 'tools',
@@ -109,6 +120,18 @@ const RULES: readonly Rule[] = [
     domain: 'settings',
     methods: { GET: READ_TOOLS },
     pattern: /^\/api\/settings\/search-engines$/,
+  },
+  {
+    // Same split as the engine list: everyone may see which cutout method
+    // would run, only an admin may change it or its keys.
+    domain: 'settings',
+    methods: { GET: READ_TOOLS, PATCH: MANAGE_USERS },
+    pattern: /^\/api\/settings\/cutout$/,
+  },
+  {
+    domain: 'settings',
+    methods: { PATCH: MANAGE_USERS },
+    pattern: /^\/api\/settings\/cutout\/[^/]+$/,
   },
   {
     // The keys are one installation's property. Only an admin changes them.

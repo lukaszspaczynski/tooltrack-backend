@@ -83,6 +83,21 @@ Uploads arrive as the raw file in the request body rather than as
 `multipart/form-data`, and the file's type is decided by reading its first
 bytes, not by trusting the header. See [docs/api.md](docs/api.md#photos).
 
+**Everything is stored as PNG.** JPEG, GIF and WebP are converted at the door
+by `src/server/image-convert.ts`; a PNG is kept byte for byte, because
+re-encoding would change its checksum and therefore its storage key for no
+gain. One stored format means every later step — the cutout today, a thumbnail
+or an export tomorrow — decodes one format, and the one that used to be
+unreadable (WebP, which is most of what an image search returns) is exactly
+the one people wanted to cut out.
+
+The cost is size: a 200 kB JPEG becomes a PNG several times larger, because
+PNG is lossless and photographs are not what it was designed for. For a catalog
+measured in hundreds of pictures that is an acceptable trade; if it stops being
+one, the answer is a maximum edge length on the way in rather than a second
+stored format. Photos that predate this run through
+`npm run photos:png -- --apply`.
+
 Three search engines, configured on the **Ustawienia** screen rather than in a
 deploy: **Google Custom Search** and **Brave Search** need a key, **Openverse**
 needs none and is therefore what works on a fresh install — at the cost of
@@ -129,12 +144,25 @@ as the largest dark blob, so a white label in the middle of a drill stays part
 of the tool; and the background becomes real transparency instead of white
 paint.
 
-For photographs taken on site there are two paid providers:
-**remove.bg** (`REMOVE_BG_API_KEY`, free for 50 images a month), built for
-exactly this and returning a transparent PNG, and **Gemini**
-(`GEMINI_API_KEY` from AI Studio — a different key from the search one), a
-general model that returns the tool on a plain white background instead.
-`TOOLTRACK_PHOTO_EDIT=auto` tries local first and only pays when local refuses.
+For photographs taken on site there are two paid providers: **remove.bg**,
+built for exactly this and returning a transparent PNG, and **Gemini**, a
+general model that returns the tool on a plain white background instead. The
+method and both keys are set on the **Ustawienia** screen, like the search
+engines — `TOOLTRACK_PHOTO_EDIT`, `REMOVE_BG_API_KEY`, `GEMINI_API_KEY` and
+`TOOLTRACK_CUTOUT_THRESHOLD` remain as the bootstrap, and anything saved
+through the screen wins. `auto` tries local first and only pays when local
+refuses.
+
+The wand opens a screen rather than doing something immediately: method on the
+left of the parameters, original and result side by side, and nothing written
+until it is accepted. That is `preview` → `commit` in the API — the preview
+lands in the media directory, which is content addressed, so keeping it costs
+no second call to a paid service and discarding it costs one file.
+
+The local method reads whatever is stored, which since the conversion above is
+always PNG. It still refuses a photograph with no plain background — that is a
+statement about the picture, not the format, and in `auto` mode it is what
+hands the photo to the AI provider.
 
 The AI prompt is deliberately narrow: keep the tool exactly as it is, remove
 everything else, invent nothing. A cutout that "improves" the tool is a picture
