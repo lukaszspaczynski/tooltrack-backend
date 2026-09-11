@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "dotenv": "16.4.7",
+    "jimp": "^1.6.1",
     "pg": "8.20.0"
   },
   "devDependencies": {

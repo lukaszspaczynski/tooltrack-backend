@@ -44,7 +44,21 @@ CREATE UNIQUE INDEX IF NOT EXISTS "catalog_tool_photo_primary_idx"
 CREATE UNIQUE INDEX IF NOT EXISTS "catalog_tool_photo_checksum_idx"
   ON "catalog"."tool_photo" ("tool_id", "checksum");
 
+-- An AI cutout is a fourth kind of photo, and it remembers what it was made
+-- from: the original is kept, so a bad cutout is one delete away from being
+-- undone. Written as drop-and-recreate because the constraint already exists
+-- on deployed databases with only three values in it.
+ALTER TABLE "catalog"."tool_photo" DROP CONSTRAINT IF EXISTS "tool_photo_source_check";
+ALTER TABLE "catalog"."tool_photo"
+  ADD CONSTRAINT "tool_photo_source_check"
+  CHECK ("source" IN ('upload', 'url', 'search', 'edit'));
+
+ALTER TABLE "catalog"."tool_photo"
+  ADD COLUMN IF NOT EXISTS "derived_from" bigint
+  REFERENCES "catalog"."tool_photo"("id") ON DELETE SET NULL;
+
 COMMENT ON TABLE "catalog"."tool_photo" IS 'Photos of a tool. Bytes live in the media directory, keyed by checksum.';
+COMMENT ON COLUMN "catalog"."tool_photo"."derived_from" IS 'The photo this one was cut out from, when source = edit.';
 `
 
 export const PHOTO_DROP_DDL = `
