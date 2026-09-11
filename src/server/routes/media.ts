@@ -1,7 +1,7 @@
 // The photo library: every picture on our disk, across all tools.
 //
-//   GET  /api/photos          tools.read
-//   POST /api/photos/delete   tools.write
+//   GET  /api/photos          catalog.read
+//   POST /api/photos/delete   catalog.write
 //
 // A separate surface from /api/tools/:id/photos on purpose. That one answers
 // "what does this tool look like"; this one answers "what did we import", and

@@ -1,12 +1,12 @@
 // Photos of a tool: list, add, promote, remove, serve, and the on-demand
 // search that suggests where a picture could come from.
 //
-//   GET    /api/tools/:id/photos               tools.read
-//   POST   /api/tools/:id/photos               tools.write  (raw bytes or JSON links)
-//   GET    /api/tools/:id/photos/:photoId/file tools.read
-//   PATCH  /api/tools/:id/photos/:photoId      tools.write  ({ isPrimary: true })
-//   DELETE /api/tools/:id/photos/:photoId      tools.write
-//   GET    /api/tools/:id/photo-suggestions    tools.write
+//   GET    /api/tools/:id/photos               catalog.read
+//   POST   /api/tools/:id/photos               catalog.write  (raw bytes or JSON links)
+//   GET    /api/tools/:id/photos/:photoId/file catalog.read
+//   PATCH  /api/tools/:id/photos/:photoId      catalog.write  ({ isPrimary: true })
+//   DELETE /api/tools/:id/photos/:photoId      catalog.write
+//   GET    /api/tools/:id/photo-suggestions    catalog.write
 //
 // An upload arrives as the raw file in the request body with its own
 // content-type, not as multipart/form-data. One file per request needs no

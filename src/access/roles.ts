@@ -13,15 +13,19 @@ export type Role = (typeof ROLE_OPTIONS)[number]['value']
 
 export type AccountStatus = 'active' | 'disabled'
 
-export type Capability = 'tools.read' | 'tools.write' | 'users.manage'
+// One capability for the catalog, not one per kind of thing in it. Tools live
+// in cases, both carry photos, and every screen that shows one shows the
+// other; a viewer who could read tools but not the case they are in would be
+// looking at half a shelf.
+export type Capability = 'catalog.read' | 'catalog.write' | 'users.manage'
 
 // A role is a name for a set of capabilities and nothing else. Routes ask for
 // a capability, never for a role, so adding a fourth role later is a line in
 // this table rather than a sweep through the route policy.
 export const ROLE_CAPABILITIES: Record<Role, readonly Capability[]> = {
-  admin: ['tools.read', 'tools.write', 'users.manage'],
-  editor: ['tools.read', 'tools.write'],
-  viewer: ['tools.read'],
+  admin: ['catalog.read', 'catalog.write', 'users.manage'],
+  editor: ['catalog.read', 'catalog.write'],
+  viewer: ['catalog.read'],
 }
 
 // Every registration lands here. Promotion is an admin action, never a
@@ -101,12 +105,12 @@ export function hasCapability(user: null | undefined | User, capability: Capabil
   return capabilitiesFor(user).includes(capability)
 }
 
-export function canReadTools(user: null | undefined | User): boolean {
-  return hasCapability(user, 'tools.read')
+export function canReadCatalog(user: null | undefined | User): boolean {
+  return hasCapability(user, 'catalog.read')
 }
 
-export function canWriteTools(user: null | undefined | User): boolean {
-  return hasCapability(user, 'tools.write')
+export function canWriteCatalog(user: null | undefined | User): boolean {
+  return hasCapability(user, 'catalog.write')
 }
 
 export function canManageUsers(user: null | undefined | User): boolean {

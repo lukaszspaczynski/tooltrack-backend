@@ -4,8 +4,8 @@ import test from 'node:test'
 import {
   capabilitiesFor,
   canManageUsers,
-  canReadTools,
-  canWriteTools,
+  canReadCatalog,
+  canWriteCatalog,
   DEFAULT_ROLE,
   effectiveRole,
   isRole,
@@ -29,7 +29,7 @@ function user(overrides: Partial<User> = {}): User {
 
 test('a new account is a viewer', () => {
   assert.equal(DEFAULT_ROLE, 'viewer')
-  assert.deepEqual(ROLE_CAPABILITIES.viewer, ['tools.read'])
+  assert.deepEqual(ROLE_CAPABILITIES.viewer, ['catalog.read'])
 })
 
 test('viewer reads, editor writes, only admin manages users', () => {
@@ -38,15 +38,15 @@ test('viewer reads, editor writes, only admin manages users', () => {
   const admin = user({ role: 'admin' })
 
   assert.deepEqual(
-    [canReadTools(viewer), canWriteTools(viewer), canManageUsers(viewer)],
+    [canReadCatalog(viewer), canWriteCatalog(viewer), canManageUsers(viewer)],
     [true, false, false],
   )
   assert.deepEqual(
-    [canReadTools(editor), canWriteTools(editor), canManageUsers(editor)],
+    [canReadCatalog(editor), canWriteCatalog(editor), canManageUsers(editor)],
     [true, true, false],
   )
   assert.deepEqual(
-    [canReadTools(admin), canWriteTools(admin), canManageUsers(admin)],
+    [canReadCatalog(admin), canWriteCatalog(admin), canManageUsers(admin)],
     [true, true, true],
   )
 })
@@ -62,12 +62,12 @@ test('a disabled account holds nothing, whatever its role says', () => {
 
   assert.deepEqual(capabilitiesFor(disabled), [])
   assert.equal(effectiveRole(disabled), null)
-  assert.equal(canReadTools(disabled), false)
+  assert.equal(canReadCatalog(disabled), false)
 })
 
 test('no user holds anything', () => {
   assert.deepEqual(capabilitiesFor(null), [])
-  assert.equal(canReadTools(undefined), false)
+  assert.equal(canReadCatalog(undefined), false)
 })
 
 test('the bootstrap allowlist resolves an account as admin', (t) => {

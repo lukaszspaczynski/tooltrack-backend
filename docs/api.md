@@ -16,11 +16,11 @@ handler runs. Two refusals are possible and they mean different things:
 
 ## Roles
 
-| Capability                                   | viewer | editor | admin |
-| -------------------------------------------- | :----: | :----: | :---: |
-| `tools.read` — browse and search the catalog |   ●    |   ●    |   ●   |
-| `tools.write` — add, edit, delete tools      |        |   ●    |   ●   |
-| `users.manage` — list users, change roles    |        |        |   ●   |
+| Capability                                                  | viewer | editor | admin |
+| ----------------------------------------------------------- | :----: | :----: | :---: |
+| `catalog.read` — browse and search the catalog              |   ●    |   ●    |   ●   |
+| `catalog.write` — add, edit, delete tools, cases and photos |        |   ●    |   ●   |
+| `users.manage` — list users, change roles                   |        |        |   ●   |
 
 New accounts are always `viewer`.
 
@@ -66,7 +66,7 @@ account is ended, including the caller's, so the client has to log in again.
 
 ## Tools
 
-### `GET /api/tools` — `tools.read`
+### `GET /api/tools` — `catalog.read`
 
 Query parameters, all optional:
 
@@ -88,12 +88,12 @@ A malformed `limit`, `offset` or `sort` is clamped or ignored rather than
 refused — a pasted link should still show the catalog. An unknown `condition`
 is a `400`, because silently listing everything would look like an answer.
 
-### `GET /api/tools/categories` — `tools.read`
+### `GET /api/tools/categories` — `catalog.read`
 
 `{ "categories": [{ "category": "Wiertarki", "count": 12 }] }`, read from the
 tools themselves. That is the list to offer in a filter.
 
-### `POST /api/tools` — `tools.write`
+### `POST /api/tools` — `catalog.write`
 
 ```json
 {
@@ -111,16 +111,16 @@ tools themselves. That is the list to offer in a filter.
 `good`. `201 { tool }`. `409` if another card already claims that serial
 number (blank serial numbers are exempt).
 
-### `GET /api/tools/:id` — `tools.read`
+### `GET /api/tools/:id` — `catalog.read`
 
 `200 { tool }` or `404`.
 
-### `PATCH /api/tools/:id` — `tools.write`
+### `PATCH /api/tools/:id` — `catalog.write`
 
 Send only what changes. `""` clears a field; omitting it leaves it alone. The
 name cannot be cleared. `200 { tool }`, `404`, or `409` on a duplicate serial.
 
-### `DELETE /api/tools/:id` — `tools.write`
+### `DELETE /api/tools/:id` — `catalog.write`
 
 `200 { "ok": true }` or `404` if it was already gone.
 
@@ -153,7 +153,7 @@ The bytes are always stored by this server. A URL or a search result is a
 source, not a link the catalog keeps depending on: a page that disappears next
 year must not empty the shed.
 
-### `GET /api/tools/:id/photos` — `tools.read`
+### `GET /api/tools/:id/photos` — `catalog.read`
 
 ```json
 { "photos": [{ "id": 3, "url": "/api/tools/7/photos/3/file", "isPrimary": true }] }
@@ -163,7 +163,7 @@ Main photo first, then oldest to newest. Each entry carries `contentType`,
 `byteSize`, `width`, `height`, `source` (`upload` \| `url` \| `search`),
 `sourceUrl`, `attribution`, `createdBy` and `createdAt`.
 
-### `POST /api/tools/:id/photos` — `tools.write`
+### `POST /api/tools/:id/photos` — `catalog.write`
 
 Two request shapes on one endpoint.
 
@@ -202,7 +202,7 @@ JPEG, PNG, GIF or WebP — decided by reading the file, not by trusting its
 content type — and `413` above the size cap. An address pointing into a private network is
 refused as a failed item, never fetched.
 
-### `POST /api/tools/:id/photos/attach` — `tools.write`
+### `POST /api/tools/:id/photos/attach` — `catalog.write`
 
 ```json
 { "photoIds": [24, 25] }
@@ -221,12 +221,12 @@ where the photo is now:
 `201 { photos, failed }`; one id that no longer exists does not lose the rest.
 `409` when none of them could be attached — already on this card, or gone.
 
-### `GET /api/tools/:id/photos/:photoId/file` — `tools.read`
+### `GET /api/tools/:id/photos/:photoId/file` — `catalog.read`
 
 The bytes, with `cache-control: private, immutable` and the checksum as `ETag`.
 Use it directly as an `<img src>`.
 
-### `PATCH /api/tools/:id/photos/:photoId` — `tools.write`
+### `PATCH /api/tools/:id/photos/:photoId` — `catalog.write`
 
 ```json
 { "isPrimary": true }
@@ -234,12 +234,12 @@ Use it directly as an `<img src>`.
 
 The only edit a photo has. Everything else about it is a fact about the file.
 
-### `DELETE /api/tools/:id/photos/:photoId` — `tools.write`
+### `DELETE /api/tools/:id/photos/:photoId` — `catalog.write`
 
 `200 { "ok": true }`. The file itself is removed once no other card uses it —
 identical images share one file on disk.
 
-### `POST /api/tools/:id/photos/:photoId/cutout` — `tools.write`
+### `POST /api/tools/:id/photos/:photoId/cutout` — `catalog.write`
 
 Take this photo and give back the tool alone, without the workbench, the case
 or the hands holding it.
@@ -268,7 +268,7 @@ photo it was started from.
 One-click is not always what you want. These two split the same work so a
 person can see the result before anything is written.
 
-**`POST /api/tools/:id/photos/:photoId/cutout/preview`** — `tools.write`
+**`POST /api/tools/:id/photos/:photoId/cutout/preview`** — `catalog.write`
 
 ```json
 { "method": "local", "threshold": 700, "padding": 20, "removeBgType": "product" }
@@ -305,13 +305,13 @@ becoming a file the catalog has to explain. Accepting copies it into the photo
 store, which costs no second call to a paid service for a picture somebody has
 already seen.
 
-**`GET .../cutout/preview/:checksum`** — `tools.write`. The bytes, for the
+**`GET .../cutout/preview/:checksum`** — `catalog.write`. The bytes, for the
 `<img>` on the right-hand side of the screen. `404` once the preview has
 expired, and its `cache-control` never outlives the cache it came from — a
 browser holding a picture the server has already forgotten is how a save fails
 after a preview that still looked fine.
 
-**`POST .../cutout/commit`** — `tools.write`
+**`POST .../cutout/commit`** — `catalog.write`
 
 ```json
 { "checksum": "…" }
@@ -322,7 +322,7 @@ Turns a preview into a photo: `source: "edit"`, `derivedFrom` the original,
 cache — in which case it is generated again rather than half-saved; or if that
 exact cutout is already on the card.
 
-### `GET /api/tools/:id/photo-suggestions` — `tools.write`
+### `GET /api/tools/:id/photo-suggestions` — `catalog.write`
 
 Up to ten images found on the web for this tool. `?q=` overrides the query,
 which otherwise is the tool's brand and model.
@@ -356,7 +356,7 @@ fails is named in `failed` and the rest still answer; only when all of them
 fail is it a `503`.
 
 Nothing is downloaded here — these are links. Saving is `POST /photos` with the
-ones that were picked. It asks for `tools.write` rather than `tools.read`
+ones that were picked. It asks for `catalog.write` rather than `catalog.read`
 because it costs an API call and exists only to add a photo.
 
 `503` when no engine is enabled for this account, or when every enabled one
@@ -369,7 +369,7 @@ Two owners, deliberately split: the credentials belong to the installation and
 only an admin may change them; which of the configured engines a given account
 searches with is that person's own business.
 
-### `GET /api/settings/search-engines` — `tools.read`
+### `GET /api/settings/search-engines` — `catalog.read`
 
 ```json
 {
@@ -410,7 +410,7 @@ distinction is what lets a form which never receives a key avoid wiping one.
 prefers; it is how you stop paying for a provider without deleting its key.
 Answers with the same shape as the `GET`.
 
-### `PATCH /api/me/search-engines/:provider` — `tools.write`
+### `PATCH /api/me/search-engines/:provider` — `catalog.write`
 
 ```json
 { "enabled": false }
@@ -426,7 +426,7 @@ to its environment variable (`GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_CX`,
 `BRAVE_SEARCH_API_KEY`), which is what `keySource` reports. Openverse needs
 neither.
 
-### `GET /api/settings/cutout` — `tools.read`
+### `GET /api/settings/cutout` — `catalog.read`
 
 ```json
 {
@@ -481,7 +481,7 @@ tools. A separate surface from `/api/tools/:id/photos` because it answers a
 different question — what did we import — and it exists for the cleanup after
 a batch that pulled in the wrong pictures.
 
-### `GET /api/photos` — `tools.read`
+### `GET /api/photos` — `catalog.read`
 
 | Parameter  | Meaning                                                                   | Default |
 | ---------- | ------------------------------------------------------------------------- | ------- |
@@ -508,7 +508,7 @@ which is empty for a photo that has no tool. `toolId` is then `null`, and the
 photo is reached through `url` — `/api/photos/:id/file` — because there is no
 tool to reach it through.
 
-### `POST /api/photos` — `tools.write`
+### `POST /api/photos` — `catalog.write`
 
 An upload that belongs to no tool. The raw file as the body, like the per-tool
 upload, converted to PNG the same way. `201 { photo }` with `toolId: null`.
@@ -518,12 +518,12 @@ end of a day, something found while looking for something else. Forcing a tool
 at that moment is how photos end up on the wrong card. `409` if that exact
 picture is already waiting in the library.
 
-### `GET /api/photos/:id/file` — `tools.read`
+### `GET /api/photos/:id/file` — `catalog.read`
 
 The bytes of any photo, by its own id. The per-tool path still serves the same
 file; this one is what a photo with no tool can be reached through at all.
 
-### `POST /api/photos/delete` — `tools.write`
+### `POST /api/photos/delete` — `catalog.write`
 
 ```json
 { "ids": [4, 5, 6] }
@@ -544,7 +544,7 @@ it.
 
 ### `GET /api/users`
 
-`{ "users": [{ ...user, "capabilities": ["tools.read"] }] }`.
+`{ "users": [{ ...user, "capabilities": ["catalog.read"] }] }`.
 
 ### `PATCH /api/users/:id`
 

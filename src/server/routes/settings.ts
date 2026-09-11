@@ -1,8 +1,8 @@
 // Search engine settings.
 //
-//   GET   /api/settings/search-engines          tools.write
+//   GET   /api/settings/search-engines          catalog.write
 //   PATCH /api/settings/search-engines/:name    users.manage   (global: keys, on/off)
-//   PATCH /api/me/search-engines/:name          tools.write    (this account only)
+//   PATCH /api/me/search-engines/:name          catalog.write    (this account only)
 //
 // Two owners, deliberately split. The credentials are one installation's
 // property and only an admin may change them; which of the configured engines

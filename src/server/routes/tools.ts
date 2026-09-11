@@ -1,7 +1,7 @@
 // The tool catalog: GET/POST /api/tools, GET/PATCH/DELETE /api/tools/:id and
 // GET /api/tools/categories.
 //
-// Reading needs tools.read, writing needs tools.write, and both are checked by
+// Reading needs catalog.read, writing needs catalog.write, and both are checked by
 // the guard before any of this runs (src/access/route-policy.ts). Nothing here
 // re-checks a role; a handler that decided access for itself would be a second
 // answer to a question the policy already answers.

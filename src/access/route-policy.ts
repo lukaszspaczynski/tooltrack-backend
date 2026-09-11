@@ -32,8 +32,8 @@ type Rule = {
 
 type Method = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
 
-const READ_TOOLS: RouteCheck = { capability: 'tools.read', kind: 'capability' }
-const WRITE_TOOLS: RouteCheck = { capability: 'tools.write', kind: 'capability' }
+const READ_CATALOG: RouteCheck = { capability: 'catalog.read', kind: 'capability' }
+const WRITE_CATALOG: RouteCheck = { capability: 'catalog.write', kind: 'capability' }
 const MANAGE_USERS: RouteCheck = { capability: 'users.manage', kind: 'capability' }
 const ALLOW: RouteCheck = { kind: 'allow' }
 
@@ -57,24 +57,24 @@ const RULES: readonly Rule[] = [
   },
   {
     domain: 'tools',
-    methods: { GET: READ_TOOLS },
+    methods: { GET: READ_CATALOG },
     pattern: /^\/api\/tools\/categories$/,
   },
   {
     domain: 'tools',
-    methods: { GET: READ_TOOLS, POST: WRITE_TOOLS },
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
     pattern: /^\/api\/tools$/,
   },
   {
     domain: 'tools',
-    methods: { DELETE: WRITE_TOOLS, GET: READ_TOOLS, PATCH: WRITE_TOOLS },
+    methods: { DELETE: WRITE_CATALOG, GET: READ_CATALOG, PATCH: WRITE_CATALOG },
     pattern: /^\/api\/tools\/[^/]+$/,
   },
   {
     // The bytes of a photo. Readable by anyone who may read the catalog — the
     // picture is part of the card.
     domain: 'tools',
-    methods: { GET: READ_TOOLS },
+    methods: { GET: READ_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photos\/\d+\/file$/,
   },
   {
@@ -83,41 +83,41 @@ const RULES: readonly Rule[] = [
     // able to spend. The preview costs the same call, so it is not cheaper to
     // reach: all three paths ask for the same thing.
     domain: 'tools',
-    methods: { POST: WRITE_TOOLS },
+    methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout$/,
   },
   {
     domain: 'tools',
-    methods: { POST: WRITE_TOOLS },
+    methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
   },
   {
     domain: 'tools',
-    methods: { GET: WRITE_TOOLS },
+    methods: { GET: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
   },
   {
     domain: 'tools',
-    methods: { DELETE: WRITE_TOOLS, PATCH: WRITE_TOOLS },
+    methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photos\/\d+$/,
   },
   {
     domain: 'tools',
-    methods: { GET: READ_TOOLS, POST: WRITE_TOOLS },
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photos$/,
   },
   {
     // Putting an existing photo on a tool changes the card, so it asks for
     // what changing a card asks for.
     domain: 'tools',
-    methods: { POST: WRITE_TOOLS },
+    methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photos\/attach$/,
   },
   {
     // Searching the web costs an API call and only exists to add a photo, so
     // it asks for the capability to add one. A viewer has no use for it.
     domain: 'tools',
-    methods: { GET: WRITE_TOOLS },
+    methods: { GET: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/photo-suggestions$/,
   },
   {
@@ -125,14 +125,14 @@ const RULES: readonly Rule[] = [
     // tells them why the search button is grey. The list carries no
     // credentials, only whether one is set.
     domain: 'settings',
-    methods: { GET: READ_TOOLS },
+    methods: { GET: READ_CATALOG },
     pattern: /^\/api\/settings\/search-engines$/,
   },
   {
     // Same split as the engine list: everyone may see which cutout method
     // would run, only an admin may change it or its keys.
     domain: 'settings',
-    methods: { GET: READ_TOOLS, PATCH: MANAGE_USERS },
+    methods: { GET: READ_CATALOG, PATCH: MANAGE_USERS },
     pattern: /^\/api\/settings\/cutout$/,
   },
   {
@@ -150,25 +150,25 @@ const RULES: readonly Rule[] = [
     // Which of the configured engines I search with is my own business, and
     // costs nobody anything to get wrong.
     domain: 'settings',
-    methods: { PATCH: WRITE_TOOLS },
+    methods: { PATCH: WRITE_CATALOG },
     pattern: /^\/api\/me\/search-engines\/[^/]+$/,
   },
   {
     // The whole photo library. Readable with the catalog, because the pictures
     // are the catalog; removable only by someone who may change it.
     domain: 'tools',
-    methods: { GET: READ_TOOLS, POST: WRITE_TOOLS },
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
     pattern: /^\/api\/photos$/,
   },
   {
     // The bytes of any photo, attached to a tool or not.
     domain: 'tools',
-    methods: { GET: READ_TOOLS },
+    methods: { GET: READ_CATALOG },
     pattern: /^\/api\/photos\/\d+\/file$/,
   },
   {
     domain: 'tools',
-    methods: { POST: WRITE_TOOLS },
+    methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/photos\/delete$/,
   },
   {

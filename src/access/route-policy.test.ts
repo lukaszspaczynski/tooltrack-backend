@@ -57,7 +57,7 @@ test('cutout settings: everyone reads, only an admin changes', () => {
   assert.equal(routeRequirement('/api/me/cutout', 'PATCH').check.kind, 'deny')
 })
 
-test('the photo library reads with the catalog and deletes with tools.write', () => {
+test('the photo library reads with the catalog and deletes with catalog.write', () => {
   assert.equal(allows('/api/photos', 'GET', user('viewer')), true)
   // Uploading a photo that belongs to no tool is still writing to the catalog.
   assert.equal(allows('/api/photos', 'POST', user('viewer')), false)
@@ -131,7 +131,7 @@ test('photo bytes are readable by anyone who may read the catalog', () => {
   assert.equal(allows('/api/tools/42/photos/7/file', 'GET', user('viewer')), true)
 })
 
-test('adding, promoting and removing a photo needs tools.write', () => {
+test('adding, promoting and removing a photo needs catalog.write', () => {
   assert.equal(allows('/api/tools/42/photos', 'POST', user('viewer')), false)
   assert.equal(allows('/api/tools/42/photos', 'POST', user('editor')), true)
   assert.equal(allows('/api/tools/42/photos/7', 'PATCH', user('viewer')), false)
@@ -139,13 +139,13 @@ test('adding, promoting and removing a photo needs tools.write', () => {
   assert.equal(allows('/api/tools/42/photos/7', 'DELETE', user('editor')), true)
 })
 
-test('attaching an existing photo changes the card, so it needs tools.write', () => {
+test('attaching an existing photo changes the card, so it needs catalog.write', () => {
   assert.equal(allows('/api/tools/42/photos/attach', 'POST', user('viewer')), false)
   assert.equal(allows('/api/tools/42/photos/attach', 'POST', user('editor')), true)
   assert.equal(routeRequirement('/api/tools/42/photos/attach', 'GET').check.kind, 'deny')
 })
 
-test('the AI cutout needs tools.write', () => {
+test('the AI cutout needs catalog.write', () => {
   assert.equal(allows('/api/tools/42/photos/7/cutout', 'POST', user('viewer')), false)
   assert.equal(allows('/api/tools/42/photos/7/cutout', 'POST', user('editor')), true)
   // It writes a photo; reading one is not a way to trigger it.
@@ -179,7 +179,7 @@ test('the cutout preview is not a cheaper way in than the cutout itself', () => 
   )
 })
 
-test('searching the web for photos needs tools.write, not tools.read', () => {
+test('searching the web for photos needs catalog.write, not catalog.read', () => {
   // It costs an API call and only exists to add a photo. A viewer, who could
   // not save the result, has no use for it.
   assert.equal(allows('/api/tools/42/photo-suggestions', 'GET', user('viewer')), false)

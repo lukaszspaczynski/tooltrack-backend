@@ -53,7 +53,7 @@ GET {{host}}/api/tools?q=makita&condition=needs_repair&sort=name&order=asc&limit
 ### The categories to offer in a filter, derived from the tools themselves.
 GET {{host}}/api/tools/categories
 
-### Add a tool. Needs tools.write, so a viewer gets 403 here.
+### Add a tool. Needs catalog.write, so a viewer gets 403 here.
 POST {{host}}/api/tools
 Content-Type: application/json
 
