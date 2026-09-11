@@ -188,3 +188,34 @@ card. The same reasoning as the photo links above.
 
 Deleting a tool takes it out of its organizer and changes nothing else — the
 arrangement is still an arrangement with one fewer thing in it.
+
+### `catalog.brand`
+
+One row per maker.
+
+| Column                     | Type                              | Notes                     |
+| -------------------------- | --------------------------------- | ------------------------- |
+| `id`                       | `bigint` identity                 |                           |
+| `name`                     | `text`                            | Required, unique on lower |
+| `notes`                    | `text`                            |                           |
+| `created_by`, `updated_by` | `bigint` → `account.user_account` | `ON DELETE SET NULL`      |
+| `created_at`, `updated_at` | `timestamptz`                     |                           |
+
+The unique index is case-insensitive: "Bosch" and "BOSCH" typed on two days are
+the same company, and two rows would split its tools in half.
+
+`catalog.tool.brand_id` points here, `ON DELETE SET NULL` — removing a maker
+must not remove its tools. The tool keeps its free-text `brand` as well: that
+is what the catalog searches and what a card shows, and the API keeps the two
+in step (a rename rewrites the text, and a typed name is matched back to a row).
+Collapsing them into one column is the obvious next step and has not been taken.
+
+### `catalog.photo_brand`
+
+The logo. One to one in **both** directions: `brand_id` is the primary key, so
+a brand has at most one, and `photo_id` is unique, so a picture is the logo of
+at most one brand.
+
+Its own table rather than a column on either side — the same reasoning as the
+photo links — and it means deleting the picture clears the logo through the
+cascade instead of leaving an id pointing at nothing.

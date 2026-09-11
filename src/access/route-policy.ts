@@ -10,7 +10,7 @@
 import { hasCapability, isActiveUser, type Capability, type User } from './roles'
 
 export type RouteDomain =
-  'auth' | 'cases' | 'organizers' | 'public' | 'settings' | 'tools' | 'users'
+  'auth' | 'brands' | 'cases' | 'organizers' | 'public' | 'settings' | 'tools' | 'users'
 
 export type RouteCheck =
   // Reachable without a session. The handler still decides what it answers.
@@ -60,6 +60,24 @@ const RULES: readonly Rule[] = [
     domain: 'tools',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/tools\/categories$/,
+  },
+  {
+    // Makers. Part of the catalog like everything else: looking is read,
+    // changing is write.
+    domain: 'brands',
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
+    pattern: /^\/api\/brands$/,
+  },
+  {
+    domain: 'brands',
+    methods: { DELETE: WRITE_CATALOG, GET: READ_CATALOG, PATCH: WRITE_CATALOG },
+    pattern: /^\/api\/brands\/\d+$/,
+  },
+  {
+    // Pointing a logo at a picture, or taking it away.
+    domain: 'brands',
+    methods: { DELETE: WRITE_CATALOG, PUT: WRITE_CATALOG },
+    pattern: /^\/api\/brands\/\d+\/logo$/,
   },
   {
     // The arrangement of tools in a case. Same split as everything else in the

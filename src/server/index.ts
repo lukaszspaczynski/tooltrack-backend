@@ -19,6 +19,7 @@ import { readRequestBody, requestUrl } from './request-body-limit'
 import { enforceRoutePolicy } from './route-guard'
 import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
+import * as brands from './routes/brands'
 import * as cases from './routes/cases'
 import * as media from './routes/media'
 import * as organizers from './routes/organizers'
@@ -43,6 +44,8 @@ const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
 const TOOL_DUPLICATE_PATTERN = /^\/api\/tools\/(\d+)\/duplicate$/
+const BRAND_DETAIL_PATTERN = /^\/api\/brands\/(\d+)$/
+const BRAND_LOGO_PATTERN = /^\/api\/brands\/(\d+)\/logo$/
 const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
 const ORGANIZER_TOOLS_PATTERN = /^\/api\/organizers\/(\d+)\/tools$/
 const ORGANIZER_TOOL_PATTERN = /^\/api\/organizers\/(\d+)\/tools\/(\d+)$/
@@ -115,6 +118,13 @@ const ROUTES = [
   'GET /api/cases/:id/photos/:photoId/cutout/preview/:checksum',
   'POST /api/cases/:id/photos/:photoId/cutout/commit',
   'GET /api/cases/:id/photo-suggestions',
+  'GET /api/brands',
+  'POST /api/brands',
+  'GET /api/brands/:id',
+  'PATCH /api/brands/:id',
+  'DELETE /api/brands/:id',
+  'PUT /api/brands/:id/logo',
+  'DELETE /api/brands/:id/logo',
   'GET /api/organizers',
   'POST /api/organizers',
   'GET /api/organizers/:id',
@@ -240,6 +250,29 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
 
   // Same ordering rule as categories above: the list of systems before the
   // pattern that would read "systems" as the name of a case.
+  if (path === '/api/brands') {
+    return methodHandler(method, { GET: brands.GET, POST: brands.POST })
+  }
+
+  // Longest first, as everywhere in this table.
+  const brandLogo = BRAND_LOGO_PATTERN.exec(path)
+  if (brandLogo) {
+    return methodHandler(
+      method,
+      { DELETE: brands.logoDELETE, PUT: brands.logoPUT },
+      { id: brandLogo[1] },
+    )
+  }
+
+  const brandDetail = BRAND_DETAIL_PATTERN.exec(path)
+  if (brandDetail) {
+    return methodHandler(
+      method,
+      { DELETE: brands.detailDELETE, GET: brands.detailGET, PATCH: brands.detailPATCH },
+      { id: brandDetail[1] },
+    )
+  }
+
   if (path === '/api/organizers') {
     return methodHandler(method, { GET: organizers.GET, POST: organizers.POST })
   }

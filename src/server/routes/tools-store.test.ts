@@ -146,8 +146,37 @@ test('a new card records its author as both creator and last editor', async () =
     pool,
   )
 
-  assert.match(calls[0].text, /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$8\)/)
-  assert.equal(calls[0].params[7], 3)
+  // The brand lookup runs first: the typed maker decides which row the card
+  // points at, and an unknown one points at nothing.
+  assert.match(calls[0].text, /FROM "catalog"\."brand"/)
+  assert.match(calls[1].text, /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$8, \$9\)/)
+  assert.equal(calls[1].params[7], 3)
+})
+
+test('a typed maker points the card at that brand, and an unknown one at none', async () => {
+  // The tool form writes the maker as text. Matching it here is what keeps the
+  // column and the row telling the same story without inventing a brand from a
+  // typo.
+  const { calls, pool } = fakePool([toolRow()])
+
+  await createTool(
+    {
+      brand: 'Makita',
+      category: '',
+      condition: 'good',
+      model: '',
+      name: 'Wiertarka',
+      notes: '',
+      serialNumber: '',
+    },
+    3,
+    pool,
+  )
+
+  assert.equal(calls[0].params[0], 'Makita')
+  // The fake answers every query with the same row, which has no id — so this
+  // asserts the shape of the call rather than the value it found.
+  assert.match(calls[1].text, /"brand_id"/)
 })
 
 test('a duplicate serial number is a named error, not a raw pg failure', async () => {

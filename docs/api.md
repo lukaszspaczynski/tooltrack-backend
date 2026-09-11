@@ -604,6 +604,58 @@ clears — as everywhere. The local method has no key, and sending one is a
 The only setting that is not a method: where the local method's threshold
 starts on the cutout screen. 1 to 765, where 765 is pure white.
 
+## Producers
+
+A brand is a maker: one row, many tools. The logo is a picture from the same
+library everything else draws from, linked one to one — a brand has at most one
+logo, and a picture is the logo of at most one brand.
+
+Tools carry the maker twice on purpose, for now: `brand` is the text the card
+shows and the catalog searches, `brandId` points at the row. Creating or
+editing a tool matches the typed name against the brands, case-insensitively,
+and points the card at one when it recognises it — a name it does not know
+points at nothing rather than inventing a brand from a typo.
+
+### `GET /api/brands` — `catalog.read`
+
+| Parameter | Meaning           | Default |
+| --------- | ----------------- | ------- |
+| `q`       | Name or notes     | —       |
+| `sort`    | `name` or `tools` | `name`  |
+| `order`   | `asc` or `desc`   | `asc`   |
+| `limit`   | 1–500             | 100     |
+| `offset`  | ≥ 0               | 0       |
+
+`200 { items, total, limit, offset }`. Each item carries `logoUrl` and
+`toolCount`, both aggregates of the one query, so the screen costs one
+statement rather than two per row.
+
+### `POST /api/brands` — `catalog.write`
+
+`{ "name": "Makita", "notes": "" }` → `201 { brand }`. `409` when the name is
+taken: "Bosch" and "BOSCH" typed on two days are the same company, and two rows
+would split its tools in half.
+
+### `GET|PATCH|DELETE /api/brands/:id` — `catalog.read` / `catalog.write`
+
+A `PATCH` takes `name` and `notes`. **Renaming rewrites the maker on its
+tools** in the same transaction — the card carries the name as text, and
+renaming one without the other leaves them telling different stories.
+
+`DELETE` removes the row. The tools stay and keep the maker's name as text;
+they simply stop pointing at it. Deleting the grouping is not a claim about who
+made them.
+
+### `PUT /api/brands/:id/logo` — `catalog.write`
+
+`{ "photoId": 48 }` → `200 { brand }`. Setting it twice replaces it. `404` when
+the picture does not exist, `409` when it is already another brand's logo — the
+one-to-one rule refuses rather than moving it.
+
+### `DELETE /api/brands/:id/logo` — `catalog.write`
+
+`200 { brand }`, with `logoUrl: null`. The picture itself stays in the library.
+
 ## Organizer
 
 Which tools live in which case. An organizer row is one arrangement: a case, a

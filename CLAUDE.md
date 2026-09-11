@@ -128,6 +128,29 @@ conventions come from uses sharp for the same reason.
 `PhotoNotSuitableError`, which the route answers as 422; a missing or failing
 AI service is a different error and a different status.
 
+## Brands
+
+`catalog.brand` is a maker: one row, many tools, pointed at by
+`catalog.tool.brand_id`. The logo lives in `catalog.photo_brand`, one to one in
+both directions, for the same reason the photo links exist — a picture carries
+no idea of what it is being used for.
+
+The tool still carries its maker as free text as well. That column is what the
+catalog searches and what a card shows, and the two are kept in step from both
+ends: renaming a brand rewrites the text on its tools in the same transaction,
+and creating or editing a tool matches the typed name back to a row
+(`brandIdForName`), pointing at nothing rather than inventing a brand from a
+typo. Collapsing them into one column, with the tool form picking from a list,
+is the obvious next step and has not been taken — say so before doing it, since
+it changes what `GET /api/tools` means.
+
+The DDL backfills: every distinct non-empty `tool.brand` became a row and every
+tool was pointed at its own, idempotently.
+
+Cases are deliberately not part of this. `tool_case.manufacturer` stays free
+text — it was asked for and declined, not overlooked, so leave it alone unless
+somebody asks again.
+
 ## Organizer
 
 `catalog.organizer` is one arrangement — a case, a name and an ordinal number —

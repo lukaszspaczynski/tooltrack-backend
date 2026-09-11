@@ -278,3 +278,19 @@ test('putting a tool into an organizer is a write, and taking it out too', () =>
   // There is no way to read one tool's link on its own.
   assert.equal(routeRequirement('/api/organizers/4/tools/9', 'GET').check.kind, 'deny')
 })
+
+test('makers are the catalog: read to look, write to change', () => {
+  assert.equal(allows('/api/brands', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/brands', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/brands', 'POST', user('editor')), true)
+  assert.equal(allows('/api/brands/4', 'PATCH', user('editor')), true)
+  assert.equal(allows('/api/brands/4', 'DELETE', user('editor')), true)
+})
+
+test('pointing a logo at a picture is a write, and so is taking it away', () => {
+  assert.equal(allows('/api/brands/4/logo', 'PUT', user('viewer')), false)
+  assert.equal(allows('/api/brands/4/logo', 'PUT', user('editor')), true)
+  assert.equal(allows('/api/brands/4/logo', 'DELETE', user('editor')), true)
+  // There is no reading of a logo on its own — it comes with the brand.
+  assert.equal(routeRequirement('/api/brands/4/logo', 'GET').check.kind, 'deny')
+})

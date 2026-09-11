@@ -3,6 +3,7 @@
 // reaches the query text is a column name chosen from a fixed map.
 
 import { db, type PgPool } from '../db'
+import { brandIdForName } from './brands-store'
 import {
   DEFAULT_CONDITION,
   isToolCondition,
@@ -137,8 +138,8 @@ export async function createTool(
       `
         INSERT INTO "catalog"."tool"
           ("name", "category", "brand", "model", "serial_number", "condition", "notes",
-           "created_by", "updated_by")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+           "created_by", "updated_by", "brand_id")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9)
         RETURNING ${TOOL_COLUMNS}
       `,
       [
@@ -150,6 +151,10 @@ export async function createTool(
         fields.condition,
         fields.notes,
         actorId,
+        // The maker is typed as text on the card. When it names a brand we
+        // know, the row points at it too; when it does not, it points at
+        // nothing rather than at a brand invented from a typo.
+        await brandIdForName(fields.brand, pool),
       ],
     )
 
@@ -183,6 +188,12 @@ export async function updateTool(
     if (value === undefined) continue
     params.push(value)
     assignments.push(`"${column}" = $${params.length}`)
+  }
+
+  // A renamed maker repoints the row as well, by the same rule as on create.
+  if (patch.brand !== undefined) {
+    params.push(await brandIdForName(patch.brand, pool))
+    assignments.push(`"brand_id" = $${params.length}`)
   }
 
   // parseToolPatch already refuses an empty patch, so this only guards a
