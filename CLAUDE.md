@@ -128,6 +128,21 @@ conventions come from uses sharp for the same reason.
 `PhotoNotSuitableError`, which the route answers as 422; a missing or failing
 AI service is a different error and a different status.
 
+## Duplicating a card
+
+`POST /api/tools/:id/duplicate` is one `INSERT ... SELECT`, so a copy cannot
+drift from its original between a read and a write, and the columns are named
+once. The serial number is the single field not copied — it is one physical
+machine, and the unique index would refuse the second card anyway.
+
+The photo links are copied too (`copyPhotoLinks`), main photo included. That is
+cheap because a pairing is a row: the copy shows the same pictures without a
+byte being written.
+
+Cases deliberately do not have this. `copyPhotoLinks` is already owner-generic,
+so adding it would be an endpoint and a button — it was asked for and declined,
+not overlooked.
+
 ## Search engine settings
 
 `search-engines.ts` is the registry — what each engine is called and what it

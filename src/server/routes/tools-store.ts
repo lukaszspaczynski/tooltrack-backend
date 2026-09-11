@@ -201,6 +201,37 @@ export async function updateTool(
   }
 }
 
+// Another one of these. A crew with three identical grinders wants three
+// cards, and typing the same six fields three times is how the third one ends
+// up saying something slightly different from the first two.
+//
+// INSERT ... SELECT rather than read-then-write: one statement, so the copy
+// cannot drift from the original between the two, and the columns are named
+// once. The serial number is the one field deliberately not copied — it
+// identifies a single physical machine, and the unique index would refuse the
+// second card anyway.
+export async function duplicateTool(
+  id: number,
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<null | Tool> {
+  const result = await pool.query<ToolRow>(
+    `
+      INSERT INTO "catalog"."tool"
+        ("name", "category", "brand", "model", "serial_number", "condition", "notes",
+         "created_by", "updated_by")
+      SELECT "name", "category", "brand", "model", '', "condition", "notes", $2, $2
+      FROM "catalog"."tool"
+      WHERE "id" = $1
+      RETURNING ${TOOL_COLUMNS}
+    `,
+    [id, actorId],
+  )
+
+  const row = result.rows[0]
+  return row ? toTool(row) : null
+}
+
 export async function deleteTool(id: number, pool: PgPool = db()): Promise<boolean> {
   const result = await pool.query(`DELETE FROM "catalog"."tool" WHERE "id" = $1`, [id])
   return (result.rowCount ?? 0) > 0

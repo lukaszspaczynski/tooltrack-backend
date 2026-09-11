@@ -2,7 +2,13 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import type { PgPool, PgQueryResult } from '../db'
-import { createTool, listTools, SerialNumberTakenError, updateTool } from './tools-store'
+import {
+  createTool,
+  duplicateTool,
+  listTools,
+  SerialNumberTakenError,
+  updateTool,
+} from './tools-store'
 import { parseToolQuery } from './tools-input'
 
 type Call = { params: unknown[]; text: string }
@@ -180,3 +186,26 @@ function query(search: string) {
   if (!parsed.ok) throw new Error(parsed.error)
   return parsed.value
 }
+
+test('duplicating copies the card but not the serial number', async () => {
+  // A serial number is one physical machine. Copying it would mean two cards
+  // claiming the same one — which the unique index refuses anyway, so the copy
+  // would simply fail instead of starting blank.
+  const { calls, pool } = fakePool([toolRow({ id: '12', serial_number: '' })])
+
+  const copy = await duplicateTool(7, 3, pool)
+
+  assert.equal(copy?.id, 12)
+  assert.equal(copy?.serialNumber, '')
+  // One statement, so the copy cannot drift from the original between a read
+  // and a write.
+  assert.match(calls[0].text, /INSERT INTO "catalog"\."tool"[\s\S]*SELECT/)
+  assert.match(calls[0].text, /"model", '', "condition"/)
+  assert.deepEqual(calls[0].params, [7, 3])
+})
+
+test('duplicating a card that is not there is not found, not a copy of nothing', async () => {
+  const { pool } = fakePool([])
+
+  assert.equal(await duplicateTool(404, 3, pool), null)
+})

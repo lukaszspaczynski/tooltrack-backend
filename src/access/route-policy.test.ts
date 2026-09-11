@@ -251,3 +251,11 @@ test('a photo of a case is guarded exactly like a photo of a tool', () => {
     assert.equal(allows(`/api/${kind}/4/photo-suggestions`, 'GET', user('editor')), true, kind)
   }
 })
+
+test('duplicating a tool writes a card, so it asks what writing a card asks', () => {
+  assert.equal(allows('/api/tools/42/duplicate', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/tools/42/duplicate', 'POST', user('editor')), true)
+  // There is no way to duplicate by GET, which would make a copy every time a
+  // link was followed.
+  assert.equal(routeRequirement('/api/tools/42/duplicate', 'GET').check.kind, 'deny')
+})

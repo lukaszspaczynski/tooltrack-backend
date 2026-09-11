@@ -4,6 +4,7 @@ import test from 'node:test'
 import type { PgClient, PgPool, PgQueryResult } from '../db'
 import {
   attachPhotosTo,
+  copyPhotoLinks,
   deletePhotosByIds,
   insertPhoto,
   linkPhoto,
@@ -258,4 +259,26 @@ test('the assigned filter asks whether any card shows it', async () => {
 
   assert.equal(calls[0].params[2], true)
   assert.match(calls[0].text, /"r"\."photo_id" IS NOT NULL\) = \$3/)
+})
+
+test('copying a card onto another keeps which picture is the main one', async () => {
+  // Duplicating a tool: the copy shows the same pictures, headed by the same
+  // one. A link each, no second file.
+  const { calls, pool } = fakePool([[{}, {}]])
+
+  const copied = await copyPhotoLinks(TOOL, { id: 12, kind: 'tool' }, 1, pool)
+
+  assert.equal(copied, 2)
+  assert.match(calls[0].text, /INSERT INTO "catalog"\."photo_tool"/)
+  assert.match(calls[0].text, /SELECT \$2, "photo_id", "is_primary", \$3/)
+  assert.deepEqual(calls[0].params, [9, 12, 1])
+})
+
+test('copying onto a card that already shows some of them adds only the rest', async () => {
+  // ON CONFLICT DO NOTHING on the pair, so running it twice is not an error
+  // and does not duplicate a pairing.
+  const { calls, pool } = fakePool([[]])
+
+  assert.equal(await copyPhotoLinks(CASE, { id: 7, kind: 'case' }, 1, pool), 0)
+  assert.match(calls[0].text, /ON CONFLICT DO NOTHING/)
 })

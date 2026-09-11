@@ -89,6 +89,12 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/[^/]+$/,
   },
   {
+    // Duplicating writes a card, so it asks for what writing a card asks for.
+    domain: 'tools',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/duplicate$/,
+  },
+  {
     // The bytes of a photo. Readable by anyone who may read the catalog — the
     // picture is part of the card.
     domain: 'tools',

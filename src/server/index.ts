@@ -41,6 +41,7 @@ type RouteMatch = {
 const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
+const TOOL_DUPLICATE_PATTERN = /^\/api\/tools\/(\d+)\/duplicate$/
 const CASE_DETAIL_PATTERN = /^\/api\/cases\/(\d+)$/
 
 // Photos belong to a tool or to a case on identical terms, so one set of
@@ -81,6 +82,7 @@ const ROUTES = [
   'GET /api/tools/:id',
   'PATCH /api/tools/:id',
   'DELETE /api/tools/:id',
+  'POST /api/tools/:id/duplicate',
   'GET /api/tools/:id/photos',
   'POST /api/tools/:id/photos',
   'POST /api/tools/:id/photos/attach',
@@ -312,6 +314,11 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
       { GET: photos.suggestionsGET },
       { id: suggestions[2], owner: suggestions[1] },
     )
+  }
+
+  const duplicate = TOOL_DUPLICATE_PATTERN.exec(path)
+  if (duplicate) {
+    return methodHandler(method, { POST: tools.duplicatePOST }, { id: duplicate[1] })
   }
 
   const toolDetail = TOOL_DETAIL_PATTERN.exec(path)

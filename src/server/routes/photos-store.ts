@@ -580,6 +580,30 @@ export async function dropOrphanedPhotos(photoIds: number[], pool: PgPool = db()
   return keys.length
 }
 
+// Puts every picture one card shows onto another, keeping which one is the
+// main photo. Cheap now that a pairing is a row: two cards showing the same
+// photograph cost a link each and no second file.
+export async function copyPhotoLinks(
+  from: PhotoOwner,
+  to: PhotoOwner,
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<number> {
+  const column = ownerColumn(from.kind)
+  const result = await pool.query(
+    `
+      INSERT INTO "catalog"."${linkTable(to.kind)}" ("${ownerColumn(to.kind)}", "photo_id", "is_primary", "created_by")
+      SELECT $2, "photo_id", "is_primary", $3
+      FROM "catalog"."${linkTable(from.kind)}"
+      WHERE "${column}" = $1
+      ON CONFLICT DO NOTHING
+    `,
+    [from.id, to.id, actorId],
+  )
+
+  return result.rowCount ?? 0
+}
+
 // Which pictures a card shows, by id. Read before the card is deleted, so the
 // orphans can be found after its links have cascaded away.
 export async function photoIdsOf(owner: PhotoOwner, pool: PgPool = db()): Promise<number[]> {

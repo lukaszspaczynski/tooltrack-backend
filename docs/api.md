@@ -120,6 +120,19 @@ number (blank serial numbers are exempt).
 Send only what changes. `""` clears a field; omitting it leaves it alone. The
 name cannot be cleared. `200 { tool }`, `404`, or `409` on a duplicate serial.
 
+### `POST /api/tools/:id/duplicate` — `catalog.write`
+
+Another card just like this one. `201 { tool }`.
+
+Everything is copied except the **serial number**, which starts blank: it
+identifies one physical machine, and the unique index would refuse a second
+card claiming it. Which is the point — a crew with three identical grinders
+wants three cards, and the difference between them is the number on the plate.
+
+The photos come along as links to the same pictures, main photo included. Two
+of the same model look the same, and since the pairing is a row this costs a
+row rather than a second file.
+
 ### `DELETE /api/tools/:id` — `catalog.write`
 
 `200 { "ok": true }` or `404` if it was already gone.

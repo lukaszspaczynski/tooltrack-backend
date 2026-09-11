@@ -7,11 +7,18 @@
 // answer to a question the policy already answers.
 
 import type { RouteContext } from '../route-context'
-import { dropOrphanedPhotos, photoIdsOf, photoUrl, primaryPhotoIds } from './photos-store'
+import {
+  copyPhotoLinks,
+  dropOrphanedPhotos,
+  photoIdsOf,
+  photoUrl,
+  primaryPhotoIds,
+} from './photos-store'
 import { parseToolCreate, parseToolPatch, parseToolQuery } from './tools-input'
 import {
   createTool,
   deleteTool,
+  duplicateTool,
   getTool,
   listCategories,
   listTools,
@@ -96,6 +103,26 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
     }
     throw error
   }
+}
+
+// POST /api/tools/:id/duplicate — another card just like this one.
+//
+// Everything is copied except the serial number, which identifies one physical
+// machine: the copy starts blank there, so the person filling it in is the one
+// who read the plate. The photos come along as links to the same pictures —
+// two of the same model look the same, and a link costs a row rather than a
+// file.
+export async function duplicatePOST(_request: Request, context: RouteContext): Promise<Response> {
+  const id = parseId(context.params.id)
+  if (id === null) return notFound()
+
+  const actor = actorId(context)
+  const copy = await duplicateTool(id, actor)
+  if (!copy) return notFound()
+
+  await copyPhotoLinks({ id, kind: 'tool' }, { id: copy.id, kind: 'tool' }, actor)
+
+  return Response.json({ tool: copy }, { status: 201 })
 }
 
 export async function detailDELETE(_request: Request, context: RouteContext): Promise<Response> {
