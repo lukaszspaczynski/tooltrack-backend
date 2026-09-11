@@ -9,7 +9,7 @@
 
 import { hasCapability, isActiveUser, type Capability, type User } from './roles'
 
-export type RouteDomain = 'auth' | 'public' | 'tools' | 'users'
+export type RouteDomain = 'auth' | 'public' | 'settings' | 'tools' | 'users'
 
 export type RouteCheck =
   // Reachable without a session. The handler still decides what it answers.
@@ -78,6 +78,14 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/\d+\/photos\/\d+\/file$/,
   },
   {
+    // The AI cutout writes a new photo, so it needs the capability to write
+    // one — and it costs a call to a paid service, which a viewer must not be
+    // able to spend.
+    domain: 'tools',
+    methods: { POST: WRITE_TOOLS },
+    pattern: /^\/api\/tools\/\d+\/photos\/\d+\/cutout$/,
+  },
+  {
     domain: 'tools',
     methods: { DELETE: WRITE_TOOLS, PATCH: WRITE_TOOLS },
     pattern: /^\/api\/tools\/\d+\/photos\/\d+$/,
@@ -93,6 +101,39 @@ const RULES: readonly Rule[] = [
     domain: 'tools',
     methods: { GET: WRITE_TOOLS },
     pattern: /^\/api\/tools\/\d+\/photo-suggestions$/,
+  },
+  {
+    // Everyone who may search needs to see which engines are on — that is what
+    // tells them why the search button is grey. The list carries no
+    // credentials, only whether one is set.
+    domain: 'settings',
+    methods: { GET: READ_TOOLS },
+    pattern: /^\/api\/settings\/search-engines$/,
+  },
+  {
+    // The keys are one installation's property. Only an admin changes them.
+    domain: 'settings',
+    methods: { PATCH: MANAGE_USERS },
+    pattern: /^\/api\/settings\/search-engines\/[^/]+$/,
+  },
+  {
+    // Which of the configured engines I search with is my own business, and
+    // costs nobody anything to get wrong.
+    domain: 'settings',
+    methods: { PATCH: WRITE_TOOLS },
+    pattern: /^\/api\/me\/search-engines\/[^/]+$/,
+  },
+  {
+    // The whole photo library. Readable with the catalog, because the pictures
+    // are the catalog; removable only by someone who may change it.
+    domain: 'tools',
+    methods: { GET: READ_TOOLS },
+    pattern: /^\/api\/photos$/,
+  },
+  {
+    domain: 'tools',
+    methods: { POST: WRITE_TOOLS },
+    pattern: /^\/api\/photos\/delete$/,
   },
   {
     domain: 'users',
@@ -134,6 +175,7 @@ export function satisfiesRequirement(user: null | undefined | User, requirement:
 // Only used to label a refusal in logs, never to decide one.
 function domainOf(pathname: string): RouteDomain {
   if (pathname.startsWith('/api/auth/')) return 'auth'
+  if (pathname.startsWith('/api/settings/') || pathname.startsWith('/api/me/')) return 'settings'
   if (pathname.startsWith('/api/tools')) return 'tools'
   if (pathname.startsWith('/api/users')) return 'users'
   return 'public'

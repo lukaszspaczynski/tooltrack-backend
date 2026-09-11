@@ -186,9 +186,11 @@ Not `multipart/form-data`: one file per request needs no envelope, and
 { "items": [{ "url": "…", "attribution": "…" }, { "url": "…" }] }
 ```
 
-The server fetches each one and stores it. `201 { photos, failed }`: one dead
-link out of ten does not lose the other nine, and `failed` says which address
-failed and why. Everything failing is a `422`.
+Up to thirty at a time — with several engines enabled the suggestion grid
+holds more than one engine's worth, and someone may reasonably tick a
+screenful. The server fetches each one and stores it. `201 { photos, failed }`:
+one dead link out of ten does not lose the other nine, and `failed` says which
+address failed and why. Everything failing is a `422`.
 
 Refusals worth handling: `409` the same image is already on this tool
 (compared by checksum, not by URL), `415` the file is not a JPEG, PNG, GIF or
@@ -214,6 +216,30 @@ The only edit a photo has. Everything else about it is a fact about the file.
 `200 { "ok": true }`. The file itself is removed once no other card uses it —
 identical images share one file on disk.
 
+### `POST /api/tools/:id/photos/:photoId/cutout` — `tools.write`
+
+Take this photo and give back the tool alone, without the workbench, the case
+or the hands holding it.
+
+`201 { photo, provider }`. It **adds** a photo rather than replacing one: the
+original stays, the new one carries `source: "edit"` and `derivedFrom` with
+the original's id, and it does not become the main photo on its own — whether
+a cutout beats the photograph is a judgement for whoever sees both.
+
+Three refusals, and they mean different things:
+
+- `422` — this photograph cannot be cut out. The default method needs a plain
+  light background; a picture taken on a workbench has none. Try another photo,
+  or point the server at an AI provider.
+- `503` — the configured service is unavailable or the feature is switched off.
+  Nothing to do with this photo.
+- `409` — the result is byte-identical to a photo already on the card, which
+  means it was cut out once before. The local method is deterministic, so this
+  is how a second press answers.
+
+Takes seconds rather than milliseconds. Clients should show progress on the
+photo it was started from.
+
 ### `GET /api/tools/:id/photo-suggestions` — `tools.write`
 
 Up to ten images found on the web for this tool. `?q=` overrides the query,
@@ -221,10 +247,12 @@ which otherwise is the tool's brand and model.
 
 ```json
 {
-  "provider": "google",
+  "providers": ["google", "openverse"],
+  "failed": [],
   "query": "Bosch Professional GWS 180-LI",
   "suggestions": [
     {
+      "provider": "google",
       "url": "…",
       "thumbnailUrl": "…",
       "sourceUrl": "…",
@@ -237,12 +265,131 @@ which otherwise is the tool's brand and model.
 }
 ```
 
+Every engine enabled for the calling account is asked **in parallel**, and each
+one contributes **up to ten results** — the limit is per engine, so two engines
+switched on mean twice as much to choose from rather than the same ten split
+between them. The answers are interleaved, so the first row shows all of them,
+and the same picture found by two engines is one suggestion. An engine that
+fails is named in `failed` and the rest still answer; only when all of them
+fail is it a `503`.
+
 Nothing is downloaded here — these are links. Saving is `POST /photos` with the
 ones that were picked. It asks for `tools.write` rather than `tools.read`
 because it costs an API call and exists only to add a photo.
 
-`503` when the search provider is unconfigured, rate-limited or not answering;
-the catalog is unaffected, so the client should say so rather than look broken.
+`503` when no engine is enabled for this account, or when every enabled one
+failed. The catalog is unaffected, so the client says so rather than looking
+broken — and when nothing is enabled it points at the settings screen.
+
+## Search engine settings
+
+Two owners, deliberately split: the credentials belong to the installation and
+only an admin may change them; which of the configured engines a given account
+searches with is that person's own business.
+
+### `GET /api/settings/search-engines` — `tools.read`
+
+```json
+{
+  "engines": [
+    {
+      "provider": "google",
+      "label": "Google Custom Search",
+      "configured": true,
+      "globallyEnabled": true,
+      "usedByMe": true,
+      "keyHint": "••••f-LM",
+      "keySource": "environment",
+      "requiresKey": true,
+      "requiresSecret": true,
+      "keyLabel": "Klucz API",
+      "secretLabel": "Identyfikator wyszukiwarki (cx)"
+    }
+  ],
+  "usable": 2
+}
+```
+
+The same answer for everybody, because a non-admin has to see why the search
+button is grey. **It never carries a credential** — only whether one is set,
+where it came from and its last four characters. `usable` is the number of
+engines this account's search would actually run against; zero means the button
+has nothing to call.
+
+### `PATCH /api/settings/search-engines/:provider` — `users.manage`
+
+```json
+{ "apiKey": "…", "apiSecret": "…", "enabled": true }
+```
+
+Global. An omitted field keeps what is stored, an empty string clears it — that
+distinction is what lets a form which never receives a key avoid wiping one.
+`enabled: false` switches the engine off for everyone, whatever each account
+prefers; it is how you stop paying for a provider without deleting its key.
+Answers with the same shape as the `GET`.
+
+### `PATCH /api/me/search-engines/:provider` — `tools.write`
+
+```json
+{ "enabled": false }
+```
+
+This account only. A missing row means "use it", so a newly configured engine
+is on for everybody the moment an admin sets it up.
+
+### Where credentials come from
+
+A value saved through this API wins. When none is stored, the engine falls back
+to its environment variable (`GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_CX`,
+`BRAVE_SEARCH_API_KEY`), which is what `keySource` reports. Openverse needs
+neither.
+
+## The photo library
+
+The same photos seen from the other side: everything on disk, across all
+tools. A separate surface from `/api/tools/:id/photos` because it answers a
+different question — what did we import — and it exists for the cleanup after
+a batch that pulled in the wrong pictures.
+
+### `GET /api/photos` — `tools.read`
+
+| Parameter | Meaning                                                                   | Default |
+| --------- | ------------------------------------------------------------------------- | ------- |
+| `q`       | Matches the **tool** — name, brand, model. A photo has no name of its own | —       |
+| `source`  | `upload`, `url` or `search`                                               | —       |
+| `order`   | `asc` or `desc` by upload time                                            | `desc`  |
+| `limit`   | 1–200                                                                     | 48      |
+| `offset`  | ≥ 0                                                                       | 0       |
+
+```json
+{
+  "items": [
+    { "id": 5, "toolId": 9, "toolName": "Szlifierka kątowa", "isPrimary": true, "url": "…" }
+  ],
+  "total": 128,
+  "limit": 48,
+  "offset": 0
+}
+```
+
+Each entry is the photo record from `/api/tools/:id/photos` plus `toolName`.
+
+### `POST /api/photos/delete` — `tools.write`
+
+```json
+{ "ids": [4, 5, 6] }
+```
+
+Up to 200 at a time. `200 { deleted, requested, promotedTools }`.
+
+`deleted` can be lower than `requested`: someone else may have removed a photo
+between the screen loading and the button being pressed. `promotedTools` lists
+the tools whose main photo was among them and which now show a different one —
+the same promotion a single delete does, applied per tool.
+
+A `POST` rather than `DELETE` with a body: a body on `DELETE` is legal but not
+universally carried by proxies, and this is a form submission with a list in
+it.
 
 ## Users — `users.manage`
 

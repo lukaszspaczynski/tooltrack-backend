@@ -18,7 +18,9 @@ import { readRequestBody, requestUrl } from './request-body-limit'
 import { enforceRoutePolicy } from './route-guard'
 import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
+import * as media from './routes/media'
 import * as photos from './routes/photos'
+import * as settings from './routes/settings'
 import * as tools from './routes/tools'
 import * as users from './routes/users'
 import * as version from './routes/version'
@@ -40,7 +42,10 @@ const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
 const TOOL_PHOTOS_PATTERN = /^\/api\/tools\/(\d+)\/photos$/
 const TOOL_PHOTO_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)$/
 const TOOL_PHOTO_FILE_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/file$/
+const TOOL_PHOTO_CUTOUT_PATTERN = /^\/api\/tools\/(\d+)\/photos\/(\d+)\/cutout$/
 const TOOL_SUGGESTIONS_PATTERN = /^\/api\/tools\/(\d+)\/photo-suggestions$/
+const GLOBAL_ENGINE_PATTERN = /^\/api\/settings\/search-engines\/([a-z]+)$/
+const MY_ENGINE_PATTERN = /^\/api\/me\/search-engines\/([a-z]+)$/
 const USER_DETAIL_PATTERN = /^\/api\/users\/(\d+)$/
 
 // Every path the router answers. Also the body of the 404, because the most
@@ -64,7 +69,13 @@ const ROUTES = [
   'GET /api/tools/:id/photos/:photoId/file',
   'PATCH /api/tools/:id/photos/:photoId',
   'DELETE /api/tools/:id/photos/:photoId',
+  'POST /api/tools/:id/photos/:photoId/cutout',
   'GET /api/tools/:id/photo-suggestions',
+  'GET /api/settings/search-engines',
+  'PATCH /api/settings/search-engines/:provider',
+  'PATCH /api/me/search-engines/:provider',
+  'GET /api/photos',
+  'POST /api/photos/delete',
   'GET /api/users',
   'PATCH /api/users/:id',
   'DELETE /api/users/:id',
@@ -176,6 +187,11 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     )
   }
 
+  const cutout = TOOL_PHOTO_CUTOUT_PATTERN.exec(path)
+  if (cutout) {
+    return methodHandler(method, { POST: photos.cutoutPOST }, { id: cutout[1], photoId: cutout[2] })
+  }
+
   const photoDetail = TOOL_PHOTO_PATTERN.exec(path)
   if (photoDetail) {
     return methodHandler(
@@ -203,6 +219,29 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
       { id: toolDetail[1] },
     )
   }
+
+  if (path === '/api/settings/search-engines') {
+    return methodHandler(method, { GET: settings.enginesGET })
+  }
+
+  const globalEngine = GLOBAL_ENGINE_PATTERN.exec(path)
+  if (globalEngine) {
+    return methodHandler(
+      method,
+      { PATCH: settings.engineGlobalPATCH },
+      { provider: globalEngine[1] },
+    )
+  }
+
+  const myEngine = MY_ENGINE_PATTERN.exec(path)
+  if (myEngine) {
+    return methodHandler(method, { PATCH: settings.engineMinePATCH }, { provider: myEngine[1] })
+  }
+
+  // The library sits above /api/tools/… in the file only because it reads as
+  // its own surface; the paths cannot collide.
+  if (path === '/api/photos') return methodHandler(method, { GET: media.GET })
+  if (path === '/api/photos/delete') return methodHandler(method, { POST: media.deletePOST })
 
   if (path === '/api/users') return methodHandler(method, { GET: users.GET })
 

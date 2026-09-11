@@ -32,6 +32,34 @@ test('the catalog is readable by every role and writable by editor and admin', (
   assert.equal(allows('/api/tools/42', 'DELETE', user('admin')), true)
 })
 
+test('search settings: everyone who searches reads them, only an admin edits the keys', () => {
+  assert.equal(allows('/api/settings/search-engines', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/settings/search-engines', 'GET', null), false)
+
+  // The keys are one installation's property.
+  assert.equal(allows('/api/settings/search-engines/google', 'PATCH', user('editor')), false)
+  assert.equal(allows('/api/settings/search-engines/google', 'PATCH', user('admin')), true)
+
+  // Which engines I search with is my own business.
+  assert.equal(allows('/api/me/search-engines/google', 'PATCH', user('viewer')), false)
+  assert.equal(allows('/api/me/search-engines/google', 'PATCH', user('editor')), true)
+
+  // The list is read-only; there is no way to write the whole thing at once.
+  assert.equal(routeRequirement('/api/settings/search-engines', 'PATCH').check.kind, 'deny')
+  assert.equal(routeRequirement('/api/me/search-engines/google', 'DELETE').check.kind, 'deny')
+})
+
+test('the photo library reads with the catalog and deletes with tools.write', () => {
+  assert.equal(allows('/api/photos', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/photos', 'GET', null), false)
+  assert.equal(allows('/api/photos/delete', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/photos/delete', 'POST', user('editor')), true)
+  assert.equal(allows('/api/photos/delete', 'POST', user('admin')), true)
+  // Deleting is a POST with a list in it; nothing else lives on that path.
+  assert.equal(routeRequirement('/api/photos/delete', 'GET').check.kind, 'deny')
+  assert.equal(routeRequirement('/api/photos', 'DELETE').check.kind, 'deny')
+})
+
 test('user management is admin only', () => {
   assert.equal(allows('/api/users', 'GET', user('editor')), false)
   assert.equal(allows('/api/users', 'GET', user('admin')), true)
@@ -95,6 +123,13 @@ test('adding, promoting and removing a photo needs tools.write', () => {
   assert.equal(allows('/api/tools/42/photos/7', 'PATCH', user('viewer')), false)
   assert.equal(allows('/api/tools/42/photos/7', 'PATCH', user('editor')), true)
   assert.equal(allows('/api/tools/42/photos/7', 'DELETE', user('editor')), true)
+})
+
+test('the AI cutout needs tools.write', () => {
+  assert.equal(allows('/api/tools/42/photos/7/cutout', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/tools/42/photos/7/cutout', 'POST', user('editor')), true)
+  // It writes a photo; reading one is not a way to trigger it.
+  assert.equal(routeRequirement('/api/tools/42/photos/7/cutout', 'GET').check.kind, 'deny')
 })
 
 test('searching the web for photos needs tools.write, not tools.read', () => {

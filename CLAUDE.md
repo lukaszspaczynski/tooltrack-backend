@@ -57,8 +57,32 @@ the bytes, in a directory keyed by checksum. Three modules exist because each
 answers a different question, and all three are pure enough to test:
 `image-metadata.ts` (what is this file, really — the upload gate),
 `image-fetch.ts` (may we fetch this URL — the SSRF gate), `photo-search.ts`
-(where do suggestions come from). Everything remote goes through the last two;
-nothing else in the server makes an outbound request.
+(where do suggestions come from) and `photo-edit.ts` (the AI cutout). Every
+outbound request in the server goes through one of those three.
+
+A cutout is an added photo, never an edit in place: `source: 'edit'` and
+`derived_from` pointing at the original. That is what makes the feature safe to
+press.
+
+`cutout-local.ts` is the default cutout and the only image processing in the
+tree: a pure function over RGBA bytes (background flood from the border,
+closing, largest component, crop) with `jimp` — pure JavaScript, no native
+build — around it to decode and encode. It refuses unsuitable photos with
+`PhotoNotSuitableError`, which the route answers as 422; a missing or failing
+AI service is a different error and a different status.
+
+## Search engine settings
+
+`search-engines.ts` is the registry — what each engine is called and what it
+needs — and it is pure, because three places have to agree about it. The store
+in `routes/search-settings-store.ts` owns the one precedence rule: a credential
+saved in the database wins, the environment variable is the fallback. It is
+also the only module that reads credentials, and the list it builds for the
+screen deliberately cannot carry them.
+
+`photo-search.ts` takes the engines and their credentials as arguments rather
+than reading configuration itself, which is why its mapping functions are
+testable without a network or a database.
 
 ## Adding a route
 

@@ -83,12 +83,62 @@ Uploads arrive as the raw file in the request body rather than as
 `multipart/form-data`, and the file's type is decided by reading its first
 bytes, not by trusting the header. See [docs/api.md](docs/api.md#photos).
 
-The search needs a provider. Unconfigured it uses **Openverse**, which needs no
-key and works immediately but indexes openly licensed photography and rations
-anonymous callers — good for "angle grinder", useless for "GWS 180-LI". For
-real product photos set `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_CX`
-(Google Custom Search, free tier 100 queries a day, image search enabled on the
-search engine). `TOOLTRACK_PHOTO_SEARCH=none` switches the feature off.
+Three search engines, configured on the **Ustawienia** screen rather than in a
+deploy: **Google Custom Search** and **Brave Search** need a key, **Openverse**
+needs none and is therefore what works on a fresh install — at the cost of
+indexing only openly licensed photography, which finds "angle grinder" but not
+"GWS 180-LI".
+
+Who owns what is split on purpose. An admin holds the keys and can switch an
+engine off for the whole installation; every user decides which of the
+configured engines their own searches use. When a search runs, every engine
+enabled for that account is asked in parallel and contributes up to ten results
+of its own; the answers are interleaved, and one engine failing costs its
+results rather than the search. With nothing enabled the
+API answers 503 and the button in the UI is disabled rather than hopeful.
+
+Keys given as `GOOGLE_SEARCH_API_KEY` / `GOOGLE_SEARCH_CX` /
+`BRAVE_SEARCH_API_KEY` still work; they are the bootstrap, and anything saved
+through the screen wins over them. Credentials never leave the server — the
+settings API reports only whether a key is set and its last four characters.
+
+`GET /api/photos` is the same collection from the other side — every picture
+on disk with the tool it belongs to — and `POST /api/photos/delete` removes up
+to two hundred of them at once. That pair exists for the cleanup after an
+import that pulled in the wrong pictures, which the per-tool gallery is the
+wrong shape for.
+
+### Cutting the tool out
+
+`POST /api/tools/:id/photos/:photoId/cutout` returns the tool alone, without
+the bench it was photographed on. It adds a photo and links it to the original
+(`source: "edit"`, `derivedFrom`), so an unconvincing cutout is one delete away
+from undone.
+
+**The default needs no key and no service.** `src/server/cutout-local.ts`
+carries the method from the Qbrick labelling project: everything light that
+touches the edge of the frame is background, what is left is the object, the
+largest such object is the tool, and the result is cropped to its outline with
+a transparent background. It answers in milliseconds and costs nothing.
+
+It works on catalogue photos — a tool on a plain light background, which is
+exactly what the web search imports — and **refuses everything else with a
+422** rather than returning half a cut-out workbench. Two differences from the
+original script: the background is flooded in from the border rather than taken
+as the largest dark blob, so a white label in the middle of a drill stays part
+of the tool; and the background becomes real transparency instead of white
+paint.
+
+For photographs taken on site there are two paid providers:
+**remove.bg** (`REMOVE_BG_API_KEY`, free for 50 images a month), built for
+exactly this and returning a transparent PNG, and **Gemini**
+(`GEMINI_API_KEY` from AI Studio — a different key from the search one), a
+general model that returns the tool on a plain white background instead.
+`TOOLTRACK_PHOTO_EDIT=auto` tries local first and only pays when local refuses.
+
+The AI prompt is deliberately narrow: keep the tool exactly as it is, remove
+everything else, invent nothing. A cutout that "improves" the tool is a picture
+of a tool we do not own.
 
 Two things this deliberately does not do: it does not resize or re-encode
 anything (no image library, no native dependency — the cap is the size limit),
