@@ -135,10 +135,19 @@ export async function savePreviewBytes(bytes: Uint8Array): Promise<StoredPhoto> 
   return { byteSize: bytes.byteLength, checksum, storageKey: `previews/${checksum}.png` }
 }
 
+export type CachedPreview = {
+  // How long this preview still has. The route turns it into a cache-control,
+  // because a browser told it may keep the bytes for a full TTL — measured
+  // from whenever it happened to ask — outlives the file: the picture still
+  // looks fine on screen while the save answers "expired".
+  remainingMs: number
+  bytes: Uint8Array
+}
+
 // Null for a preview that was never made, and for one that has expired — the
 // caller cannot tell the two apart and does not need to: both mean "generate
 // it again".
-export async function readPreviewBytes(checksum: string): Promise<null | Uint8Array> {
+export async function readPreviewBytes(checksum: string): Promise<null | CachedPreview> {
   let path: string
   try {
     path = previewPath(checksum)
@@ -148,9 +157,11 @@ export async function readPreviewBytes(checksum: string): Promise<null | Uint8Ar
 
   try {
     const info = await stat(path)
-    if (Date.now() - info.mtimeMs > previewTtlMs()) return null
+    const ttl = previewTtlMs()
+    const age = Date.now() - info.mtimeMs
+    if (age > ttl) return null
 
-    return await readFile(path)
+    return { bytes: await readFile(path), remainingMs: Math.max(ttl - age, 0) }
   } catch {
     return null
   }

@@ -31,7 +31,6 @@ import {
 import { credentialsForSearch, resolveProvidersFor } from './search-settings-store'
 import { readImageMetadata } from '../image-metadata'
 import {
-  previewTtlMs,
   readPhotoBytes,
   readPreviewBytes,
   savePhotoBytes,
@@ -192,12 +191,11 @@ async function importLinks(request: Request, toolId: number, actorId: number): P
 // POST /api/tools/:id/photos/:photoId/cutout/preview — run the cutout and show
 // it, without writing a photo.
 //
-// The result is written to the media directory, which is content addressed, so
-// "show it" and "keep it" touch the same bytes: the preview is a file with no
-// row pointing at it, and the save below is the row. That is what makes an
-// unaccepted preview cost nothing but a file, and a save cost nothing at all —
-// in particular, no second call to a paid service to produce what the person
-// has already seen.
+// The result goes into the preview cache, which expires on its own, so a
+// cutout nobody accepts costs nothing for long. Accepting it (commit, below)
+// copies those bytes into the photo store and writes the row — which means a
+// save costs no second call to a paid service to produce a picture the person
+// has already looked at.
 export async function cutoutPreviewPOST(
   request: Request,
   context: RouteContext,
@@ -250,16 +248,16 @@ export async function cutoutPreviewGET(
 ): Promise<Response> {
   const checksum = context.params.checksum ?? ''
 
-  const bytes = await readPreviewBytes(checksum)
-  if (!bytes) return photoNotFound()
+  const preview = await readPreviewBytes(checksum)
+  if (!preview) return photoNotFound()
 
-  return new Response(bytes, {
+  return new Response(preview.bytes, {
     headers: {
-      // No longer than the cache it came from: a browser holding a picture the
-      // server has already forgotten is how a save fails after a preview that
-      // still looked fine.
-      'cache-control': `private, max-age=${Math.floor(previewTtlMs() / 1000)}`,
-      'content-length': String(bytes.byteLength),
+      // What is left of this preview's life, not a fresh TTL on every request:
+      // a browser holding a picture the server has already swept is how a save
+      // fails after a preview that still looked fine.
+      'cache-control': `private, max-age=${Math.floor(preview.remainingMs / 1000)}`,
+      'content-length': String(preview.bytes.byteLength),
       'content-type': 'image/png',
       etag: `"${checksum}"`,
     },
@@ -281,21 +279,21 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   const original = await getPhoto(ids.toolId, ids.photoId)
   if (!original) return photoNotFound()
 
-  const bytes = await readPreviewBytes(parsed.value.checksum)
+  const preview = await readPreviewBytes(parsed.value.checksum)
   // Expired, or from a tab left open since yesterday. Asked for again rather
   // than half-saved.
-  if (!bytes) {
+  if (!preview) {
     return Response.json({ error: 'Podgląd wygasł — wygeneruj go ponownie' }, { status: 409 })
   }
 
-  const metadata = readImageMetadata(bytes)
+  const metadata = readImageMetadata(preview.bytes)
   if (!metadata) return Response.json({ error: 'Podgląd jest uszkodzony' }, { status: 409 })
 
   try {
     // Keeping it means copying it out of the cache into the photo store, where
     // nothing sweeps it. Both are addressed by content, so the checksum — and
     // the client's idea of what it accepted — does not change.
-    const stored = await savePhotoBytes(bytes, metadata.contentType)
+    const stored = await savePhotoBytes(preview.bytes, metadata.contentType)
 
     const photo = await insertPhoto(
       {

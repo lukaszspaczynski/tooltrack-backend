@@ -102,7 +102,10 @@ test('a preview comes back while it is fresh', async () => {
     const stored = await savePreviewBytes(bytes)
 
     assert.equal(stored.storageKey, `previews/${stored.checksum}.png`)
-    assert.deepEqual(await readPreviewBytes(stored.checksum), Buffer.from(bytes))
+    const cached = await readPreviewBytes(stored.checksum)
+    assert.deepEqual(cached?.bytes, Buffer.from(bytes))
+    // What is left of its life, so the route can say so in a cache-control.
+    assert.ok(cached!.remainingMs > 29 * 60 * 1000, String(cached?.remainingMs))
   })
 })
 
@@ -128,7 +131,7 @@ test('the sweep removes what has expired and leaves the rest', async () => {
     // not depend on when the last one happened to be.
     assert.equal(await sweepExpiredPreviews(true), 1)
     assert.equal(await readPreviewBytes(old.checksum), null)
-    assert.deepEqual(await readPreviewBytes(fresh.checksum), Buffer.from('świeży'))
+    assert.deepEqual((await readPreviewBytes(fresh.checksum))?.bytes, Buffer.from('świeży'))
   })
 })
 
@@ -175,5 +178,20 @@ test('previews live apart from photos, so a sweep cannot touch one', async () =>
     // The photo is in the store, which nothing sweeps.
     assert.notEqual(await readPhotoBytes(photo.storageKey), null)
     assert.equal(await readPreviewBytes(preview.checksum), null)
+  })
+})
+
+test('a preview reports less life left as it ages', async () => {
+  // This is what the browser is told to cache for. A fresh TTL on every
+  // request would let a tab hold a picture the server has already swept.
+  await withTempMediaDir(async () => {
+    const stored = await savePreviewBytes(new TextEncoder().encode('starzejący się'))
+    await age(stored.checksum, 20)
+
+    const cached = await readPreviewBytes(stored.checksum)
+
+    assert.ok(cached)
+    assert.ok(cached!.remainingMs < 11 * 60 * 1000, String(cached?.remainingMs))
+    assert.ok(cached!.remainingMs > 9 * 60 * 1000, String(cached?.remainingMs))
   })
 })
