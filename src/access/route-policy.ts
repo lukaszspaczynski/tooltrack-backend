@@ -104,6 +104,30 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/organizers\/\d+\/tools\/\d+$/,
   },
   {
+    // The sizes the wizard may offer. Reading, like the organizer itself.
+    domain: 'organizers',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/label-slots$/,
+  },
+  {
+    // Drawing a label writes a file and a row.
+    domain: 'organizers',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/labels$/,
+  },
+  {
+    // The PDF itself: readable by anyone who may read the catalog, like the
+    // bytes of a photo.
+    domain: 'organizers',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/labels\/\d+\/file$/,
+  },
+  {
+    domain: 'organizers',
+    methods: { DELETE: WRITE_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/labels\/\d+$/,
+  },
+  {
     // Same shape as the tool rules, and above the :id pattern for the same
     // reason: otherwise a request for the system list looks like a case named
     // "systems".

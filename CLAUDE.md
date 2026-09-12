@@ -183,6 +183,54 @@ one statement — a screen of twenty organizers would otherwise be forty-one
 requests. Watch the shape of it: the window count has to sit between the column
 list and the `FROM`, which is why those are two constants and not one.
 
+## Labels
+
+Both templates' proportions are copied from the Qbrick stickers, not chosen: a
+shelf of old and new labels has to look like one set. `number` is rounded
+corners, the number on top, the maker under it, the second maker in a wedge
+along the bottom with a white seam. `contents` is Qbrick's `label_tool` —
+a white card in a navy frame, pictures filling the top, the organizer's name
+over a rule and the tool names in caps under it. `pdf.ts` carries the
+rounded-rectangle and wedge paths, because pdf-lib's drawRectangle has no
+corner radius, and the shared corner radius, because one label rounder than the
+next looks like two batches.
+
+The `contents` metrics are millimetres measured off a 30 x 40 mm Qbrick
+sticker, not shares of the label: matching that sheet is the whole point of the
+shape. The taller set of sizes starts at 60 mm, as it does there, and anything
+below 40 mm scales all of them down with it so the padding and two lines of
+type are not the entire label.
+
+`src/server/labels/` draws PDFs with **pdf-lib**, which is pure JavaScript —
+unlike sharp next door, no native build. The two templates take plain data and
+draw; `generate.ts` is the only module there that touches the database, which
+is what keeps the geometry testable without a catalog.
+
+`assets/fonts/` holds DejaVu Sans because the fourteen fonts built into every
+reader are WinAnsi and have no `ł`, `ą` or `ę`. A label carrying a Polish tool
+name needs an embedded font, and pdf-lib subsets it to the glyphs used.
+
+Sizes come from the case's `case_label_slot` rows and are checked against them
+in the route: a label printed at a size the box has no place for is a label
+nobody can stick anywhere. The size is then copied onto the label row, because
+a PDF that exists is 30 x 40 mm whatever later happens to the list of places.
+
+`print-ready.ts` wraps a finished label rather than drawing into it: it embeds
+the page in a larger one and puts the crop marks, the cut line and the measured
+bar in the margin. That is why the templates know nothing about printing, and
+why `cutLine` is a flag `number` takes rather than something it decides.
+`contents` has no such flag: its navy frame is printed at the trim and is
+already the line to cut along, so a grey guide under it would only print
+twice.
+
+Files live in `<media>/labels`, content addressed like the photos, so two
+identical labels are one file and the delete path unlinks only when the last
+row pointing at it is gone.
+
+`options` on the row is jsonb on purpose: every template asks for different
+things, and a column per template is a column per template forever. The shape
+is documented in docs/api.md rather than in the table.
+
 ## Duplicating a card
 
 `POST /api/tools/:id/duplicate` is one `INSERT ... SELECT`, so a copy cannot

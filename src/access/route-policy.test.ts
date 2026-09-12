@@ -302,3 +302,12 @@ test('where labels go is part of the case, and guarded like one', () => {
   // They come with the case, so there is nothing to read on its own.
   assert.equal(routeRequirement('/api/cases/4/label-slots', 'GET').check.kind, 'deny')
 })
+
+test('labels are read with the catalog and drawn with a write', () => {
+  assert.equal(allows('/api/organizers/4/label-slots', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/organizers/4/labels', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/organizers/4/labels', 'POST', user('editor')), true)
+  // The PDF itself is part of the catalog, like the bytes of a photo.
+  assert.equal(allows('/api/organizers/4/labels/9/file', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/organizers/4/labels/9', 'DELETE', user('editor')), true)
+})

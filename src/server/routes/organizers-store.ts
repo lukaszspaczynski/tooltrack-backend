@@ -16,6 +16,20 @@ export type OrganizerTool = {
   primaryPhotoUrl: null | string
 }
 
+// A generated label: the PDF and the options it was drawn from.
+export type OrganizerLabel = {
+  byteSize: number
+  createdAt: string
+  createdBy: null | number
+  heightMm: number
+  id: number
+  options: Record<string, unknown>
+  template: string
+  // Where the bytes are served from. The path on disk is ours to change.
+  url: string
+  widthMm: number
+}
+
 export type Organizer = {
   case: {
     id: number
@@ -27,6 +41,7 @@ export type Organizer = {
   createdBy: null | number
   description: string
   id: number
+  labels: OrganizerLabel[]
   name: string
   number: number
   tools: OrganizerTool[]
@@ -71,12 +86,24 @@ type OrganizerRow = {
   created_by: null | number | string
   description: string
   id: number | string
+  labels: null | RawLabel[]
   name: string
   number: number | string
   tools: null | RawTool[]
   total_count?: number | string
   updated_at: Date | string
   updated_by: null | number | string
+}
+
+type RawLabel = {
+  byteSize: number | string
+  createdAt: string
+  createdBy: null | number | string
+  heightMm: number | string
+  id: number | string
+  options: Record<string, unknown>
+  template: string
+  widthMm: number | string
 }
 
 type RawTool = {
@@ -115,7 +142,22 @@ const ORGANIZER_COLUMNS = `
         WHERE "ot"."organizer_id" = "o"."id"
       ),
       '[]'::jsonb
-    ) AS "tools"
+    ) AS "tools",
+    COALESCE(
+      (
+        SELECT jsonb_agg(
+                 jsonb_build_object(
+                   'id', "l"."id", 'template', "l"."template",
+                   'widthMm', "l"."width_mm", 'heightMm', "l"."height_mm",
+                   'options', "l"."options", 'byteSize', "l"."byte_size",
+                   'createdBy', "l"."created_by", 'createdAt', "l"."created_at"
+                 ) ORDER BY "l"."created_at" DESC, "l"."id" DESC
+               )
+        FROM "catalog"."organizer_label" AS "l"
+        WHERE "l"."organizer_id" = "o"."id"
+      ),
+      '[]'::jsonb
+    ) AS "labels"
 `
 
 // Split from the columns so the list can add its window count between the two.
@@ -343,6 +385,109 @@ export async function placementsFor(
   )
 }
 
+export async function insertLabel(
+  input: {
+    byteSize: number
+    heightMm: number
+    options: Record<string, unknown>
+    organizerId: number
+    pdfPath: string
+    slotId: null | number
+    template: string
+    widthMm: number
+  },
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<number> {
+  const result = await pool.query<{ id: string }>(
+    `
+      INSERT INTO "catalog"."organizer_label"
+        ("organizer_id", "template", "width_mm", "height_mm", "slot_id", "options",
+         "pdf_path", "byte_size", "created_by")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING "id"
+    `,
+    [
+      input.organizerId,
+      input.template,
+      input.widthMm,
+      input.heightMm,
+      input.slotId,
+      JSON.stringify(input.options),
+      input.pdfPath,
+      input.byteSize,
+      actorId,
+    ],
+  )
+
+  return Number(result.rows[0].id)
+}
+
+export async function getLabelFile(
+  organizerId: number,
+  labelId: number,
+  pool: PgPool = db(),
+): Promise<null | { path: string }> {
+  const result = await pool.query<{ pdf_path: string }>(
+    `SELECT "pdf_path" FROM "catalog"."organizer_label" WHERE "organizer_id" = $1 AND "id" = $2`,
+    [organizerId, labelId],
+  )
+
+  const row = result.rows[0]
+  return row && row.pdf_path ? { path: row.pdf_path } : null
+}
+
+// Answers with the file to unlink, or null when another label still points at
+// it — identical labels share one PDF, the same rule the photos use.
+export async function deleteLabel(
+  organizerId: number,
+  labelId: number,
+  pool: PgPool = db(),
+): Promise<{ orphanedPath: null | string } | null> {
+  return withTransaction(pool, async (client) => {
+    const deleted = await client.query<{ pdf_path: string }>(
+      `DELETE FROM "catalog"."organizer_label" WHERE "organizer_id" = $1 AND "id" = $2
+       RETURNING "pdf_path"`,
+      [organizerId, labelId],
+    )
+
+    const row = deleted.rows[0]
+    if (!row) return null
+    if (!row.pdf_path) return { orphanedPath: null }
+
+    const stillUsed = await client.query(
+      `SELECT 1 FROM "catalog"."organizer_label" WHERE "pdf_path" = $1 LIMIT 1`,
+      [row.pdf_path],
+    )
+
+    return { orphanedPath: (stillUsed.rowCount ?? 0) === 0 ? row.pdf_path : null }
+  })
+}
+
+// Which label sizes this organizer's case offers. The wizard's first step, and
+// the check that a size asked for is one of them.
+export async function labelSlotsFor(
+  organizerId: number,
+  pool: PgPool = db(),
+): Promise<{ heightMm: number; id: number; widthMm: number }[]> {
+  const result = await pool.query<{ height_mm: number; id: string; width_mm: number }>(
+    `
+      SELECT "s"."id", "s"."width_mm", "s"."height_mm"
+      FROM "catalog"."organizer" AS "o"
+      JOIN "catalog"."case_label_slot" AS "s" ON "s"."case_id" = "o"."case_id"
+      WHERE "o"."id" = $1
+      ORDER BY "s"."width_mm", "s"."height_mm"
+    `,
+    [organizerId],
+  )
+
+  return result.rows.map((row) => ({
+    heightMm: Number(row.height_mm),
+    id: Number(row.id),
+    widthMm: Number(row.width_mm),
+  }))
+}
+
 // How many organizers a case would take with it. The screen asks before it
 // deletes, because the arrangements are not obviously part of the box.
 export async function countOrganizersOfCase(caseId: number, pool: PgPool = db()): Promise<number> {
@@ -397,6 +542,17 @@ function toOrganizer(row: OrganizerRow): Organizer {
     createdBy: row.created_by === null ? null : Number(row.created_by),
     description: row.description,
     id: Number(row.id),
+    labels: (row.labels ?? []).map((label) => ({
+      byteSize: Number(label.byteSize),
+      createdAt: toIsoString(label.createdAt),
+      createdBy: label.createdBy === null ? null : Number(label.createdBy),
+      heightMm: Number(label.heightMm),
+      id: Number(label.id),
+      options: label.options ?? {},
+      template: label.template,
+      url: `/api/organizers/${Number(row.id)}/labels/${Number(label.id)}/file`,
+      widthMm: Number(label.widthMm),
+    })),
     name: row.name,
     number: Number(row.number),
     tools: (row.tools ?? []).map((tool) => ({

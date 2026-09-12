@@ -24,7 +24,9 @@
     "qbrick:cases": "tsx scripts/import-qbrick-cases.ts"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "dotenv": "16.4.7",
+    "pdf-lib": "^1.17.1",
     "pg": "8.20.0",
     "sharp": "^0.35.4"
   },

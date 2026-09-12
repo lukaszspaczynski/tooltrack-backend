@@ -751,6 +751,93 @@ stop being connected.
 
 Takes one tool out. `200 { ok: true }`, or `404` if it was not in there.
 
+## Labels
+
+A label is a PDF: one page exactly the size of the sticker, with a hairline
+outline to cut along. It is generated once and kept — the options it was drawn
+from are stored beside it, so the same label can be drawn again, but nothing
+edits a label in place.
+
+Sizes come from the **case**, never from the request: an organizer's case lists
+where labels go (`case_label_slot`), and a size that is not one of them is a
+`400`. A label nobody can stick anywhere is not worth printing.
+
+### `GET /api/organizers/:id/label-slots` — `catalog.read`
+
+`200 { slots: [{ id, widthMm, heightMm }] }` — what the wizard may offer. Empty
+when the case has no places recorded yet.
+
+### `POST /api/organizers/:id/labels` — `catalog.write`
+
+```json
+{ "slotId": 4, "template": "number", "withLogos": true, "printReady": true }
+```
+
+```json
+{
+  "slotId": 4,
+  "template": "contents",
+  "photoIds": [75, 79],
+  "withTitle": true,
+  "withNames": true
+}
+```
+
+`201 { organizer }` — the whole organizer, labels included, so a screen does
+not have to merge one into a list it already holds.
+
+**`number`** follows the stickers already on the shelf: a rounded rectangle in
+the maker's colour, the ordinal number as large as the label allows, and the
+maker under it. Two makers split the label diagonally with a light seam — Bosch
+navy against Bosch green is a contrast of about 1.5:1 and the boundary
+disappears in print without it — and three or more share the bottom in bands.
+
+`withLogos` swaps each maker's **name for its logo**, one or the other and
+never both: a mark reading "Bosch Professional" above the words "Bosch
+Professional" says nothing twice and takes the room from the number. A maker
+with no logo falls back to its name.
+
+The arrangement follows the shape: past twice as wide as it is tall — a lid —
+the number and the maker stand side by side instead of stacked, because a
+number a fifth of the height of a 200 mm label is a number nobody reads.
+
+**`contents`** is a white card in a navy frame: up to three pictures of the
+tools filling the top, the organizer's name under them, a rule, and the tool
+names in caps along the bottom — the same drawing as the Qbrick tool stickers,
+so a label from here sits on the shelf next to one from there. Both lines of
+type are options; a card with neither is the pictures alone. The arrangement of
+the pictures is chosen, not fixed: every split into rows and columns is
+measured and the one that draws them largest wins, because a row that suits a
+200 × 60 lid is hopeless on a 30 × 40 front. Names that do not fit shrink, and
+then the tail becomes "+N więcej".
+
+`photoIds` must belong to tools in this organizer — checked in the database,
+not trusted from the request — and more than three is a `400` rather than a
+silent truncation.
+
+**`printReady`** decides what kind of file comes out, and defaults to `true`
+because a label is made to be printed.
+
+- `true`: the artwork on a page 6 mm larger on every side, with crop marks in
+  the corners, a cut line along the label itself, and a measured bar with its
+  length written next to it. Printers scale to fit by default and a sticker
+  printed at 96% fits nothing — measuring that bar is how somebody finds out
+  before cutting fifteen labels rather than after.
+- `false`: the page is exactly the label and carries no lines at all. The right
+  thing to embed or look at.
+
+The marks are added around the finished artwork, never into it: a crop mark
+printed on a sticker is a crop mark stuck to a toolbox.
+
+### `GET /api/organizers/:id/labels/:labelId/file` — `catalog.read`
+
+The PDF, `application/pdf`, `inline`.
+
+### `DELETE /api/organizers/:id/labels/:labelId` — `catalog.write`
+
+`200 { organizer }`. The file goes too, unless another label is byte-identical
+and still points at it — labels are content addressed like photos.
+
 ## The photo library
 
 The same photos seen from the other side: everything on disk, across all

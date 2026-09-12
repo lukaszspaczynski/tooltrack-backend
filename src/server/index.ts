@@ -47,6 +47,10 @@ const TOOL_DUPLICATE_PATTERN = /^\/api\/tools\/(\d+)\/duplicate$/
 const BRAND_DETAIL_PATTERN = /^\/api\/brands\/(\d+)$/
 const BRAND_LOGO_PATTERN = /^\/api\/brands\/(\d+)\/logo$/
 const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
+const ORGANIZER_LABEL_SLOTS_PATTERN = /^\/api\/organizers\/(\d+)\/label-slots$/
+const ORGANIZER_LABELS_PATTERN = /^\/api\/organizers\/(\d+)\/labels$/
+const ORGANIZER_LABEL_FILE_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)\/file$/
+const ORGANIZER_LABEL_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)$/
 const ORGANIZER_TOOLS_PATTERN = /^\/api\/organizers\/(\d+)\/tools$/
 const ORGANIZER_TOOL_PATTERN = /^\/api\/organizers\/(\d+)\/tools\/(\d+)$/
 const CASE_DETAIL_PATTERN = /^\/api\/cases\/(\d+)$/
@@ -136,6 +140,10 @@ const ROUTES = [
   'DELETE /api/organizers/:id',
   'POST /api/organizers/:id/tools',
   'DELETE /api/organizers/:id/tools/:toolId',
+  'GET /api/organizers/:id/label-slots',
+  'POST /api/organizers/:id/labels',
+  'GET /api/organizers/:id/labels/:labelId/file',
+  'DELETE /api/organizers/:id/labels/:labelId',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
   'PATCH /api/me/search-engines/:provider',
@@ -282,6 +290,34 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   }
 
   // Longest first, as everywhere in this table.
+  const labelFile = ORGANIZER_LABEL_FILE_PATTERN.exec(path)
+  if (labelFile) {
+    return methodHandler(
+      method,
+      { GET: organizers.labelFileGET },
+      { id: labelFile[1], labelId: labelFile[2] },
+    )
+  }
+
+  const organizerLabel = ORGANIZER_LABEL_PATTERN.exec(path)
+  if (organizerLabel) {
+    return methodHandler(
+      method,
+      { DELETE: organizers.labelDELETE },
+      { id: organizerLabel[1], labelId: organizerLabel[2] },
+    )
+  }
+
+  const organizerLabels = ORGANIZER_LABELS_PATTERN.exec(path)
+  if (organizerLabels) {
+    return methodHandler(method, { POST: organizers.labelPOST }, { id: organizerLabels[1] })
+  }
+
+  const organizerLabelSlots = ORGANIZER_LABEL_SLOTS_PATTERN.exec(path)
+  if (organizerLabelSlots) {
+    return methodHandler(method, { GET: organizers.labelSlotsGET }, { id: organizerLabelSlots[1] })
+  }
+
   const organizerTool = ORGANIZER_TOOL_PATTERN.exec(path)
   if (organizerTool) {
     return methodHandler(

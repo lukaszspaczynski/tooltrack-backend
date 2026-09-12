@@ -117,6 +117,65 @@ export function parseToolIds(body: unknown): Parsed<number[]> {
   return valid(ids)
 }
 
+export type LabelRequest = {
+  options: Record<string, unknown>
+  slotId: number
+  template: 'contents' | 'number'
+}
+
+// What the wizard sends when it finishes. The size is not in here: it comes
+// from the slot, which is one of the case's, so a label cannot be printed at a
+// size the box has no place for.
+export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
+  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+
+  const slotId = parseId(body.slotId)
+  if (slotId === null) return invalid('slotId is required')
+
+  const template = trimmedString(body.template)
+  if (template !== 'number' && template !== 'contents') {
+    return invalid('template must be "number" or "contents"')
+  }
+
+  // Default on: a label is made to be printed, and somebody who wants the bare
+  // artwork can say so.
+  const printReady = body.printReady !== false
+
+  if (template === 'number') {
+    return valid({
+      options: { printReady, template, withLogos: body.withLogos === true },
+      slotId,
+      template,
+    })
+  }
+
+  const photoIds: number[] = []
+  if ('photoIds' in body) {
+    if (!Array.isArray(body.photoIds)) return invalid('photoIds must be an array')
+    // Three is what the label holds; a fourth would be dropped silently, which
+    // is worse than saying so.
+    if (body.photoIds.length > 3) return invalid('Maksymalnie 3 zdjęcia')
+
+    for (const raw of body.photoIds) {
+      const id = parseId(raw)
+      if (id === null) return invalid('photoIds must be whole numbers')
+      if (!photoIds.includes(id)) photoIds.push(id)
+    }
+  }
+
+  return valid({
+    options: {
+      photoIds,
+      printReady,
+      template,
+      withNames: body.withNames === true,
+      withTitle: body.withTitle === true,
+    },
+    slotId,
+    template,
+  })
+}
+
 export function parseOrganizerQuery(params: URLSearchParams): Parsed<OrganizerQuery> {
   return valid({
     caseId: parseId(params.get('caseId')) ?? null,
