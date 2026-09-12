@@ -318,3 +318,10 @@ test('labels are read with the catalog and drawn with a write', () => {
   assert.equal(allows('/api/organizers/4/labels/refresh', 'POST', user('viewer')), false)
   assert.equal(allows('/api/organizers/4/labels/refresh', 'POST', user('editor')), true)
 })
+
+test("the whole shelf of labels is read and redrawn like one organizer's", () => {
+  assert.equal(allows('/api/labels', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/labels', 'POST', user('editor')), false)
+  assert.equal(allows('/api/labels/refresh', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/labels/refresh', 'POST', user('editor')), true)
+})

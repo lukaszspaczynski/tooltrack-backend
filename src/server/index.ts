@@ -150,6 +150,7 @@ const ROUTES = [
   'GET /api/organizers/:id/labels/:labelId/preview',
   'DELETE /api/organizers/:id/labels/:labelId',
   'GET /api/labels',
+  'POST /api/labels/refresh',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
   'PATCH /api/me/search-engines/:provider',
@@ -295,7 +296,12 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     return methodHandler(method, { GET: organizers.GET, POST: organizers.POST })
   }
 
-  // Every label there is, whichever organizer made it.
+  // Every label there is, whichever organizer made it. Above the per-organizer
+  // label paths only for readability: neither can match the other's path.
+  if (path === '/api/labels/refresh') {
+    return methodHandler(method, { POST: labels.refreshPOST })
+  }
+
   if (path === '/api/labels') return methodHandler(method, { GET: labels.GET })
 
   // Longest first, as everywhere in this table. `refresh` sits above the

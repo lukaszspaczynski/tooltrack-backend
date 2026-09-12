@@ -263,6 +263,15 @@ is documented in docs/api.md rather than in the table. It is also what makes
 does not already hold, so the id, the size and the options survive and only the
 file underneath changes.
 
+`routes/labels.ts` is the same labels seen from outside the organizer that made
+them — `GET /api/labels` and `POST /api/labels/refresh`, the shelf rather than
+the drawer, standing in the same relation to the routes under an organizer as
+the photo library does to a card's gallery. Its SQL is `labels-store.ts`, and
+both refresh routes share one loop in `routes/label-redraw.ts`, so a redraw
+cannot come to mean two different things depending on which screen asked for
+it. The cross-organizer one answers with counts rather than an organizer,
+because a selection that spans arrangements has no single one to send back.
+
 That redraw is why `url` and `previewUrl` carry a `?v=`. Both files are served
 `immutable` for a year and a label keeps its id when it is redrawn, so without
 the checksum on the end a browser would go on showing the copy it cached. The

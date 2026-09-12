@@ -148,6 +148,13 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/labels$/,
   },
   {
+    // Drawing them again writes files and rows wherever they live, so it asks
+    // for the same capability as drawing one inside an organizer.
+    domain: 'organizers',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/labels\/refresh$/,
+  },
+  {
     // Same shape as the tool rules, and above the :id pattern for the same
     // reason: otherwise a request for the system list looks like a case named
     // "systems".

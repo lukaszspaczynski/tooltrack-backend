@@ -974,6 +974,21 @@ The two file URLs are the ones under the organizer, versioned the same way:
 there is one PDF per label, and this list points at it rather than serving a
 second copy of it.
 
+### `POST /api/labels/refresh` — `catalog.write`
+
+```json
+{ "labelIds": [14, 27, 31] }
+```
+
+`200 { refreshed, failed: [{ id, error }] }` — the same redraw as
+`POST /api/organizers/:id/labels/refresh`, over a selection that spans
+organizers. Fifty at a time at most, and a label that cannot be drawn comes
+back in `failed` rather than failing the call.
+
+There is no `organizer` in the answer, because there is no single one: the
+screen re-reads the list. `404` when none of the ids is a label — an empty
+selection is a `400` from the parser.
+
 ## The photo library
 
 The same photos seen from the other side: everything on disk, across all
