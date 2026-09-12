@@ -5,6 +5,7 @@
 // That is one query with two aggregates rather than N+1.
 
 import { db, withTransaction, type PgPool } from '../db'
+import { labelFileUrl, labelPreviewUrl } from './labels-store'
 import type { OrganizerFields, OrganizerPatch, OrganizerQuery } from './organizers-input'
 import { photoUrl } from './photos-store'
 
@@ -448,51 +449,6 @@ export async function getLabelFile(
   return row ? { path: row.pdf_path, previewPath: row.preview_path } : null
 }
 
-// Everything a redraw needs, for the labels asked for and no others. The size
-// comes off the row rather than the slot on purpose: the slot can have been
-// taken off the case since, and a label that exists is 30 x 40 mm whatever
-// happened to the list of places it could go.
-export async function getLabelsToRedraw(
-  organizerId: number,
-  labelIds: number[],
-  pool: PgPool = db(),
-): Promise<
-  {
-    heightMm: number
-    id: number
-    options: Record<string, unknown>
-    pdfPath: string
-    template: string
-    widthMm: number
-  }[]
-> {
-  const result = await pool.query<{
-    height_mm: number | string
-    id: string
-    options: Record<string, unknown>
-    pdf_path: string
-    template: string
-    width_mm: number | string
-  }>(
-    `
-      SELECT "id", "template", "width_mm", "height_mm", "options", "pdf_path"
-      FROM "catalog"."organizer_label"
-      WHERE "organizer_id" = $1 AND "id" = ANY($2::bigint[])
-      ORDER BY "id"
-    `,
-    [organizerId, labelIds],
-  )
-
-  return result.rows.map((row) => ({
-    heightMm: Number(row.height_mm),
-    id: Number(row.id),
-    options: row.options ?? {},
-    pdfPath: row.pdf_path,
-    template: row.template,
-    widthMm: Number(row.width_mm),
-  }))
-}
-
 // Points a label at its new file. Answers with the old one to unlink, or null
 // when another label is byte-identical and still points at it — the same rule
 // the delete path follows, because a redraw that changes nothing produces the
@@ -644,11 +600,9 @@ function toOrganizer(row: OrganizerRow): Organizer {
       heightMm: Number(label.heightMm),
       id: Number(label.id),
       options: label.options ?? {},
-      previewUrl: label.previewPath
-        ? `/api/organizers/${Number(row.id)}/labels/${Number(label.id)}/preview${fileVersion(label.previewPath)}`
-        : null,
+      previewUrl: labelPreviewUrl(Number(row.id), Number(label.id), label.previewPath),
       template: label.template,
-      url: `/api/organizers/${Number(row.id)}/labels/${Number(label.id)}/file${fileVersion(label.pdfPath)}`,
+      url: labelFileUrl(Number(row.id), Number(label.id), label.pdfPath),
       widthMm: Number(label.widthMm),
     })),
     name: row.name,
@@ -663,15 +617,6 @@ function toOrganizer(row: OrganizerRow): Organizer {
     updatedAt: toIsoString(row.updated_at),
     updatedBy: row.updated_by === null ? null : Number(row.updated_by),
   }
-}
-
-// A label keeps its id when it is drawn again, so the URL of its file does not
-// change on its own — and both files are served immutable. The checksum the
-// file is named after goes on the end as a version, which is what makes a
-// redrawn label reach the browser instead of the copy it cached for a year.
-function fileVersion(path: string): string {
-  const checksum = path.split('/').pop()?.split('.')[0] ?? ''
-  return checksum ? `?v=${checksum.slice(0, 12)}` : ''
 }
 
 function toIsoString(value: Date | string): string {

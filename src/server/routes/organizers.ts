@@ -13,8 +13,9 @@
 
 import { generateLabel, LabelDataError, type LabelOptions } from '../labels/generate'
 import { maxContentsPhotos } from '../labels/contents-label'
-import { renderLabelPreview } from '../labels/preview'
-import { deleteLabelPdf, readLabelFile, saveLabelPdf, saveLabelPreview } from '../labels/storage'
+import { deleteLabelPdf, readLabelFile, saveLabelPdf } from '../labels/storage'
+import { redrawLabels, storeLabelPreview } from './label-redraw'
+import { labelsToRedraw } from './labels-store'
 import {
   parseLabelIds,
   parseLabelRequest,
@@ -30,14 +31,12 @@ import {
   deleteLabel,
   deleteOrganizer,
   getLabelFile,
-  getLabelsToRedraw,
   getOrganizer,
   insertLabel,
   labelSlotsFor,
   listOrganizers,
   NumberTakenError,
   removeTool,
-  replaceLabelFile,
   ToolAlreadyInOrganizerError,
   updateOrganizer,
 } from './organizers-store'
@@ -213,7 +212,7 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
         options: parsed.value.options,
         organizerId: id,
         pdfPath: stored.path,
-        previewPath: await storePreview(stored.path, bytes),
+        previewPath: await storeLabelPreview(stored.path, bytes),
         slotId: slot.id,
         template: parsed.value.template,
         widthMm: slot.widthMm,
@@ -230,30 +229,13 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
   }
 }
 
-// The picture is made here rather than in the generator, because it is a fact
-// about the file and not about the drawing. A render that fails costs the tile
-// its picture and nothing else — the label is already on disk.
-async function storePreview(pdfPath: string, bytes: Uint8Array): Promise<string> {
-  try {
-    return await saveLabelPreview(pdfPath, await renderLabelPreview(bytes))
-  } catch (error) {
-    console.error('[labels] preview failed', error)
-    return ''
-  }
-}
-
 // POST /api/organizers/:id/labels/refresh — draw the chosen labels again from
 // the options they were made with.
 //
-// The row keeps its id, its size and its options; only the file underneath it
-// changes. That is the whole point of storing what the generator was told: a
-// label made before a tool was added, or before a maker got its logo, becomes
-// current without anybody retyping the wizard.
-//
-// One label that cannot be drawn — a contents label whose photos have since
-// been deleted — must not stop the rest, so the failures come back named
-// rather than as a status. Nine redrawn and one explained beats a 400 that
-// leaves all ten stale.
+// Scoped to this organizer: a label id from another one is not found here
+// rather than redrawn, which is what makes the URL mean what it says. The
+// drawing itself is `label-redraw.ts`, shared with the screen that selects
+// across organizers.
 export async function labelRefreshPOST(request: Request, context: RouteContext): Promise<Response> {
   const id = parseId(context.params.id)
   if (id === null) return notFound()
@@ -263,35 +245,10 @@ export async function labelRefreshPOST(request: Request, context: RouteContext):
 
   if (!(await getOrganizer(id))) return notFound()
 
-  const labels = await getLabelsToRedraw(id, parsed.value)
+  const labels = await labelsToRedraw(parsed.value, id)
   if (labels.length === 0) return labelNotFound()
 
-  const failed: { error: string; id: number }[] = []
-  let refreshed = 0
-
-  for (const label of labels) {
-    try {
-      const bytes = await generateLabel(
-        id,
-        { heightMm: label.heightMm, widthMm: label.widthMm },
-        label.options as unknown as LabelOptions,
-      )
-      const stored = await saveLabelPdf(bytes)
-      const { orphanedPath } = await replaceLabelFile(label.id, {
-        byteSize: stored.byteSize,
-        pdfPath: stored.path,
-        previewPath: await storePreview(stored.path, bytes),
-      })
-
-      // Outside the transaction, like the delete path: a failed unlink must not
-      // roll back a row that already points at the new file.
-      if (orphanedPath) await deleteLabelPdf(orphanedPath)
-      refreshed += 1
-    } catch (error) {
-      if (!(error instanceof LabelDataError)) throw error
-      failed.push({ error: error.message, id: label.id })
-    }
-  }
+  const { failed, refreshed } = await redrawLabels(labels)
 
   return Response.json({ failed, organizer: await getOrganizer(id), refreshed })
 }
