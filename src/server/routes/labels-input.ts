@@ -45,10 +45,11 @@ export function parseLabelListQuery(params: URLSearchParams): Parsed<LabelListQu
 // The ids a sheet is asked for, as a query string: the screen opens the PDF in
 // a tab rather than downloading it through a script, and a tab is a GET.
 //
-// Fifty at a time, the cap a redraw uses. Each one is drawn from scratch —
-// fifty take about three seconds — so a thousand in one request would be a
-// print job pretending to be a page load.
-export const MAX_SHEET_IDS = 50
+// As many as the list itself will show at once, so "show everything, tick
+// everything, print it" cannot end in a refusal. Each label is drawn from
+// scratch — fifty take about three seconds — which is why there is a ceiling
+// at all, and why it is the list's rather than a round thousand.
+export const MAX_SHEET_IDS = MAX_LABEL_LIMIT
 
 export function parseSheetIds(params: URLSearchParams): Parsed<number[]> {
   const raw = (params.get('ids') ?? '')

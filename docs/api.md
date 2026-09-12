@@ -977,8 +977,9 @@ second copy of it.
 ### `GET /api/labels/sheet` — `catalog.read`
 
 `?ids=14,16,27` — the chosen labels ganged onto A4, as `application/pdf`,
-`inline`. Fifty at a time at most — each label is drawn from scratch, and fifty
-take about three seconds.
+`inline`. Two hundred at a time at most, which is what `GET /api/labels` shows
+on one page: "show everything, tick everything, print it" must not end in a
+refusal. Each label is drawn from scratch, and fifty take about three seconds.
 
 This is what a **batch** is printed from. The per-label file wraps one sticker
 in a margin with crop marks around it, which is right for printing one and
