@@ -779,7 +779,9 @@ when the case has no places recorded yet.
   "template": "contents",
   "photoIds": [75, 79],
   "withTitle": true,
-  "withNames": true
+  "titleText": "",
+  "withNames": true,
+  "namesText": "18 V + 12 V, Li-Ion"
 }
 ```
 
@@ -810,6 +812,19 @@ the pictures is chosen, not fixed: every split into rows and columns is
 measured and the one that draws them largest wins, because a row that suits a
 200 × 60 lid is hopeless on a 30 × 40 front. Names that do not fit shrink, and
 then the tail becomes "+N więcej".
+
+`withTitle` and `withNames` say whether each line is there at all. `titleText`
+and `namesText` say what it reads: **empty means work it out** — the
+organizer's name over the rule, the tool names under it — and anything else is
+printed instead of what the catalog thinks. The same convention as
+`brand.color`, where empty is the absence of a value rather than a value. It
+matters because a person knows things the catalog does not: "18 V + 12 V,
+LI-ION" says more about a box of batteries than five product names would. At
+most 120 characters each; past that a 30 mm label can only shrink the type
+until nobody can read it, so it is a `400`.
+
+A typed line cannot be shortened by dropping a name from it the way a list can,
+so one too long for the band is cut and ends in an ellipsis.
 
 `photoIds` must belong to tools in this organizer — checked in the database,
 not trusted from the request — and more than three is a `400` rather than a

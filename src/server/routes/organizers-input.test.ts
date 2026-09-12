@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   parseLabelIds,
+  parseLabelRequest,
   parseOrganizerCreate,
   parseOrganizerPatch,
   parseOrganizerQuery,
@@ -72,6 +73,58 @@ test('the case filter is what the delete confirmation asks with', () => {
   assert.equal(parsed.value.caseId, 4)
   // Nonsense is dropped rather than refused: this is a link somebody pasted.
   assert.equal(parseOrganizerQuery(new URLSearchParams('caseId=abc')).ok, true)
+})
+
+test('an empty text on a contents label means "work it out"', () => {
+  // Empty is the absence of a value, not a value — the same convention as
+  // brand.color. It is what makes a label made before these fields existed
+  // still redraw with the catalog's own words on it.
+  const parsed = parseLabelRequest({
+    slotId: 4,
+    template: 'contents',
+    withNames: true,
+    withTitle: true,
+  })
+
+  assert.ok(parsed.ok)
+  assert.equal(parsed.value.options.titleText, '')
+  assert.equal(parsed.value.options.namesText, '')
+})
+
+test('a typed line travels as itself, trimmed', () => {
+  const parsed = parseLabelRequest({
+    namesText: '  18 V + 12 V, Li-Ion  ',
+    slotId: 4,
+    template: 'contents',
+    titleText: 'Akumulatory',
+    withNames: true,
+    withTitle: true,
+  })
+
+  assert.ok(parsed.ok)
+  assert.equal(parsed.value.options.titleText, 'Akumulatory')
+  assert.equal(parsed.value.options.namesText, '18 V + 12 V, Li-Ion')
+})
+
+test('a line longer than the label could ever hold is refused here', () => {
+  // Refused rather than drawn as far as it goes: a 30 mm label can only shrink
+  // the type until nobody can read it, and a drawing that quietly gives up is
+  // worse than a message.
+  const parsed = parseLabelRequest({
+    slotId: 4,
+    template: 'contents',
+    titleText: 'a'.repeat(121),
+    withTitle: true,
+  })
+
+  assert.equal(parsed.ok, false)
+})
+
+test('the number template carries no text of its own', () => {
+  const parsed = parseLabelRequest({ slotId: 4, template: 'number', titleText: 'Cokolwiek' })
+
+  assert.ok(parsed.ok)
+  assert.equal('titleText' in parsed.value.options, false)
 })
 
 test('refreshing takes ids, once each, and never an empty list', () => {

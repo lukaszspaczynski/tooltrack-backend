@@ -135,6 +135,11 @@ export function parseLabelIds(body: unknown): Parsed<number[]> {
   return valid(ids)
 }
 
+// A label is 30 mm across. Past this the template can only shrink the type
+// until nobody can read it, so the refusal belongs here rather than in a
+// drawing that quietly gives up.
+const CAPTION_MAX = 120
+
 export type LabelRequest = {
   options: Record<string, unknown>
   slotId: number
@@ -181,11 +186,23 @@ export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
     }
   }
 
+  // Empty means "work it out": the organizer's name over the rule, the tool
+  // names under it. Anything else is what somebody typed instead, and the
+  // label says that rather than what the catalog thinks. The same convention
+  // as brand.color, where empty is not a value but the absence of one.
+  const titleText = trimmedString(body.titleText ?? '') ?? ''
+  const namesText = trimmedString(body.namesText ?? '') ?? ''
+  if (titleText.length > CAPTION_MAX || namesText.length > CAPTION_MAX) {
+    return invalid(`Własny tekst może mieć najwyżej ${CAPTION_MAX} znaków`)
+  }
+
   return valid({
     options: {
+      namesText,
       photoIds,
       printReady,
       template,
+      titleText,
       withNames: body.withNames === true,
       withTitle: body.withTitle === true,
     },

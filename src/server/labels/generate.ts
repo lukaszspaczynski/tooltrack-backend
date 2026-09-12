@@ -23,9 +23,15 @@ export type NumberOptions = {
 }
 
 export type ContentsOptions = {
+  // Empty means the label works it out: the organizer's name over the rule and
+  // the tool names under it. Anything else is what somebody typed instead —
+  // "18 V + 12 V, LI-ION" says more about a box of batteries than five product
+  // names would, and only a person knows that.
+  namesText: string
   photoIds: number[]
   printReady: boolean
   template: 'contents'
+  titleText: string
   withNames: boolean
   withTitle: boolean
 }
@@ -146,25 +152,30 @@ async function generateContents(
     if (data) bytes.push(data)
   }
 
-  const names = options.withNames
-    ? (
-        await pool.query<{ name: string }>(
-          `
+  // One typed line arrives as a list of one: the template composes a caption
+  // out of whatever it is given, and shortening a list it cannot fit is the
+  // same code either way.
+  const names = !options.withNames
+    ? []
+    : options.namesText
+      ? [options.namesText]
+      : (
+          await pool.query<{ name: string }>(
+            `
             SELECT "t"."name"
             FROM "catalog"."organizer_tool" AS "ot"
             JOIN "catalog"."tool" AS "t" ON "t"."id" = "ot"."tool_id"
             WHERE "ot"."organizer_id" = $1
             ORDER BY lower("t"."name")
           `,
-          [organizerId],
-        )
-      ).rows.map((row) => row.name)
-    : []
+            [organizerId],
+          )
+        ).rows.map((row) => row.name)
 
   return drawContentsLabel({
     heightMm: size.heightMm,
     photos: bytes,
-    title: options.withTitle ? organizer.rows[0].name : null,
+    title: options.withTitle ? options.titleText || organizer.rows[0].name : null,
     toolNames: names,
     widthMm: size.widthMm,
   })

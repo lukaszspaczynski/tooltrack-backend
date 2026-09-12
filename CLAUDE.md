@@ -195,6 +195,13 @@ rounded-rectangle and wedge paths, because pdf-lib's drawRectangle has no
 corner radius, and the shared corner radius, because one label rounder than the
 next looks like two batches.
 
+Both lines of type on a `contents` label can be typed instead of worked out:
+`titleText` and `namesText` empty mean the organizer's name and the tool names,
+and anything else is printed in their place. Empty as absence rather than as a
+value is the `brand.color` convention, and it is what keeps the options of
+labels made before the fields existed meaning what they meant — a redraw of one
+still puts the catalog's own words on.
+
 The `contents` metrics are millimetres measured off a 30 x 40 mm Qbrick
 sticker, not shares of the label: matching that sheet is the whole point of the
 shape. The taller set of sizes starts at 60 mm, as it does there, and anything
