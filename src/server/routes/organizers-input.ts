@@ -1,5 +1,6 @@
 // Organizer bodies and list query strings. Pure; see input.ts.
 
+import { MAX_CONTENTS_PHOTOS } from '../labels/contents-label'
 import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
 
 export const MAX_NAME_LENGTH = 200
@@ -175,9 +176,13 @@ export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
   const photoIds: number[] = []
   if ('photoIds' in body) {
     if (!Array.isArray(body.photoIds)) return invalid('photoIds must be an array')
-    // Three is what the label holds; a fourth would be dropped silently, which
-    // is worse than saying so.
-    if (body.photoIds.length > 3) return invalid('Maksymalnie 3 zdjęcia')
+    // The ceiling any label has. How many this one actually holds depends on
+    // its shape, and the shape comes from the slot, which this parser has no
+    // business resolving — the route checks that once it has one. Silently
+    // dropping the extras is what neither of them does.
+    if (body.photoIds.length > MAX_CONTENTS_PHOTOS) {
+      return invalid(`Maksymalnie ${MAX_CONTENTS_PHOTOS} zdjęcia`)
+    }
 
     for (const raw of body.photoIds) {
       const id = parseId(raw)

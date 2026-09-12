@@ -12,6 +12,7 @@
 // checked by the guard before any of this runs.
 
 import { generateLabel, LabelDataError, type LabelOptions } from '../labels/generate'
+import { maxContentsPhotos } from '../labels/contents-label'
 import { renderLabelPreview } from '../labels/preview'
 import { deleteLabelPdf, readLabelFile, saveLabelPdf, saveLabelPreview } from '../labels/storage'
 import {
@@ -181,6 +182,20 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
       { error: 'Skrzynka tego organizera nie ma takiego miejsca na etykietę' },
       { status: 400 },
     )
+  }
+
+  // How many pictures fit is a fact about the shape, so it can only be checked
+  // once the slot is known. Refused rather than truncated: a label quietly
+  // missing the sixth picture is one somebody prints before noticing.
+  const photoIds = parsed.value.options.photoIds
+  if (Array.isArray(photoIds)) {
+    const allowed = maxContentsPhotos(slot)
+    if (photoIds.length > allowed) {
+      return Response.json(
+        { error: `Etykieta ${slot.widthMm} × ${slot.heightMm} mm mieści ${allowed} zdjęcia` },
+        { status: 400 },
+      )
+    }
   }
 
   try {

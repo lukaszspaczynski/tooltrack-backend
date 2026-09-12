@@ -3,7 +3,7 @@ import test from 'node:test'
 
 import { PDFDocument } from 'pdf-lib'
 
-import { drawContentsLabel } from './contents-label'
+import { drawContentsLabel, maxContentsPhotos } from './contents-label'
 import { drawNumberLabel } from './number-label'
 import { addPrintMarks } from './print-ready'
 
@@ -81,6 +81,31 @@ test('eleven names shrink and then give way to a count', async () => {
     title: 'Elektronarzędzia',
     toolNames: Array.from({ length: 11 }, (_, i) => `Wiertarka udarowa GSB 18V-${i + 1}`),
     widthMm: 30,
+  })
+
+  assert.ok(bytes.byteLength > 0)
+})
+
+test('a lid holds twice the pictures a front does', () => {
+  // Six across a 200 x 60 lid come out bigger than three down a 30 x 40 front,
+  // so the number follows the shape rather than sitting at three.
+  assert.equal(maxContentsPhotos({ heightMm: 60, widthMm: 200 }), 6)
+  assert.equal(maxContentsPhotos({ heightMm: 30, widthMm: 200 }), 6)
+  assert.equal(maxContentsPhotos({ heightMm: 40, widthMm: 30 }), 3)
+  assert.equal(maxContentsPhotos({ heightMm: 80, widthMm: 30 }), 3)
+  // The boundary is the same "twice as wide" test the number template uses.
+  assert.equal(maxContentsPhotos({ heightMm: 30, widthMm: 60 }), 6)
+  assert.equal(maxContentsPhotos({ heightMm: 31, widthMm: 60 }), 3)
+})
+
+test('six pictures fit across a lid', async () => {
+  const photo = await pngPixel()
+  const bytes = await drawContentsLabel({
+    heightMm: 60,
+    photos: Array.from({ length: 6 }, () => photo),
+    title: 'Akumulatory i ładowarki',
+    toolNames: ['18 V + 12 V, Li-Ion'],
+    widthMm: 200,
   })
 
   assert.ok(bytes.byteLength > 0)
@@ -197,3 +222,15 @@ test('a print-ready file is bigger than the label and a plain one is not', async
   assert.ok(Math.abs(marked.width - plain.width - 12 * (72 / 25.4)) < 0.1, String(marked.width))
   assert.ok(Math.abs(marked.height - plain.height - 12 * (72 / 25.4)) < 0.1, String(marked.height))
 })
+
+// A one-pixel PNG, so a test about arrangement does not need a photograph on
+// disk. Written by hand because it is eleven constant chunks and importing an
+// encoder for it would be the heavier dependency.
+async function pngPixel(): Promise<Uint8Array> {
+  return new Uint8Array(
+    Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    ),
+  )
+}

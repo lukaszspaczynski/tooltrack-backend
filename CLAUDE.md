@@ -195,6 +195,12 @@ rounded-rectangle and wedge paths, because pdf-lib's drawRectangle has no
 corner radius, and the shared corner radius, because one label rounder than the
 next looks like two batches.
 
+How many pictures a `contents` label holds follows its shape — six when it is
+at least twice as wide as it is tall, three otherwise, the same test the number
+template uses to decide whether to stack the number over the maker. The count
+is therefore checked in the route rather than in the parser: the parser knows
+the ceiling, only the resolved slot knows the shape.
+
 Both lines of type on a `contents` label can be typed instead of worked out:
 `titleText` and `namesText` empty mean the organizer's name and the tool names,
 and anything else is printed in their place. Empty as absence rather than as a

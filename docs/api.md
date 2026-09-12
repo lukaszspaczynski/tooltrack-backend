@@ -827,8 +827,11 @@ A typed line cannot be shortened by dropping a name from it the way a list can,
 so one too long for the band is cut and ends in an ellipsis.
 
 `photoIds` must belong to tools in this organizer — checked in the database,
-not trusted from the request — and more than three is a `400` rather than a
-silent truncation.
+not trusted from the request. **How many fit depends on the shape**: a label at
+least twice as wide as it is tall takes six, anything else three, because six
+across a 200 × 60 lid still come out bigger than three down a 30 × 40 front.
+More than that is a `400` naming the size rather than a silent truncation — a
+label quietly missing its sixth picture is one somebody prints before noticing.
 
 **`printReady`** decides what kind of file comes out, and defaults to `true`
 because a label is made to be printed.

@@ -24,7 +24,18 @@ import {
   type LabelPage,
 } from './pdf'
 
-export const MAX_CONTENTS_PHOTOS = 3
+// How many pictures the card holds. A lid is 200 x 60 mm and a front 30 x 40:
+// six across a lid are still bigger than three down a front, so tying the
+// number to the shape rather than fixing it at three is what stops a label
+// three times as wide as it is tall from being mostly white.
+//
+// The same "twice as wide" test the number template uses to decide whether to
+// stack the number over the maker or stand them side by side.
+export const MAX_CONTENTS_PHOTOS = 6
+
+export function maxContentsPhotos(size: { heightMm: number; widthMm: number }): number {
+  return size.widthMm / size.heightMm >= 2 ? MAX_CONTENTS_PHOTOS : 3
+}
 
 export type ContentsLabelInput = {
   heightMm: number

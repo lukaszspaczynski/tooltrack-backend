@@ -6,7 +6,7 @@
 
 import { db, type PgPool } from '../db'
 import { readPhotoBytes } from '../photo-storage'
-import { drawContentsLabel, MAX_CONTENTS_PHOTOS } from './contents-label'
+import { drawContentsLabel, maxContentsPhotos } from './contents-label'
 import { drawNumberLabel, type NumberLabelBrand } from './number-label'
 import { addPrintMarks } from './print-ready'
 
@@ -121,7 +121,7 @@ async function generateContents(
   )
   if (!organizer.rows[0]) throw new LabelDataError('Nie ma takiego organizera')
 
-  const ids = options.photoIds.slice(0, MAX_CONTENTS_PHOTOS)
+  const ids = options.photoIds.slice(0, maxContentsPhotos(size))
 
   // Only pictures of the tools in this organizer. Asked of the database rather
   // than trusted from the request: the wizard offers the right ones, and this
