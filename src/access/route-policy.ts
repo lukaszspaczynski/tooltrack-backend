@@ -123,6 +123,12 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/organizers\/\d+\/labels\/\d+\/file$/,
   },
   {
+    // The picture of that PDF, for the list. Same reader, same reasoning.
+    domain: 'organizers',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/labels\/\d+\/preview$/,
+  },
+  {
     domain: 'organizers',
     methods: { DELETE: WRITE_CATALOG },
     pattern: /^\/api\/organizers\/\d+\/labels\/\d+$/,

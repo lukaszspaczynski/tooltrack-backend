@@ -77,6 +77,10 @@ CREATE TABLE IF NOT EXISTS "catalog"."organizer_label" (
   -- The file, relative to the media directory.
   "pdf_path" text NOT NULL DEFAULT '',
   "byte_size" bigint NOT NULL DEFAULT 0,
+  -- A raster of the first page, for the tile in the list. Empty means the
+  -- picture could not be made, which is not a broken label: the PDF is the
+  -- artefact and the preview is a convenience.
+  "preview_path" text NOT NULL DEFAULT '',
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now()
 );
@@ -84,9 +88,13 @@ CREATE TABLE IF NOT EXISTS "catalog"."organizer_label" (
 CREATE INDEX IF NOT EXISTS "organizer_label_organizer_idx"
   ON "catalog"."organizer_label" ("organizer_id");
 
+-- Databases that predate the preview.
+ALTER TABLE "catalog"."organizer_label"
+  ADD COLUMN IF NOT EXISTS "preview_path" text NOT NULL DEFAULT '';
 
 COMMENT ON TABLE "catalog"."organizer_label" IS 'A generated label: the PDF on disk and the options it was made from.';
 COMMENT ON COLUMN "catalog"."organizer_label"."options" IS 'What the generator was told. Shape depends on the template; see docs/api.md.';
+COMMENT ON COLUMN "catalog"."organizer_label"."preview_path" IS 'PNG of the first page, for the list. Empty when it could not be rendered.';
 
 COMMENT ON TABLE "catalog"."organizer" IS 'One arrangement: a case, a number and a name.';
 COMMENT ON TABLE "catalog"."organizer_tool" IS 'Which tools are in which organizer. One organizer per tool, by unique index.';

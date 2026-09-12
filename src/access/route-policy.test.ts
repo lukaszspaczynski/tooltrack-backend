@@ -307,7 +307,9 @@ test('labels are read with the catalog and drawn with a write', () => {
   assert.equal(allows('/api/organizers/4/label-slots', 'GET', user('viewer')), true)
   assert.equal(allows('/api/organizers/4/labels', 'POST', user('viewer')), false)
   assert.equal(allows('/api/organizers/4/labels', 'POST', user('editor')), true)
-  // The PDF itself is part of the catalog, like the bytes of a photo.
+  // The PDF itself is part of the catalog, like the bytes of a photo, and so
+  // is the picture of it the list shows.
   assert.equal(allows('/api/organizers/4/labels/9/file', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/organizers/4/labels/9/preview', 'GET', user('viewer')), true)
   assert.equal(allows('/api/organizers/4/labels/9', 'DELETE', user('editor')), true)
 })

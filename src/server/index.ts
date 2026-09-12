@@ -50,6 +50,7 @@ const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
 const ORGANIZER_LABEL_SLOTS_PATTERN = /^\/api\/organizers\/(\d+)\/label-slots$/
 const ORGANIZER_LABELS_PATTERN = /^\/api\/organizers\/(\d+)\/labels$/
 const ORGANIZER_LABEL_FILE_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)\/file$/
+const ORGANIZER_LABEL_PREVIEW_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)\/preview$/
 const ORGANIZER_LABEL_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)$/
 const ORGANIZER_TOOLS_PATTERN = /^\/api\/organizers\/(\d+)\/tools$/
 const ORGANIZER_TOOL_PATTERN = /^\/api\/organizers\/(\d+)\/tools\/(\d+)$/
@@ -143,6 +144,7 @@ const ROUTES = [
   'GET /api/organizers/:id/label-slots',
   'POST /api/organizers/:id/labels',
   'GET /api/organizers/:id/labels/:labelId/file',
+  'GET /api/organizers/:id/labels/:labelId/preview',
   'DELETE /api/organizers/:id/labels/:labelId',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
@@ -296,6 +298,15 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
       method,
       { GET: organizers.labelFileGET },
       { id: labelFile[1], labelId: labelFile[2] },
+    )
+  }
+
+  const labelPreview = ORGANIZER_LABEL_PREVIEW_PATTERN.exec(path)
+  if (labelPreview) {
+    return methodHandler(
+      method,
+      { GET: organizers.labelPreviewGET },
+      { id: labelPreview[1], labelId: labelPreview[2] },
     )
   }
 

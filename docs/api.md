@@ -829,9 +829,22 @@ because a label is made to be printed.
 The marks are added around the finished artwork, never into it: a crop mark
 printed on a sticker is a crop mark stuck to a toolbox.
 
+Every label also gets a **preview**: a PNG of the first page, 480 px on its
+long side, rendered from the finished PDF when the label is made. It is what
+the tile in the list shows, so twenty labels are twenty pictures rather than
+twenty PDF viewers. `previewUrl` on the label is `null` when there is none —
+a label made before previews existed, or one the rasteriser could not read —
+and the list has to cope with that rather than assume.
+
 ### `GET /api/organizers/:id/labels/:labelId/file` — `catalog.read`
 
 The PDF, `application/pdf`, `inline`.
+
+### `GET /api/organizers/:id/labels/:labelId/preview` — `catalog.read`
+
+The PNG, `image/png`. `404` when the label has no preview. Immutable like the
+PDF: both are named after the checksum of what they show, so a label that
+changes is a different URL.
 
 ### `DELETE /api/organizers/:id/labels/:labelId` — `catalog.write`
 

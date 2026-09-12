@@ -24,6 +24,9 @@ export type OrganizerLabel = {
   heightMm: number
   id: number
   options: Record<string, unknown>
+  // A picture of the label for the tile, or null when there is none: an older
+  // row, or one whose render failed. The list has to cope with both.
+  previewUrl: null | string
   template: string
   // Where the bytes are served from. The path on disk is ours to change.
   url: string
@@ -100,6 +103,7 @@ type RawLabel = {
   createdAt: string
   createdBy: null | number | string
   heightMm: number | string
+  hasPreview: boolean
   id: number | string
   options: Record<string, unknown>
   template: string
@@ -150,6 +154,7 @@ const ORGANIZER_COLUMNS = `
                    'id', "l"."id", 'template', "l"."template",
                    'widthMm', "l"."width_mm", 'heightMm', "l"."height_mm",
                    'options', "l"."options", 'byteSize', "l"."byte_size",
+                   'hasPreview', "l"."preview_path" <> '',
                    'createdBy', "l"."created_by", 'createdAt', "l"."created_at"
                  ) ORDER BY "l"."created_at" DESC, "l"."id" DESC
                )
@@ -392,6 +397,7 @@ export async function insertLabel(
     options: Record<string, unknown>
     organizerId: number
     pdfPath: string
+    previewPath: string
     slotId: null | number
     template: string
     widthMm: number
@@ -403,8 +409,8 @@ export async function insertLabel(
     `
       INSERT INTO "catalog"."organizer_label"
         ("organizer_id", "template", "width_mm", "height_mm", "slot_id", "options",
-         "pdf_path", "byte_size", "created_by")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         "pdf_path", "preview_path", "byte_size", "created_by")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING "id"
     `,
     [
@@ -415,6 +421,7 @@ export async function insertLabel(
       input.slotId,
       JSON.stringify(input.options),
       input.pdfPath,
+      input.previewPath,
       input.byteSize,
       actorId,
     ],
@@ -423,18 +430,21 @@ export async function insertLabel(
   return Number(result.rows[0].id)
 }
 
+// One query for both files the label has. The caller picks the column; an
+// empty one is a label with no such file, which the route answers as a 404.
 export async function getLabelFile(
   organizerId: number,
   labelId: number,
   pool: PgPool = db(),
-): Promise<null | { path: string }> {
-  const result = await pool.query<{ pdf_path: string }>(
-    `SELECT "pdf_path" FROM "catalog"."organizer_label" WHERE "organizer_id" = $1 AND "id" = $2`,
+): Promise<null | { path: string; previewPath: string }> {
+  const result = await pool.query<{ pdf_path: string; preview_path: string }>(
+    `SELECT "pdf_path", "preview_path" FROM "catalog"."organizer_label"
+     WHERE "organizer_id" = $1 AND "id" = $2`,
     [organizerId, labelId],
   )
 
   const row = result.rows[0]
-  return row && row.pdf_path ? { path: row.pdf_path } : null
+  return row ? { path: row.pdf_path, previewPath: row.preview_path } : null
 }
 
 // Answers with the file to unlink, or null when another label still points at
@@ -549,6 +559,9 @@ function toOrganizer(row: OrganizerRow): Organizer {
       heightMm: Number(label.heightMm),
       id: Number(label.id),
       options: label.options ?? {},
+      previewUrl: label.hasPreview
+        ? `/api/organizers/${Number(row.id)}/labels/${Number(label.id)}/preview`
+        : null,
       template: label.template,
       url: `/api/organizers/${Number(row.id)}/labels/${Number(label.id)}/file`,
       widthMm: Number(label.widthMm),

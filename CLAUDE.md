@@ -227,6 +227,16 @@ Files live in `<media>/labels`, content addressed like the photos, so two
 identical labels are one file and the delete path unlinks only when the last
 row pointing at it is gone.
 
+`preview.ts` rasterises the finished PDF to a PNG for the tile in the list —
+from the file rather than by drawing a second time, so the tile cannot quietly
+disagree with the print. It uses **@hyzyla/pdfium**, which is WebAssembly: the
+labels module still needs no native build, and the eleven-megabyte module is
+instantiated once for the process rather than per label. The preview shares its
+PDF's name with a `.png` on the end, which is what makes it dedupe and get
+cleaned up for free — whatever unlinks the PDF unlinks its picture. A render
+that fails leaves `preview_path` empty and the label alone: the PDF is the
+artefact and the picture is a convenience.
+
 `options` on the row is jsonb on purpose: every template asks for different
 things, and a column per template is a column per template forever. The shape
 is documented in docs/api.md rather than in the table.

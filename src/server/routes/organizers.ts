@@ -12,7 +12,8 @@
 // checked by the guard before any of this runs.
 
 import { generateLabel, LabelDataError, type LabelOptions } from '../labels/generate'
-import { deleteLabelPdf, readLabelPdf, saveLabelPdf } from '../labels/storage'
+import { renderLabelPreview } from '../labels/preview'
+import { deleteLabelPdf, readLabelFile, saveLabelPdf, saveLabelPreview } from '../labels/storage'
 import {
   parseLabelRequest,
   parseOrganizerCreate,
@@ -194,6 +195,7 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
         options: parsed.value.options,
         organizerId: id,
         pdfPath: stored.path,
+        previewPath: await storePreview(stored.path, bytes),
         slotId: slot.id,
         template: parsed.value.template,
         widthMm: slot.widthMm,
@@ -210,15 +212,27 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
   }
 }
 
+// The picture is made here rather than in the generator, because it is a fact
+// about the file and not about the drawing. A render that fails costs the tile
+// its picture and nothing else — the label is already on disk.
+async function storePreview(pdfPath: string, bytes: Uint8Array): Promise<string> {
+  try {
+    return await saveLabelPreview(pdfPath, await renderLabelPreview(bytes))
+  } catch (error) {
+    console.error('[labels] preview failed', error)
+    return ''
+  }
+}
+
 export async function labelFileGET(_request: Request, context: RouteContext): Promise<Response> {
   const id = parseId(context.params.id)
   const labelId = parseId(context.params.labelId)
   if (id === null || labelId === null) return labelNotFound()
 
   const label = await getLabelFile(id, labelId)
-  if (!label) return labelNotFound()
+  if (!label?.path) return labelNotFound()
 
-  const bytes = await readLabelPdf(label.path)
+  const bytes = await readLabelFile(label.path)
   // A row whose file is missing is a broken label, not a broken server.
   if (!bytes) return labelNotFound()
 
@@ -228,6 +242,29 @@ export async function labelFileGET(_request: Request, context: RouteContext): Pr
       'content-disposition': `inline; filename="etykieta-${labelId}.pdf"`,
       'content-length': String(bytes.byteLength),
       'content-type': 'application/pdf',
+    },
+  })
+}
+
+// The same file the list points at, served as a picture. Immutable like the
+// PDF: both are named after the checksum of what they show, so a label that
+// changes is a different URL.
+export async function labelPreviewGET(_request: Request, context: RouteContext): Promise<Response> {
+  const id = parseId(context.params.id)
+  const labelId = parseId(context.params.labelId)
+  if (id === null || labelId === null) return labelNotFound()
+
+  const label = await getLabelFile(id, labelId)
+  if (!label?.previewPath) return labelNotFound()
+
+  const bytes = await readLabelFile(label.previewPath)
+  if (!bytes) return labelNotFound()
+
+  return new Response(bytes, {
+    headers: {
+      'cache-control': 'private, max-age=31536000, immutable',
+      'content-length': String(bytes.byteLength),
+      'content-type': 'image/png',
     },
   })
 }
