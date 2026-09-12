@@ -31,11 +31,10 @@ import { parseCutoutCommitInput, parseCutoutRunInput } from './settings-input'
 import {
   defaultCaseQuery,
   defaultQuery,
-  MAX_SUGGESTIONS_PER_ENGINE,
   PhotoSearchUnavailableError,
   searchPhotos,
 } from '../photo-search'
-import { credentialsForSearch, resolveProvidersFor } from './search-settings-store'
+import { credentialsForSearch, resolveEnginesFor } from './search-settings-store'
 import { readImageMetadata } from '../image-metadata'
 import {
   readPhotoBytes,
@@ -508,14 +507,17 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
     // Which engines this account searches with is settings, not code: global
     // configuration an admin owns, narrowed by the switches each person keeps
     // for themselves.
-    const providers = await resolveProvidersFor(actorId)
-    const credentials = await credentialsForSearch(providers)
-    const engines = providers.map((provider) => ({
-      credentials: credentials.get(provider) ?? { key: '', secret: '' },
-      provider,
+    // How many each of them may contribute is settings too, and it comes back
+    // with them rather than being a constant here.
+    const enabled = await resolveEnginesFor(actorId)
+    const credentials = await credentialsForSearch(enabled.map((entry) => entry.provider))
+    const engines = enabled.map((entry) => ({
+      credentials: credentials.get(entry.provider) ?? { key: '', secret: '' },
+      limit: entry.limit,
+      provider: entry.provider,
     }))
 
-    const result = await searchPhotos(query, engines, MAX_SUGGESTIONS_PER_ENGINE)
+    const result = await searchPhotos(query, engines)
 
     return Response.json(result, { headers: { 'cache-control': 'no-store' } })
   } catch (error) {

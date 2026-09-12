@@ -15,7 +15,13 @@
 // Nothing is downloaded here. A suggestion is a link; the bytes are only
 // fetched when someone picks one and the server stores it.
 
-import type { SearchCredentials, SearchProvider } from './search-engines'
+import {
+  clampResultLimit,
+  DEFAULT_RESULT_LIMIT,
+  searchEngine,
+  type SearchCredentials,
+  type SearchProvider,
+} from './search-engines'
 
 export type PhotoSuggestion = {
   // Author and licence when the provider states them. Carried through to the
@@ -40,9 +46,6 @@ export type PhotoSearchResult = {
   query: string
   suggestions: PhotoSuggestion[]
 }
-
-// Per engine. Three engines enabled means up to thirty suggestions.
-export const MAX_SUGGESTIONS_PER_ENGINE = 10
 
 const SEARCH_TIMEOUT_MS = 8000
 
@@ -82,16 +85,21 @@ export function defaultCaseQuery(item: { manufacturer: string; name: string }): 
 
 export type EngineRequest = {
   credentials: SearchCredentials
+  // This engine's share of the results, from settings. Absent falls back to
+  // the default, and either way it is clamped to what the provider allows.
+  limit?: number
   provider: SearchProvider
 }
 
 export async function searchPhotos(
   query: string,
   engines: EngineRequest[],
-  perEngine = MAX_SUGGESTIONS_PER_ENGINE,
+  fallbackLimit = DEFAULT_RESULT_LIMIT,
 ): Promise<PhotoSearchResult> {
   const trimmed = query.trim()
-  const count = Math.min(Math.max(perEngine, 1), MAX_SUGGESTIONS_PER_ENGINE)
+  const shares = engines.map((engine) =>
+    clampResultLimit(searchEngine(engine.provider), engine.limit ?? fallbackLimit),
+  )
 
   if (engines.length === 0) {
     throw new PhotoSearchUnavailableError(
@@ -108,9 +116,12 @@ export async function searchPhotos(
   }
 
   const answers = await Promise.all(
-    engines.map(async (engine) => {
+    engines.map(async (engine, index) => {
       try {
-        return { provider: engine.provider, suggestions: await askEngine(engine, trimmed, count) }
+        return {
+          provider: engine.provider,
+          suggestions: await askEngine(engine, trimmed, shares[index]),
+        }
       } catch (error) {
         console.error(`[photo-search] ${engine.provider} failed`, error)
         return {
@@ -147,7 +158,7 @@ export async function searchPhotos(
     // much to choose from, which is the whole point of switching on a second.
     suggestions: interleave(
       answers.map((answer) => answer.suggestions),
-      count * answers.length,
+      shares.reduce((total, share) => total + share, 0),
     ),
   }
 }

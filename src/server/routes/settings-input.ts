@@ -2,11 +2,13 @@
 
 import { invalid, isPlainObject, valid, type Parsed } from './input'
 import { CUTOUT_METHODS, isCutoutMethod } from '../cutout-methods'
+import { MAX_RESULT_LIMIT } from '../search-engines'
 
 export type GlobalEngineInput = {
   apiKey?: string
   apiSecret?: string
   enabled?: boolean
+  resultLimit?: number
 }
 
 export function parseGlobalEngineInput(body: unknown): Parsed<GlobalEngineInput> {
@@ -27,6 +29,17 @@ export function parseGlobalEngineInput(body: unknown): Parsed<GlobalEngineInput>
     if (!(field in body)) continue
     if (typeof body[field] !== 'string') return invalid(`${field} must be a string`)
     input[field] = (body[field] as string).trim()
+  }
+
+  if ('resultLimit' in body) {
+    const limit = Number(body.resultLimit)
+    if (!Number.isInteger(limit) || limit < 1 || limit > MAX_RESULT_LIMIT) {
+      return invalid(`resultLimit must be a whole number between 1 and ${MAX_RESULT_LIMIT}`)
+    }
+    // Refused past our ceiling, quietly lowered to the provider's own: one is
+    // somebody typing nonsense, the other is Google not answering with more
+    // than ten however politely it is asked.
+    input.resultLimit = limit
   }
 
   if (Object.keys(input).length === 0) return invalid('No editable fields in request body')

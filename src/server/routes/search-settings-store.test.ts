@@ -5,6 +5,7 @@ import type { PgPool, PgQueryResult } from '../db'
 import {
   credentialsForSearch,
   listEngineSettings,
+  resolveEnginesFor,
   resolveProvidersFor,
 } from './search-settings-store'
 
@@ -154,5 +155,49 @@ test('credentials are fetched separately from the list that goes to a browser', 
     // And the list really does not carry them.
     const listed = JSON.stringify(await listEngineSettings(1, pool))
     assert.ok(!listed.includes('secret-key'), 'klucz nie może wyciec na listę')
+  })
+})
+
+test('every engine starts at the default share and says its own ceiling', async () => {
+  await withEnv(NO_ENV, async () => {
+    const { pool } = fakePool()
+    const engines = await listEngineSettings(1, pool)
+    const byProvider = new Map(engines.map((engine) => [engine.provider, engine]))
+
+    assert.ok(engines.every((engine) => engine.resultLimit === 10))
+    // Google's API will not answer with more than ten however it is asked;
+    // the others are capped by ours.
+    assert.equal(byProvider.get('google')?.maxResults, 10)
+    assert.equal(byProvider.get('mistama')?.maxResults, 30)
+  })
+})
+
+test('a stored share is read back, and one past the provider is not', async () => {
+  await withEnv(NO_ENV, async () => {
+    const { pool } = fakePool([
+      { api_key: '', api_secret: '', enabled: true, provider: 'mistama', result_limit: 24 },
+      // However it got there — an older ceiling, a hand-written UPDATE — it is
+      // not what Google will answer with.
+      { api_key: 'k', api_secret: 'cx', enabled: true, provider: 'google', result_limit: 30 },
+    ])
+
+    const engines = await listEngineSettings(1, pool)
+    const byProvider = new Map(engines.map((engine) => [engine.provider, engine]))
+
+    assert.equal(byProvider.get('mistama')?.resultLimit, 24)
+    assert.equal(byProvider.get('google')?.resultLimit, 10)
+  })
+})
+
+test('the search is told each engine share along with which engines to ask', async () => {
+  await withEnv(NO_ENV, async () => {
+    const { pool } = fakePool([
+      { api_key: '', api_secret: '', enabled: true, provider: 'mistama', result_limit: 24 },
+    ])
+
+    assert.deepEqual(await resolveEnginesFor(1, pool), [
+      { limit: 24, provider: 'mistama' },
+      { limit: 10, provider: 'openverse' },
+    ])
   })
 })

@@ -8,6 +8,13 @@ export const SEARCH_PROVIDERS = ['google', 'brave', 'openverse', 'mistama'] as c
 
 export type SearchProvider = (typeof SEARCH_PROVIDERS)[number]
 
+// How many pictures one engine may contribute to a search. Configurable per
+// engine because they differ in what they are good for: an index that finds
+// ten plausible pictures has said all it has to say, while a shop's product
+// card holds twenty photographs of the one right machine.
+export const DEFAULT_RESULT_LIMIT = 10
+export const MAX_RESULT_LIMIT = 30
+
 export type SearchEngineDefinition = {
   // Which environment variables seed this engine when the database has no
   // credentials for it yet. Configuration moved into the database so an admin
@@ -17,6 +24,9 @@ export type SearchEngineDefinition = {
   envSecret?: string
   keyLabel: string
   label: string
+  // Lower than MAX_RESULT_LIMIT when the provider itself refuses to return
+  // more. Only set where that is documented rather than guessed.
+  maxResults?: number
   note: string
   provider: SearchProvider
   requiresKey: boolean
@@ -30,6 +40,8 @@ export const SEARCH_ENGINES: readonly SearchEngineDefinition[] = [
     envSecret: 'GOOGLE_SEARCH_CX',
     keyLabel: 'Klucz API',
     label: 'Google Custom Search',
+    // The API's own ceiling: `num` above ten is a 400, not more results.
+    maxResults: 10,
     note: 'Najlepsze wyniki dla konkretnych modeli. Wymaga klucza z Google Cloud i identyfikatora wyszukiwarki (cx). Darmowe 100 zapytań dziennie.',
     provider: 'google',
     requiresKey: true,
@@ -65,6 +77,16 @@ export const SEARCH_ENGINES: readonly SearchEngineDefinition[] = [
     secretLabel: '',
   },
 ]
+
+// What this engine may actually be asked for. The stored setting is trusted
+// no further than the provider's own limit, so raising the number in the
+// screen can never turn a search into a rejected request.
+export function clampResultLimit(engine: SearchEngineDefinition, value: number): number {
+  const ceiling = Math.min(engine.maxResults ?? MAX_RESULT_LIMIT, MAX_RESULT_LIMIT)
+  if (!Number.isFinite(value)) return Math.min(DEFAULT_RESULT_LIMIT, ceiling)
+
+  return Math.min(Math.max(Math.trunc(value), 1), ceiling)
+}
 
 export function isSearchProvider(value: unknown): value is SearchProvider {
   return typeof value === 'string' && (SEARCH_PROVIDERS as readonly string[]).includes(value)

@@ -9,7 +9,10 @@
 
 import { db, type PgPool } from '../db'
 import {
+  clampResultLimit,
+  DEFAULT_RESULT_LIMIT,
   isUsable,
+  MAX_RESULT_LIMIT,
   maskCredential,
   SEARCH_ENGINES,
   searchEngine,
@@ -29,10 +32,15 @@ export type EngineSettings = {
   keyLabel: string
   keySource: 'database' | 'environment' | 'none'
   label: string
+  // The highest number the screen may offer: the provider's own ceiling where
+  // it has one, otherwise ours.
+  maxResults: number
   note: string
   provider: SearchProvider
   requiresKey: boolean
   requiresSecret: boolean
+  // How many pictures this engine contributes to one search.
+  resultLimit: number
   secretHint: string
   secretLabel: string
   // The caller's own switch. Absent row means on.
@@ -44,11 +52,13 @@ type GlobalRow = {
   api_secret: string
   enabled: boolean
   provider: string
+  result_limit: number | string
 }
 
 async function globalRows(pool: PgPool): Promise<Map<SearchProvider, GlobalRow>> {
   const result = await pool.query<GlobalRow>(
-    `SELECT "provider", "enabled", "api_key", "api_secret" FROM "account"."search_engine"`,
+    `SELECT "provider", "enabled", "api_key", "api_secret", "result_limit"
+     FROM "account"."search_engine"`,
   )
 
   return new Map(result.rows.map((row) => [row.provider as SearchProvider, row]))
@@ -101,8 +111,10 @@ export async function listEngineSettings(
       label: engine.label,
       note: engine.note,
       provider: engine.provider,
+      maxResults: clampResultLimit(engine, MAX_RESULT_LIMIT),
       requiresKey: engine.requiresKey,
       requiresSecret: engine.requiresSecret,
+      resultLimit: clampResultLimit(engine, Number(row?.result_limit ?? DEFAULT_RESULT_LIMIT)),
       secretHint: maskCredential(credentials.secret),
       secretLabel: engine.secretLabel,
       usedByMe: mine.get(engine.provider) ?? true,
@@ -117,11 +129,21 @@ export async function resolveProvidersFor(
   userId: number,
   pool: PgPool = db(),
 ): Promise<SearchProvider[]> {
+  return (await resolveEnginesFor(userId, pool)).map((entry) => entry.provider)
+}
+
+// The same answer with each engine's share of the results, which is what the
+// search itself needs. Kept next to the rule that decides who runs, so the
+// two cannot disagree about which engines the number applies to.
+export async function resolveEnginesFor(
+  userId: number,
+  pool: PgPool = db(),
+): Promise<{ limit: number; provider: SearchProvider }[]> {
   const settings = await listEngineSettings(userId, pool)
 
   return settings
     .filter((entry) => entry.configured && entry.globallyEnabled && entry.usedByMe)
-    .map((entry) => entry.provider)
+    .map((entry) => ({ limit: entry.resultLimit, provider: entry.provider }))
 }
 
 // Credentials are fetched separately from the settings list so that the list —
@@ -142,7 +164,7 @@ export async function credentialsForSearch(
 
 export async function saveGlobalEngine(
   provider: SearchProvider,
-  changes: { apiKey?: string; apiSecret?: string; enabled?: boolean },
+  changes: { apiKey?: string; apiSecret?: string; enabled?: boolean; resultLimit?: number },
   actorId: number,
   pool: PgPool = db(),
 ): Promise<void> {
@@ -152,16 +174,30 @@ export async function saveGlobalEngine(
   // never received.
   await pool.query(
     `
-      INSERT INTO "account"."search_engine" ("provider", "enabled", "api_key", "api_secret", "updated_by")
-      VALUES ($1, COALESCE($2, true), COALESCE($3, ''), COALESCE($4, ''), $5)
+      INSERT INTO "account"."search_engine"
+        ("provider", "enabled", "api_key", "api_secret", "result_limit", "updated_by")
+      VALUES ($1, COALESCE($2, true), COALESCE($3, ''), COALESCE($4, ''), COALESCE($6, 10), $5)
       ON CONFLICT ("provider") DO UPDATE SET
         "enabled" = COALESCE($2, "account"."search_engine"."enabled"),
         "api_key" = COALESCE($3, "account"."search_engine"."api_key"),
         "api_secret" = COALESCE($4, "account"."search_engine"."api_secret"),
+        "result_limit" = COALESCE($6, "account"."search_engine"."result_limit"),
         "updated_by" = $5,
         "updated_at" = now()
     `,
-    [provider, changes.enabled ?? null, changes.apiKey ?? null, changes.apiSecret ?? null, actorId],
+    [
+      provider,
+      changes.enabled ?? null,
+      changes.apiKey ?? null,
+      changes.apiSecret ?? null,
+      actorId,
+      // Clamped before it is stored as well as when it is read: the column's
+      // CHECK is the last word, and a number past a provider's own ceiling
+      // would otherwise sit in the table looking like it means something.
+      changes.resultLimit === undefined
+        ? null
+        : clampResultLimit(searchEngine(provider), changes.resultLimit),
+    ],
   )
 }
 

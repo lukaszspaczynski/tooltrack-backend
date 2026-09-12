@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { clampResultLimit, searchEngine } from './search-engines'
 import {
   combineFailures,
   defaultQuery,
@@ -262,6 +263,21 @@ test('another product cross-sold on the page contributes nothing', () => {
 test('a page with no og:image yields nothing rather than guessing', () => {
   assert.deepEqual(mapMistamaGallery('<html></html>', { title: 'x', url: 'y' }), [])
   assert.deepEqual(mapMistamaGallery('', { title: 'x', url: 'y' }), [])
+})
+
+test('an engine is never asked for more than its provider will give', () => {
+  // Google's `num` above ten is a 400 rather than more results, so the number
+  // in the settings screen is capped before it can produce one.
+  assert.equal(clampResultLimit(searchEngine('google'), 30), 10)
+  assert.equal(clampResultLimit(searchEngine('google'), 5), 5)
+  // The rest are capped by ours alone.
+  assert.equal(clampResultLimit(searchEngine('mistama'), 30), 30)
+  assert.equal(clampResultLimit(searchEngine('openverse'), 999), 30)
+  // Nonsense lands on something usable rather than throwing at search time.
+  assert.equal(clampResultLimit(searchEngine('brave'), 0), 1)
+  assert.equal(clampResultLimit(searchEngine('brave'), -4), 1)
+  assert.equal(clampResultLimit(searchEngine('brave'), Number.NaN), 10)
+  assert.equal(clampResultLimit(searchEngine('brave'), 7.9), 7)
 })
 
 test("the merged list holds every engine's share, not one engine's worth", () => {
