@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  parseLabelIds,
   parseOrganizerCreate,
   parseOrganizerPatch,
   parseOrganizerQuery,
@@ -71,4 +72,14 @@ test('the case filter is what the delete confirmation asks with', () => {
   assert.equal(parsed.value.caseId, 4)
   // Nonsense is dropped rather than refused: this is a link somebody pasted.
   assert.equal(parseOrganizerQuery(new URLSearchParams('caseId=abc')).ok, true)
+})
+
+test('refreshing takes ids, once each, and never an empty list', () => {
+  const parsed = parseLabelIds({ labelIds: [7, 7, 9] })
+
+  assert.ok(parsed.ok)
+  assert.deepEqual(parsed.value, [7, 9])
+  assert.equal(parseLabelIds({ labelIds: [] }).ok, false)
+  assert.equal(parseLabelIds({ labelIds: ['siedem'] }).ok, false)
+  assert.equal(parseLabelIds({}).ok, false)
 })

@@ -312,4 +312,9 @@ test('labels are read with the catalog and drawn with a write', () => {
   assert.equal(allows('/api/organizers/4/labels/9/file', 'GET', user('viewer')), true)
   assert.equal(allows('/api/organizers/4/labels/9/preview', 'GET', user('viewer')), true)
   assert.equal(allows('/api/organizers/4/labels/9', 'DELETE', user('editor')), true)
+
+  // Drawing them again writes the same files, so it costs the same capability
+  // — and 'refresh' must not fall through to some reader's rule.
+  assert.equal(allows('/api/organizers/4/labels/refresh', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/organizers/4/labels/refresh', 'POST', user('editor')), true)
 })

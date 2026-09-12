@@ -116,6 +116,13 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/organizers\/\d+\/labels$/,
   },
   {
+    // Drawing them again writes the same files and rows, so it asks for the
+    // same capability as drawing them the first time.
+    domain: 'organizers',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/organizers\/\d+\/labels\/refresh$/,
+  },
+  {
     // The PDF itself: readable by anyone who may read the catalog, like the
     // bytes of a photo.
     domain: 'organizers',

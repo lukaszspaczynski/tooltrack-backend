@@ -117,6 +117,24 @@ export function parseToolIds(body: unknown): Parsed<number[]> {
   return valid(ids)
 }
 
+// Which labels to draw again. Ids only: everything else about a redraw is
+// already on the row, which is the point of keeping the options.
+export function parseLabelIds(body: unknown): Parsed<number[]> {
+  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+  if (!Array.isArray(body.labelIds)) return invalid('labelIds must be an array')
+  if (body.labelIds.length === 0) return invalid('Nie wybrano żadnej etykiety')
+  if (body.labelIds.length > 50) return invalid('Maksymalnie 50 etykiet naraz')
+
+  const ids: number[] = []
+  for (const raw of body.labelIds) {
+    const id = parseId(raw)
+    if (id === null) return invalid('labelIds must be whole numbers')
+    if (!ids.includes(id)) ids.push(id)
+  }
+
+  return valid(ids)
+}
+
 export type LabelRequest = {
   options: Record<string, unknown>
   slotId: number

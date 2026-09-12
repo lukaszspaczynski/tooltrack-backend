@@ -49,6 +49,7 @@ const BRAND_LOGO_PATTERN = /^\/api\/brands\/(\d+)\/logo$/
 const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
 const ORGANIZER_LABEL_SLOTS_PATTERN = /^\/api\/organizers\/(\d+)\/label-slots$/
 const ORGANIZER_LABELS_PATTERN = /^\/api\/organizers\/(\d+)\/labels$/
+const ORGANIZER_LABEL_REFRESH_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/refresh$/
 const ORGANIZER_LABEL_FILE_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)\/file$/
 const ORGANIZER_LABEL_PREVIEW_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)\/preview$/
 const ORGANIZER_LABEL_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)$/
@@ -143,6 +144,7 @@ const ROUTES = [
   'DELETE /api/organizers/:id/tools/:toolId',
   'GET /api/organizers/:id/label-slots',
   'POST /api/organizers/:id/labels',
+  'POST /api/organizers/:id/labels/refresh',
   'GET /api/organizers/:id/labels/:labelId/file',
   'GET /api/organizers/:id/labels/:labelId/preview',
   'DELETE /api/organizers/:id/labels/:labelId',
@@ -291,7 +293,14 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     return methodHandler(method, { GET: organizers.GET, POST: organizers.POST })
   }
 
-  // Longest first, as everywhere in this table.
+  // Longest first, as everywhere in this table. `refresh` sits above the
+  // :labelId patterns, though those only match digits, so it could not be
+  // mistaken for a label anyway.
+  const labelRefresh = ORGANIZER_LABEL_REFRESH_PATTERN.exec(path)
+  if (labelRefresh) {
+    return methodHandler(method, { POST: organizers.labelRefreshPOST }, { id: labelRefresh[1] })
+  }
+
   const labelFile = ORGANIZER_LABEL_FILE_PATTERN.exec(path)
   if (labelFile) {
     return methodHandler(

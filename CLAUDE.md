@@ -239,7 +239,16 @@ artefact and the picture is a convenience.
 
 `options` on the row is jsonb on purpose: every template asks for different
 things, and a column per template is a column per template forever. The shape
-is documented in docs/api.md rather than in the table.
+is documented in docs/api.md rather than in the table. It is also what makes
+`POST .../labels/refresh` possible: drawing a label again needs nothing the row
+does not already hold, so the id, the size and the options survive and only the
+file underneath changes.
+
+That redraw is why `url` and `previewUrl` carry a `?v=`. Both files are served
+`immutable` for a year and a label keeps its id when it is redrawn, so without
+the checksum on the end a browser would go on showing the copy it cached. The
+version is derived in the mapper from the stored path, which is how the path
+itself stays ours to change.
 
 ## Duplicating a card
 

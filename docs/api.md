@@ -836,15 +836,37 @@ twenty PDF viewers. `previewUrl` on the label is `null` when there is none —
 a label made before previews existed, or one the rasteriser could not read —
 and the list has to cope with that rather than assume.
 
+### `POST /api/organizers/:id/labels/refresh` — `catalog.write`
+
+```json
+{ "labelIds": [14, 16] }
+```
+
+`200 { organizer, refreshed, failed: [{ id, error }] }` — draws the chosen
+labels again from the options they were kept with. The row keeps its id, its
+size and its options; only the file underneath changes. That is what the stored
+options are for: a label made before a tool was added, or before a maker got
+its logo, becomes current without anybody retyping the wizard.
+
+The size comes off the label rather than the slot, so a label whose slot has
+since been taken off the case still redraws at the size it was printed at.
+
+One label that cannot be drawn does not stop the others — a contents label
+whose photos have been deleted comes back in `failed`, named, while the rest
+are brought up to date. Fifty at a time at most.
+
 ### `GET /api/organizers/:id/labels/:labelId/file` — `catalog.read`
 
 The PDF, `application/pdf`, `inline`.
 
 ### `GET /api/organizers/:id/labels/:labelId/preview` — `catalog.read`
 
-The PNG, `image/png`. `404` when the label has no preview. Immutable like the
-PDF: both are named after the checksum of what they show, so a label that
-changes is a different URL.
+The PNG, `image/png`. `404` when the label has no preview.
+
+Both files are served immutable and cached for a year, and a label keeps its id
+when it is drawn again — so `url` and `previewUrl` carry a `?v=` taken from the
+checksum the file is named after. Use the URLs as they come back; building
+either one by hand hands somebody last week's label.
 
 ### `DELETE /api/organizers/:id/labels/:labelId` — `catalog.write`
 
