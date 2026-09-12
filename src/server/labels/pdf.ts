@@ -33,8 +33,9 @@ export type LabelPage = {
   width: number
 }
 
-export async function startLabel(widthMm: number, heightMm: number): Promise<LabelPage> {
-  const doc = await PDFDocument.create()
+// The same two faces in any document that has to say something in Polish —
+// the sheet that gangs labels onto A4 needs them as much as a label does.
+export async function embedLabelFonts(doc: PDFDocument): Promise<LabelFonts> {
   doc.registerFontkit(fontkit)
 
   const [regular, bold] = await Promise.all([
@@ -42,11 +43,18 @@ export async function startLabel(widthMm: number, heightMm: number): Promise<Lab
     doc.embedFont(await readFile(join(FONT_DIR, 'DejaVuSans-Bold.ttf')), { subset: true }),
   ])
 
+  return { bold, regular }
+}
+
+export async function startLabel(widthMm: number, heightMm: number): Promise<LabelPage> {
+  const doc = await PDFDocument.create()
+  const fonts = await embedLabelFonts(doc)
+
   const width = widthMm * MM
   const height = heightMm * MM
   const page = doc.addPage([width, height])
 
-  return { doc, fonts: { bold, regular }, height, page, width }
+  return { doc, fonts, height, page, width }
 }
 
 // The cut line, drawn last so nothing covers it. Hairline and grey rather than
