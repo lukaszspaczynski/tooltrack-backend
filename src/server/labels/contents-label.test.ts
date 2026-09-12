@@ -86,6 +86,21 @@ test('eleven names shrink and then give way to a count', async () => {
   assert.ok(bytes.byteLength > 0)
 })
 
+test('a caption too long for the band ends in an ellipsis rather than vanishing', async () => {
+  // One line somebody typed cannot be shortened by dropping a name from it, so
+  // the only honest answer is to cut it and say so. Before this the band was
+  // simply not drawn, which read as "this box holds nothing".
+  const bytes = await drawContentsLabel({
+    heightMm: 40,
+    photos: [],
+    title: 'Akumulatory',
+    toolNames: ['18 V + 12 V, Li-Ion, ładowarki szybkie i standardowe, adaptery oraz stacje'],
+    widthMm: 30,
+  })
+
+  assert.ok(bytes.byteLength > 0)
+})
+
 test('a slot smaller than the measured one scales the type with it', async () => {
   // The metrics are millimetres read off a 30 x 40 sticker. On anything smaller
   // they have to come down too, or the padding and two lines of type are the

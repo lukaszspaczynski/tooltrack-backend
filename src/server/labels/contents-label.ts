@@ -217,6 +217,8 @@ function captionBlock(
   minSize: number,
   maxWidth: number,
 ): null | TextBlock {
+  let smallest: string[] = []
+
   for (let shown = names.length; shown > 0; shown -= 1) {
     const hidden = names.length - shown
     const text = [...names.slice(0, shown), ...(hidden > 0 ? [`+${hidden} więcej`] : [])]
@@ -225,9 +227,20 @@ function captionBlock(
 
     const block = fitBlock(text, font, maxSize, minSize, maxWidth, CAPTION_LINES)
     if (block) return block
+
+    smallest = wrapText(text, font, minSize, maxWidth)
   }
 
-  return null
+  // Nothing fits, not even one name at the smallest size — a caption somebody
+  // typed by hand, or a single tool with a very long name. Three lines of it
+  // ending in an ellipsis beats the band vanishing, which is what dropping the
+  // caption here used to do.
+  if (smallest.length === 0) return null
+
+  const lines = smallest.slice(0, CAPTION_LINES)
+  lines[lines.length - 1] = `${lines[lines.length - 1]}…`
+
+  return { lines, size: minSize }
 }
 
 type Area = { bottom: number; gap: number; left: number; right: number; top: number }
