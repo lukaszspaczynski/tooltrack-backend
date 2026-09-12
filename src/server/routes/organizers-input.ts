@@ -1,6 +1,7 @@
 // Organizer bodies and list query strings. Pure; see input.ts.
 
 import { MAX_CONTENTS_PHOTOS } from '../labels/contents-label'
+import { captionSource } from '../labels/generate'
 import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
 
 export const MAX_NAME_LENGTH = 200
@@ -203,6 +204,10 @@ export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
 
   return valid({
     options: {
+      // Normalised on the way in, so a stored row always says outright where
+      // its caption came from. Reading it back still tolerates a row that
+      // does not, because the older ones do not.
+      namesSource: captionSource({ namesSource: trimmedString(body.namesSource) ?? '', namesText }),
       namesText,
       photoIds,
       printReady,

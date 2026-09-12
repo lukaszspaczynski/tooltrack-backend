@@ -23,10 +23,12 @@ export type NumberOptions = {
 }
 
 export type ContentsOptions = {
-  // Empty means the label works it out: the organizer's name over the rule and
-  // the tool names under it. Anything else is what somebody typed instead —
-  // "18 V + 12 V, LI-ION" says more about a box of batteries than five product
-  // names would, and only a person knows that.
+  // Where the line under the rule comes from. Absent on labels made before
+  // there was a choice, which is what `captionSource` is for.
+  namesSource?: CaptionSource
+  // Empty means the label works it out. Anything else is what somebody typed
+  // instead — "18 V + 12 V, LI-ION" says more about a box of batteries than
+  // five product names would, and only a person knows that.
   namesText: string
   photoIds: number[]
   printReady: boolean
@@ -36,7 +38,66 @@ export type ContentsOptions = {
   withTitle: boolean
 }
 
+export const CAPTION_SOURCES = ['models', 'text', 'tools'] as const
+
+export type CaptionSource = (typeof CAPTION_SOURCES)[number]
+
+// What the caption is made of. A label drawn before the choice existed says
+// nothing about it, and back then a text meant a typed line while its absence
+// meant the tool names — which is what those labels still mean when one of
+// them is drawn again.
+export function captionSource(options: {
+  namesSource?: string
+  namesText?: string
+}): CaptionSource {
+  // Checked rather than trusted: these options come back out of jsonb, and a
+  // row can hold whatever was written into it. Below, the answer picks a
+  // column name.
+  if (CAPTION_SOURCES.includes(options.namesSource as CaptionSource)) {
+    return options.namesSource as CaptionSource
+  }
+
+  return options.namesText ? 'text' : 'tools'
+}
+
 export type LabelOptions = ContentsOptions | NumberOptions
+
+// The tool names, their model numbers, or the line somebody typed.
+//
+// A model is what is written on the machine and what somebody orders a spare
+// belt by — "POF 1200 F5" identifies the box more sharply than "Frezarka
+// górnowrzecionowa", which is a category. Duplicates are dropped, because two
+// identical batteries are one model and printing it twice says nothing twice.
+async function caption(
+  organizerId: number,
+  options: ContentsOptions,
+  pool: PgPool,
+): Promise<string[]> {
+  const source = captionSource(options)
+  if (source === 'text') return options.namesText ? [options.namesText] : []
+
+  // The one place a caption source becomes SQL, and it is a lookup in a fixed
+  // map — the same rule as SORT_COLUMNS. A value that is not a key of this
+  // cannot reach a query, whatever a row happens to hold.
+  const column = CAPTION_COLUMNS[source]
+  const result = await pool.query<{ value: string }>(
+    `
+      SELECT "t"."${column}" AS "value"
+      FROM "catalog"."organizer_tool" AS "ot"
+      JOIN "catalog"."tool" AS "t" ON "t"."id" = "ot"."tool_id"
+      WHERE "ot"."organizer_id" = $1 AND btrim("t"."${column}") <> ''
+      ORDER BY lower("t"."name")
+    `,
+    [organizerId],
+  )
+
+  return [...new Set(result.rows.map((row) => row.value.trim()))]
+}
+
+const CAPTION_COLUMNS: Record<Exclude<CaptionSource, 'text'>, string> = {
+  models: 'model',
+  tools: 'name',
+}
 
 export class LabelDataError extends Error {
   constructor(message: string) {
@@ -155,22 +216,7 @@ async function generateContents(
   // One typed line arrives as a list of one: the template composes a caption
   // out of whatever it is given, and shortening a list it cannot fit is the
   // same code either way.
-  const names = !options.withNames
-    ? []
-    : options.namesText
-      ? [options.namesText]
-      : (
-          await pool.query<{ name: string }>(
-            `
-            SELECT "t"."name"
-            FROM "catalog"."organizer_tool" AS "ot"
-            JOIN "catalog"."tool" AS "t" ON "t"."id" = "ot"."tool_id"
-            WHERE "ot"."organizer_id" = $1
-            ORDER BY lower("t"."name")
-          `,
-            [organizerId],
-          )
-        ).rows.map((row) => row.name)
+  const names = options.withNames ? await caption(organizerId, options, pool) : []
 
   return drawContentsLabel({
     heightMm: size.heightMm,

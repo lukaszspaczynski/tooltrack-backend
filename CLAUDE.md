@@ -201,12 +201,18 @@ template uses to decide whether to stack the number over the maker. The count
 is therefore checked in the route rather than in the parser: the parser knows
 the ceiling, only the resolved slot knows the shape.
 
-Both lines of type on a `contents` label can be typed instead of worked out:
-`titleText` and `namesText` empty mean the organizer's name and the tool names,
-and anything else is printed in their place. Empty as absence rather than as a
-value is the `brand.color` convention, and it is what keeps the options of
-labels made before the fields existed meaning what they meant — a redraw of one
-still puts the catalog's own words on.
+Both lines of type on a `contents` label can be typed instead of worked out,
+and the lower one has a third source: `namesSource` picks the tool names,
+their models, or the typed `namesText`. A model is what is written on the
+machine — "POF 1200 F5" says more about a box than the category name does.
+That field becomes a column name, so it is validated against a fixed map on
+the way out of jsonb rather than trusted: the same rule as `SORT_COLUMNS`.
+An empty `titleText` still means the organizer's name, and an absent
+`namesSource` still means what it used to: a text is a typed line, no text is
+the tool names. Empty as absence rather than as a value is the `brand.color`
+convention, and it is what keeps labels made before any of these fields
+existed meaning what they meant — a redraw of one still puts the catalog's own
+words on.
 
 The `contents` metrics are millimetres measured off a 30 x 40 mm Qbrick
 sticker, not shares of the label: matching that sheet is the whole point of the

@@ -91,6 +91,47 @@ test('an empty text on a contents label means "work it out"', () => {
   assert.equal(parsed.value.options.namesText, '')
 })
 
+test('the caption says outright where it comes from', () => {
+  const models = parseLabelRequest({
+    namesSource: 'models',
+    slotId: 4,
+    template: 'contents',
+    withNames: true,
+  })
+
+  assert.ok(models.ok)
+  assert.equal(models.value.options.namesSource, 'models')
+
+  // Nonsense in the field is not a source. It falls back the same way a row
+  // with no source at all does, rather than reaching the query that turns a
+  // source into a column name.
+  const rubbish = parseLabelRequest({
+    namesSource: "name'; DROP TABLE",
+    slotId: 4,
+    template: 'contents',
+    withNames: true,
+  })
+
+  assert.ok(rubbish.ok)
+  assert.equal(rubbish.value.options.namesSource, 'tools')
+})
+
+test('a request from before the choice existed still means what it meant', () => {
+  // A typed text meant a typed line; its absence meant the tool names.
+  const typed = parseLabelRequest({
+    namesText: '18 V, Li-Ion',
+    slotId: 4,
+    template: 'contents',
+    withNames: true,
+  })
+  const plain = parseLabelRequest({ slotId: 4, template: 'contents', withNames: true })
+
+  assert.ok(typed.ok)
+  assert.ok(plain.ok)
+  assert.equal(typed.value.options.namesSource, 'text')
+  assert.equal(plain.value.options.namesSource, 'tools')
+})
+
 test('a typed line travels as itself, trimmed', () => {
   const parsed = parseLabelRequest({
     namesText: '  18 V + 12 V, Li-Ion  ',

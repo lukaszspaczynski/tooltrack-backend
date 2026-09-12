@@ -801,7 +801,8 @@ when the case has no places recorded yet.
   "withTitle": true,
   "titleText": "",
   "withNames": true,
-  "namesText": "18 V + 12 V, Li-Ion"
+  "namesSource": "models",
+  "namesText": ""
 }
 ```
 
@@ -833,10 +834,24 @@ measured and the one that draws them largest wins, because a row that suits a
 200 × 60 lid is hopeless on a 30 × 40 front. Names that do not fit shrink, and
 then the tail becomes "+N więcej".
 
-`withTitle` and `withNames` say whether each line is there at all. `titleText`
-and `namesText` say what it reads: **empty means work it out** — the
-organizer's name over the rule, the tool names under it — and anything else is
-printed instead of what the catalog thinks. The same convention as
+`withTitle` and `withNames` say whether each line is there at all.
+
+`namesSource` says where the line under the rule comes from: `tools` (the tool
+names, the default), `models` (their model numbers) or `text` (`namesText`).
+The models are what is written on the machine and what a spare belt is ordered
+by — "POF 1200 F5" identifies a box more sharply than "Frezarka
+górnowrzecionowa", which is a category. Duplicates are dropped and a tool with
+no model recorded is skipped. An unknown value is treated as `tools` rather
+than refused, because the same field is read back out of jsonb on a redraw and
+a row can hold anything; below it, the answer picks a column name.
+
+Omitting `namesSource` means the old rule — a `namesText` is a typed line, its
+absence is the tool names — which is what labels made before the choice
+existed still mean when they are drawn again.
+
+`titleText` is the line over the rule: **empty means work it out** — the
+organizer's name — and anything else is printed instead of what the catalog
+thinks. The same convention as
 `brand.color`, where empty is the absence of a value rather than a value. It
 matters because a person knows things the catalog does not: "18 V + 12 V,
 LI-ION" says more about a box of batteries than five product names would. At
