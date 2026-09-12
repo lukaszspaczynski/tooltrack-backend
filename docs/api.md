@@ -496,12 +496,21 @@ which otherwise is the tool's brand and model.
 ```
 
 Every engine enabled for the calling account is asked **in parallel**, and each
-one contributes **up to ten results** — the limit is per engine, so two engines
-switched on mean twice as much to choose from rather than the same ten split
-between them. The answers are interleaved, so the first row shows all of them,
+one contributes **up to its own `resultLimit`** — ten by default, set per engine
+in the settings. The limit is per engine, so two engines switched on mean twice
+as much to choose from rather than the same ten split between them, and the
+merged list holds the sum of their shares. The answers are interleaved, so the first row shows all of them,
 and the same picture found by two engines is one suggestion. An engine that
 fails is named in `failed` and the rest still answer; only when all of them
 fail is it a `503`.
+
+**`mistama`** is not an image index but a shop, and it answers a different
+question: instead of pictures that look like the words, it finds the product
+card for this model and hands back that card's gallery — one machine
+photographed from every side, at the size the manufacturer shot it. It is the
+best engine here for a tool it sells and useless for one it does not. Its
+search wants every word to match, so a query it cannot place is retried on the
+last two words alone, which is where the model number sits.
 
 Nothing is downloaded here — these are links. Saving is `POST /photos` with the
 ones that were picked. It asks for `catalog.write` rather than `catalog.read`
@@ -533,12 +542,18 @@ searches with is that person's own business.
       "requiresKey": true,
       "requiresSecret": true,
       "keyLabel": "Klucz API",
-      "secretLabel": "Identyfikator wyszukiwarki (cx)"
+      "secretLabel": "Identyfikator wyszukiwarki (cx)",
+      "resultLimit": 10,
+      "maxResults": 10
     }
   ],
   "usable": 2
 }
 ```
+
+`resultLimit` is how many pictures this engine contributes to one search, and
+`maxResults` is the highest it may be set to — the provider's own ceiling where
+it has one (Google answers with at most ten however it is asked), otherwise 30.
 
 The same answer for everybody, because a non-admin has to see why the search
 button is grey. **It never carries a credential** — only whether one is set,
@@ -549,11 +564,16 @@ has nothing to call.
 ### `PATCH /api/settings/search-engines/:provider` — `users.manage`
 
 ```json
-{ "apiKey": "…", "apiSecret": "…", "enabled": true }
+{ "apiKey": "…", "apiSecret": "…", "enabled": true, "resultLimit": 20 }
 ```
 
 Global. An omitted field keeps what is stored, an empty string clears it — that
 distinction is what lets a form which never receives a key avoid wiping one.
+
+`resultLimit` is refused outside 1–30 and quietly lowered to the provider's own
+ceiling within it. Those are different mistakes: 99 is somebody typing
+nonsense, while 30 for Google is a reasonable thing to ask for that Google will
+not do.
 `enabled: false` switches the engine off for everyone, whatever each account
 prefers; it is how you stop paying for a provider without deleting its key.
 Answers with the same shape as the `GET`.
@@ -571,8 +591,8 @@ is on for everybody the moment an admin sets it up.
 
 A value saved through this API wins. When none is stored, the engine falls back
 to its environment variable (`GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_CX`,
-`BRAVE_SEARCH_API_KEY`), which is what `keySource` reports. Openverse needs
-neither.
+`BRAVE_SEARCH_API_KEY`), which is what `keySource` reports. Openverse and
+mistama need neither, so those two are what a fresh install can search with.
 
 ### `GET /api/settings/cutout` — `catalog.read`
 

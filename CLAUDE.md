@@ -287,9 +287,31 @@ saved in the database wins, the environment variable is the fallback. It is
 also the only module that reads credentials, and the list it builds for the
 screen deliberately cannot carry them.
 
+How many pictures each engine may contribute is per engine and lives in
+`account.search_engine.result_limit`, because the engines are not
+interchangeable: ten plausible pictures is everything an index has to say,
+while a shop's product card holds twenty photographs of the one right machine.
+The number is clamped twice — once where it is stored and once where it is read
+— against `maxResults` in the registry, which is set only where a provider
+documents its own ceiling (Google's `num` above ten is a 400, not more
+results). The merged list holds the sum of the shares; capping it at one share
+is how a third engine could be switched on and change nothing.
+
 `photo-search.ts` takes the engines and their credentials as arguments rather
 than reading configuration itself, which is why its mapping functions are
 testable without a network or a database.
+
+`mistama` is the odd one: a shop, not an index, read as HTML rather than JSON.
+It costs two requests — find the product card, then take that card's gallery —
+and gives back one model shot from every side at full size, which is what a
+catalog card wants and what a general image search is worst at. Two rules keep
+it honest: the gallery is anchored on the hash in the page's `og:image`, so a
+cross-sold tool on the same page contributes nothing, and a search that finds
+nothing is retried on the last two words of the query, because the shop ANDs
+every word and a brand it spells differently ("BOSCH" against "Bosch Home &
+Garden") matches nothing at all. Both halves are pure functions over the
+markup, pinned by tests copied from the real pages — a template change there is
+the one thing that can quietly break this engine.
 
 ## Adding a route
 

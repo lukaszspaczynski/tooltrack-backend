@@ -45,22 +45,23 @@ const NO_ENV = {
   GOOGLE_SEARCH_CX: undefined,
 }
 
-test('a fresh install has Openverse and nothing else', async () => {
+test('a fresh install has the engines that need no key, and only those', async () => {
   await withEnv(NO_ENV, async () => {
     const { pool } = fakePool()
 
     const engines = await listEngineSettings(1, pool)
     const byProvider = new Map(engines.map((engine) => [engine.provider, engine]))
 
-    // No key needed, so it works out of the box.
+    // No key needed, so they work out of the box.
     assert.equal(byProvider.get('openverse')?.configured, true)
+    assert.equal(byProvider.get('mistama')?.configured, true)
     // Keyed engines are listed but not usable until someone configures them.
     assert.equal(byProvider.get('google')?.configured, false)
     assert.equal(byProvider.get('brave')?.configured, false)
     // Nobody has switched anything off yet.
     assert.ok(engines.every((engine) => engine.globallyEnabled && engine.usedByMe))
 
-    assert.deepEqual(await resolveProvidersFor(1, pool), ['openverse'])
+    assert.deepEqual(await resolveProvidersFor(1, pool), ['mistama', 'openverse'])
   })
 })
 
@@ -107,7 +108,7 @@ test('a half-configured engine is not usable', async () => {
     const google = (await listEngineSettings(1, pool)).find((e) => e.provider === 'google')
 
     assert.equal(google?.configured, false)
-    assert.deepEqual(await resolveProvidersFor(1, pool), ['openverse'])
+    assert.deepEqual(await resolveProvidersFor(1, pool), ['mistama', 'openverse'])
   })
 })
 
@@ -122,7 +123,8 @@ test('the global switch beats the account switch', async () => {
     // Still configured — it needs no key — but switched off for everyone.
     assert.equal(openverse?.configured, true)
     assert.equal(openverse?.globallyEnabled, false)
-    assert.deepEqual(await resolveProvidersFor(1, pool), [])
+    // The other keyless engine is untouched by that switch.
+    assert.deepEqual(await resolveProvidersFor(1, pool), ['mistama'])
   })
 })
 
@@ -134,7 +136,7 @@ test('an account can opt out of an engine that is on for everyone else', async (
 
     assert.equal(engines.find((e) => e.provider === 'openverse')?.usedByMe, false)
     assert.equal(engines.find((e) => e.provider === 'brave')?.usedByMe, true)
-    assert.deepEqual(await resolveProvidersFor(7, pool), ['brave'])
+    assert.deepEqual(await resolveProvidersFor(7, pool), ['brave', 'mistama'])
   })
 })
 

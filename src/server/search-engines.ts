@@ -4,7 +4,7 @@
 // Pure and free of I/O, because three different places have to agree about it
 // — the settings screen, the store that holds the keys, and the search itself.
 
-export const SEARCH_PROVIDERS = ['google', 'brave', 'openverse'] as const
+export const SEARCH_PROVIDERS = ['google', 'brave', 'openverse', 'mistama'] as const
 
 export type SearchProvider = (typeof SEARCH_PROVIDERS)[number]
 
@@ -48,6 +48,15 @@ export const SEARCH_ENGINES: readonly SearchEngineDefinition[] = [
   },
   {
     keyLabel: '',
+    label: 'mistama.com',
+    note: 'Sklep z elektronarzędziami. Nie szuka obrazków w sieci — znajduje kartę produktu i bierze zdjęcia z jej galerii, więc dostaje się komplet ujęć jednego modelu w pełnej rozdzielczości. Bez klucza. Zna tylko to, czym sklep handluje.',
+    provider: 'mistama',
+    requiresKey: false,
+    requiresSecret: false,
+    secretLabel: '',
+  },
+  {
+    keyLabel: '',
     label: 'Openverse',
     note: 'Bez klucza, działa od razu. Indeksuje zdjęcia na wolnych licencjach, więc znajdzie „szlifierkę kątową”, ale nie „GWS 180-LI”.',
     provider: 'openverse',
@@ -72,8 +81,9 @@ export type SearchCredentials = {
   secret: string
 }
 
-// An engine can run when it is switched on and has whatever it needs. Openverse
-// needs nothing, which is why it is the one that works on a fresh install.
+// An engine can run when it is switched on and has whatever it needs.
+// Openverse and mistama need nothing, which is why those two are what works on
+// a fresh install.
 export function isUsable(
   engine: SearchEngineDefinition,
   credentials: SearchCredentials,

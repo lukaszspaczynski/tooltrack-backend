@@ -4,9 +4,11 @@ import test from 'node:test'
 import {
   combineFailures,
   defaultQuery,
+  firstMistamaProduct,
   interleave,
   mapBraveResults,
   mapGoogleResults,
+  mapMistamaGallery,
   mapOpenverseResults,
   PhotoSearchUnavailableError,
   searchPhotos,
@@ -184,4 +186,80 @@ test('an unexpected payload is an empty list, not a crash', () => {
     assert.deepEqual(mapBraveResults(payload), [])
     assert.deepEqual(mapOpenverseResults(payload), [])
   }
+})
+
+// The shop is read as HTML rather than JSON, so the markup below is copied
+// from the real pages — the point of pinning it is to fail when the shop
+// changes its template, which is the one thing that can quietly break this
+// engine.
+const SEARCH_HTML = `
+<div class="product thumbnail clearfix">
+  <div class="image"><a href="/strug-akumulatorowy-gho-185-li-bosch-2x5-0ah.html"><img src="x" /></a></div>
+  <p class="name"><a href="/strug-akumulatorowy-gho-185-li-bosch-2x5-0ah.html" class="product_name">Strug akumulatorowy GHO 185-LI BOSCH 2x5,0Ah</a></p>
+</div>
+<div class="product thumbnail clearfix">
+  <p class="name"><a href="/strug-akumulatorowy-gho-185-li-bosch-korpus-body.html" class="product_name">Strug akumulatorowy GHO 185-LI BOSCH (korpus, body)</a></p>
+</div>`
+
+const PRODUCT_HTML = `
+<meta property="og:image" content="https://mistama.com/media/products/40d2ab20/images/thumbnail/big_IMG-5100-100.jpg?lm=1748667450" />
+<img src="/media/products/40d2ab20/images/thumbnail/large_IMG-5100-100.jpg?lm=1" />
+<a href="/media/products/40d2ab20/images/thumbnail/big_IMG-5100-100.jpg"></a>
+<img src="/media/products/40d2ab20/images/thumbnail/large_IMG-5361-100.jpg" />
+<img src="/media/products/40d2ab20/images/thumbnail/large_z1.jpg" />
+<img src="/media/products/ffffffff/images/thumbnail/large_inne-narzedzie.jpg" />`
+
+test("the shop's first result is the product it ranked first", () => {
+  const product = firstMistamaProduct(SEARCH_HTML)
+
+  assert.equal(product?.path, '/strug-akumulatorowy-gho-185-li-bosch-2x5-0ah.html')
+  assert.equal(product?.title, 'Strug akumulatorowy GHO 185-LI BOSCH 2x5,0Ah')
+})
+
+test('an article is not a product, and nothing found is not a crash', () => {
+  // /webpage/... is a guarantee or a buying guide. It has no gallery, so
+  // following it would cost two requests to find that out.
+  assert.equal(
+    firstMistamaProduct(
+      '<a href="/webpage/5-letnia-gwarancja-skil.html" class="product_name">Gwarancja</a>',
+    ),
+    null,
+  )
+  assert.equal(firstMistamaProduct(''), null)
+  assert.equal(firstMistamaProduct('<html><body>Nic nie znaleziono</body></html>'), null)
+})
+
+test('the gallery is the originals, listed once each', () => {
+  const suggestions = mapMistamaGallery(PRODUCT_HTML, {
+    title: 'Pilarka tarczowa',
+    url: 'https://mistama.com/pilarka.html',
+  })
+
+  // Three pictures, not four: the same one appears as `large_` and as `big_`.
+  assert.equal(suggestions.length, 3)
+  // The suggestion points at the untouched original; the grid gets `large_`.
+  assert.equal(
+    suggestions[0].url,
+    'https://mistama.com/media/products/40d2ab20/images/IMG-5100-100.jpg',
+  )
+  assert.equal(
+    suggestions[0].thumbnailUrl,
+    'https://mistama.com/media/products/40d2ab20/images/thumbnail/large_IMG-5100-100.jpg',
+  )
+  assert.equal(suggestions[0].sourceUrl, 'https://mistama.com/pilarka.html')
+  assert.equal(suggestions[0].provider, 'mistama')
+})
+
+test('another product cross-sold on the page contributes nothing', () => {
+  // Anchored on the hash in og:image. A suggestion of the wrong machine is
+  // worse than one suggestion fewer.
+  const suggestions = mapMistamaGallery(PRODUCT_HTML, { title: 'x', url: 'https://mistama.com/x' })
+
+  assert.ok(suggestions.every((s) => !s.url.includes('ffffffff')))
+  assert.ok(suggestions.every((s) => !s.url.includes('inne-narzedzie')))
+})
+
+test('a page with no og:image yields nothing rather than guessing', () => {
+  assert.deepEqual(mapMistamaGallery('<html></html>', { title: 'x', url: 'y' }), [])
+  assert.deepEqual(mapMistamaGallery('', { title: 'x', url: 'y' }), [])
 })

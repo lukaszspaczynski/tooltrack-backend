@@ -1,9 +1,18 @@
 // DDL for search engine configuration: the global one an admin owns, and the
 // per-account switches every user owns for themselves.
+//
+// The list of providers is interpolated from the registry rather than written
+// out here. It was written out once, and adding a fourth engine left a CHECK
+// that refused it — the table and the code have to agree, so only one of them
+// gets to say.
+
+import { SEARCH_PROVIDERS } from './search-engines'
+
+const PROVIDER_LIST = SEARCH_PROVIDERS.map((provider) => `'${provider}'`).join(', ')
 
 export const SEARCH_SETTINGS_DDL = `
 CREATE TABLE IF NOT EXISTS "account"."search_engine" (
-  "provider" text PRIMARY KEY CHECK ("provider" IN ('google', 'brave', 'openverse')),
+  "provider" text PRIMARY KEY CHECK ("provider" IN (${PROVIDER_LIST})),
   -- The global switch. An admin turning an engine off here stops it for
   -- everyone, whatever each account prefers — that is how you stop spending
   -- money on a provider without deleting its key.
@@ -26,6 +35,11 @@ CREATE TABLE IF NOT EXISTS "account"."user_search_engine" (
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   PRIMARY KEY ("user_id", "provider")
 );
+
+-- Databases that predate the fourth engine.
+ALTER TABLE "account"."search_engine" DROP CONSTRAINT IF EXISTS "search_engine_provider_check";
+ALTER TABLE "account"."search_engine"
+  ADD CONSTRAINT "search_engine_provider_check" CHECK ("provider" IN (${PROVIDER_LIST}));
 
 COMMENT ON TABLE "account"."search_engine" IS 'Global image-search configuration. Credentials never leave the server.';
 COMMENT ON TABLE "account"."user_search_engine" IS 'Per-account opt-outs. A missing row means the engine is used.';

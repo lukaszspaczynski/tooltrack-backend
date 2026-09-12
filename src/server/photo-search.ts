@@ -143,6 +143,8 @@ export async function searchPhotos(
     failed,
     providers: engines.map((engine) => engine.provider),
     query: trimmed,
+    // The sum, not one engine's share: two engines switched on mean twice as
+    // much to choose from, which is the whole point of switching on a second.
     suggestions: interleave(
       answers.map((answer) => answer.suggestions),
       count,
@@ -194,6 +196,8 @@ function askEngine(
       return brave(engine.credentials, query, count)
     case 'google':
       return google(engine.credentials, query, count)
+    case 'mistama':
+      return mistama(query, count)
     case 'openverse':
       return openverse(query, count)
   }
@@ -236,6 +240,115 @@ async function openverse(query: string, count: number): Promise<PhotoSuggestion[
   url.searchParams.set('page_size', String(count))
 
   return mapOpenverseResults(await callProvider(url, 'openverse'))
+}
+
+// A shop rather than an index: it is asked for the product card and the
+// pictures come off that card's gallery. Two hops, so it costs two requests
+// and gives back one model photographed from every side at full size —
+// exactly what a catalog card wants and what a general image search is worst
+// at.
+//
+// It knows only what the shop sells. That is the trade, and the note on the
+// settings screen says so.
+const MISTAMA_ORIGIN = 'https://mistama.com'
+
+async function mistama(query: string, count: number): Promise<PhotoSuggestion[]> {
+  let product = firstMistamaProduct(await askMistama(query))
+
+  // The shop's search wants every word to match, and a brand it writes
+  // differently from us — "BOSCH" against "Bosch Home & Garden" — finds
+  // nothing at all. The model is the last thing in the query and the part the
+  // shop does index, so a fruitless search is retried on that alone.
+  const words = query.split(/\s+/).filter(Boolean)
+  if (!product && words.length > 2) {
+    product = firstMistamaProduct(await askMistama(words.slice(-2).join(' ')))
+  }
+
+  if (!product) return []
+
+  const page = new URL(product.path, MISTAMA_ORIGIN).toString()
+  const gallery = mapMistamaGallery(await fetchText(new URL(page), 'mistama'), {
+    title: product.title,
+    url: page,
+  })
+
+  return gallery.slice(0, count)
+}
+
+function askMistama(query: string): Promise<string> {
+  const url = new URL('/product/search', MISTAMA_ORIGIN)
+  url.searchParams.set('query', query)
+
+  return fetchText(url, 'mistama')
+}
+
+// The first product the shop ranked, ignoring its articles — /webpage/... is a
+// guarantee or a buying guide, never a thing with photographs of a tool.
+export function firstMistamaProduct(html: string): null | { path: string; title: string } {
+  const match = /<a\s+href="(\/[^"]+\.html)"[^>]*class="product_name"[^>]*>([^<]*)</i.exec(html)
+  if (!match || match[1].startsWith('/webpage/')) return null
+
+  return { path: match[1], title: decodeEntities(match[2].trim()) }
+}
+
+// The gallery of one product card.
+//
+// Anchored on the hash in og:image rather than on every product path in the
+// page: a card that cross-sells something else would otherwise contribute the
+// other tool's photographs, and a suggestion of the wrong machine is worse
+// than one fewer suggestion.
+//
+// The shop serves each picture in three sizes. The grid gets `large_`, which
+// is what makes a screen of twenty tiles load, and the suggestion points at
+// the untouched original, which is what gets stored when somebody picks it.
+export function mapMistamaGallery(
+  html: string,
+  product: { title: string; url: string },
+): PhotoSuggestion[] {
+  const ogImage = /<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i.exec(html)?.[1] ?? ''
+  const hash = /\/media\/products\/([a-f0-9]+)\/images\//i.exec(ogImage)?.[1]
+  if (!hash) return []
+
+  const base = `${MISTAMA_ORIGIN}/media/products/${hash}/images`
+  const pattern = new RegExp(
+    `/media/products/${hash}/images/thumbnail/(?:large|big)_([^"'?\\s]+\\.(?:jpe?g|png|webp))`,
+    'gi',
+  )
+
+  const seen = new Set<string>()
+  const suggestions: PhotoSuggestion[] = []
+
+  for (const match of html.matchAll(pattern)) {
+    const name = match[1]
+    if (seen.has(name)) continue
+    seen.add(name)
+
+    suggestions.push({
+      attribution: 'mistama.com',
+      // The page states neither, and a number read off a thumbnail name is a
+      // number somebody would trust.
+      height: null,
+      provider: 'mistama' as const,
+      sourceUrl: product.url,
+      thumbnailUrl: `${base}/thumbnail/large_${name}`,
+      title: product.title,
+      url: `${base}/${name}`,
+      width: null,
+    })
+  }
+
+  return suggestions
+}
+
+// The entities a Polish shop's product name actually contains. A parser for
+// the other two thousand would be a dependency for "Bosch &amp; Co".
+function decodeEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
 }
 
 // Every provider is mapped by a pure function over the parsed JSON, so the
@@ -343,10 +456,37 @@ async function callProvider(
   provider: SearchProvider,
   headers: Record<string, string> = {},
 ): Promise<unknown> {
+  const response = await call(url, provider, { accept: 'application/json', ...headers })
+
+  try {
+    return await response.json()
+  } catch {
+    throw new PhotoSearchUnavailableError(`${provider}: nieczytelna odpowiedź`)
+  }
+}
+
+// The same request, read as a page. One engine reads a shop rather than an
+// API, and what fails is identical either way — so the deciding is here, once,
+// and only the parsing differs.
+async function fetchText(url: URL, provider: SearchProvider): Promise<string> {
+  const response = await call(url, provider, { accept: 'text/html' })
+
+  try {
+    return await response.text()
+  } catch {
+    throw new PhotoSearchUnavailableError(`${provider}: nieczytelna odpowiedź`)
+  }
+}
+
+async function call(
+  url: URL,
+  provider: SearchProvider,
+  headers: Record<string, string>,
+): Promise<Response> {
   let response: Response
   try {
     response = await fetch(url, {
-      headers: { accept: 'application/json', 'user-agent': USER_AGENT, ...headers },
+      headers: { 'user-agent': USER_AGENT, ...headers },
       signal: AbortSignal.timeout(SEARCH_TIMEOUT_MS),
     })
   } catch {
@@ -366,11 +506,7 @@ async function callProvider(
     )
   }
 
-  try {
-    return await response.json()
-  } catch {
-    throw new PhotoSearchUnavailableError(`${provider}: nieczytelna odpowiedź`)
-  }
+  return response
 }
 
 function asArray(value: unknown): unknown[] {
