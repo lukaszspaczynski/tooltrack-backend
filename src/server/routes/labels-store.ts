@@ -1,11 +1,36 @@
-// The label SQL that is not about one organizer.
+// Every label in the system, seen from outside the organizer that made it.
 //
-// `organizers-store.ts` reads the labels of an arrangement as part of it. These
-// two questions are asked from outside that: which rows to draw again, and
-// where a label's files are served from. Both are shared, and a second copy of
-// either is a second answer waiting to disagree.
+// `organizers-store.ts` answers "what has this arrangement produced"; this one
+// answers "what have we printed", which is the question somebody asks after a
+// box changed and a shelf of stickers went stale. Same split as the photo
+// library next to the per-card gallery.
 
 import { db, type PgPool } from '../db'
+import type { LabelListQuery } from './labels-input'
+
+export type LabelListItem = {
+  byteSize: number
+  // The box the label is stuck on. A sticker is found by the box far more
+  // often than by the arrangement, so the tile says both.
+  case: { id: number; manufacturer: string; name: string }
+  createdAt: string
+  createdBy: null | number
+  heightMm: number
+  id: number
+  options: Record<string, unknown>
+  organizer: { id: number; name: string; number: number }
+  previewUrl: null | string
+  template: string
+  url: string
+  widthMm: number
+}
+
+export type LabelPage = {
+  items: LabelListItem[]
+  limit: number
+  offset: number
+  total: number
+}
 
 // What a redraw needs, for the labels asked for and no others. The organizer
 // comes back on every row because the generator draws from one — a selection
@@ -16,6 +41,79 @@ export type LabelToRedraw = {
   options: Record<string, unknown>
   organizerId: number
   widthMm: number
+}
+
+type LabelRow = {
+  byte_size: number | string
+  case_id: number | string
+  case_manufacturer: string
+  case_name: string
+  created_at: Date | string
+  created_by: null | number | string
+  height_mm: number | string
+  id: number | string
+  options: null | Record<string, unknown>
+  organizer_id: number | string
+  organizer_name: string
+  organizer_number: number | string
+  pdf_path: string
+  preview_path: string
+  template: string
+  total_count?: number | string
+  width_mm: number | string
+}
+
+const LABEL_COLUMNS = `
+    "l"."id", "l"."template", "l"."width_mm", "l"."height_mm", "l"."options",
+    "l"."byte_size", "l"."pdf_path", "l"."preview_path",
+    "l"."created_by", "l"."created_at",
+    "o"."id" AS "organizer_id", "o"."name" AS "organizer_name",
+    "o"."number" AS "organizer_number",
+    "c"."id" AS "case_id", "c"."name" AS "case_name",
+    "c"."manufacturer" AS "case_manufacturer"
+`
+
+// Split from the columns for the same reason the organizer list splits them:
+// the window count has to sit between the two, and appending it after the FROM
+// is how that endpoint once answered 500 for every request.
+const LABEL_FROM = `
+  FROM "catalog"."organizer_label" AS "l"
+  JOIN "catalog"."organizer" AS "o" ON "o"."id" = "l"."organizer_id"
+  JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "o"."case_id"
+`
+
+export async function listAllLabels(
+  query: LabelListQuery,
+  pool: PgPool = db(),
+): Promise<LabelPage> {
+  const direction = query.direction === 'asc' ? 'ASC' : 'DESC'
+
+  const result = await pool.query<LabelRow>(
+    `
+      SELECT ${LABEL_COLUMNS}, count(*) OVER () AS "total_count"
+      ${LABEL_FROM}
+      WHERE ($1::text IS NULL OR "o"."name" ILIKE $1 OR "o"."description" ILIKE $1
+             OR "c"."name" ILIKE $1)
+        AND ($2::text IS NULL OR "l"."template" = $2)
+        AND ($3::bigint IS NULL OR "l"."organizer_id" = $3)
+      ORDER BY "l"."created_at" ${direction}, "l"."id" ${direction}
+      LIMIT $4 OFFSET $5
+    `,
+    [
+      query.search === null ? null : `%${query.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`,
+      query.template,
+      query.organizerId,
+      query.limit,
+      query.offset,
+    ],
+  )
+
+  return {
+    items: result.rows.map(toLabelListItem),
+    limit: query.limit,
+    offset: query.offset,
+    total: Number(result.rows[0]?.total_count ?? 0),
+  }
 }
 
 // The rows to draw again. `organizerId` narrows it to one arrangement, for the
@@ -79,4 +177,36 @@ export function labelPreviewUrl(
 function fileVersion(path: string): string {
   const checksum = path.split('/').pop()?.split('.')[0] ?? ''
   return checksum ? `?v=${checksum.slice(0, 12)}` : ''
+}
+
+function toLabelListItem(row: LabelRow): LabelListItem {
+  const organizerId = Number(row.organizer_id)
+  const id = Number(row.id)
+
+  return {
+    byteSize: Number(row.byte_size),
+    case: {
+      id: Number(row.case_id),
+      manufacturer: row.case_manufacturer,
+      name: row.case_name,
+    },
+    createdAt: toIsoString(row.created_at),
+    createdBy: row.created_by === null ? null : Number(row.created_by),
+    heightMm: Number(row.height_mm),
+    id,
+    options: row.options ?? {},
+    organizer: {
+      id: organizerId,
+      name: row.organizer_name,
+      number: Number(row.organizer_number),
+    },
+    previewUrl: labelPreviewUrl(organizerId, id, row.preview_path),
+    template: row.template,
+    url: labelFileUrl(organizerId, id, row.pdf_path),
+    widthMm: Number(row.width_mm),
+  }
+}
+
+function toIsoString(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
 }

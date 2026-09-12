@@ -21,6 +21,7 @@ import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
 import * as brands from './routes/brands'
 import * as cases from './routes/cases'
+import * as labels from './routes/labels'
 import * as media from './routes/media'
 import * as organizers from './routes/organizers'
 import * as photos from './routes/photos'
@@ -148,6 +149,7 @@ const ROUTES = [
   'GET /api/organizers/:id/labels/:labelId/file',
   'GET /api/organizers/:id/labels/:labelId/preview',
   'DELETE /api/organizers/:id/labels/:labelId',
+  'GET /api/labels',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
   'PATCH /api/me/search-engines/:provider',
@@ -292,6 +294,9 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   if (path === '/api/organizers') {
     return methodHandler(method, { GET: organizers.GET, POST: organizers.POST })
   }
+
+  // Every label there is, whichever organizer made it.
+  if (path === '/api/labels') return methodHandler(method, { GET: labels.GET })
 
   // Longest first, as everywhere in this table. `refresh` sits above the
   // :labelId patterns, though those only match digits, so it could not be

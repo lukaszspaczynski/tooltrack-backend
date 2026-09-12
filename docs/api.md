@@ -932,6 +932,48 @@ either one by hand hands somebody last week's label.
 `200 { organizer }`. The file goes too, unless another label is byte-identical
 and still points at it — labels are content addressed like photos.
 
+### `GET /api/labels` — `catalog.read`
+
+Every label there is, whichever organizer made it. A separate surface from the
+routes above for the same reason the photo library sits next to the per-card
+gallery: those answer "what has this arrangement produced", this one answers
+"what have we printed", which is the question after a box changed and a shelf
+of stickers went stale.
+
+| Parameter     | Meaning                                           | Default |
+| ------------- | ------------------------------------------------- | ------- |
+| `q`           | Organizer name, its description, or the case name | —       |
+| `template`    | `number` or `contents`                            | —       |
+| `organizerId` | Only the labels of one arrangement                | —       |
+| `order`       | `asc` or `desc` by the time the label was drawn   | `desc`  |
+| `limit`       | 1–200                                             | 48      |
+| `offset`      | ≥ 0                                               | 0       |
+
+`200 { items, total, limit, offset }`. A label has no name of its own, so `q`
+matches the arrangement and the box — the same words the organizer list
+matches — and every item carries both:
+
+```json
+{
+  "id": 9,
+  "template": "contents",
+  "widthMm": 30,
+  "heightMm": 40,
+  "byteSize": 42130,
+  "options": { "printReady": true, "withNames": true },
+  "organizer": { "id": 4, "number": 4, "name": "Wiertarki" },
+  "case": { "id": 2, "name": "Skrzynka 4", "manufacturer": "Qbrick" },
+  "url": "/api/organizers/4/labels/9/file?v=ab12cd34ef56",
+  "previewUrl": "/api/organizers/4/labels/9/preview?v=ab12cd34ef56",
+  "createdAt": "2026-09-12T08:00:00.000Z",
+  "createdBy": 1
+}
+```
+
+The two file URLs are the ones under the organizer, versioned the same way:
+there is one PDF per label, and this list points at it rather than serving a
+second copy of it.
+
 ## The photo library
 
 The same photos seen from the other side: everything on disk, across all

@@ -141,6 +141,13 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/organizers\/\d+\/labels\/\d+$/,
   },
   {
+    // Every label there is, across the organizers. Readable with the catalog,
+    // like the labels under an organizer and like the photo library.
+    domain: 'organizers',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/labels$/,
+  },
+  {
     // Same shape as the tool rules, and above the :id pattern for the same
     // reason: otherwise a request for the system list looks like a case named
     // "systems".
