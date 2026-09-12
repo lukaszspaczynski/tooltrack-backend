@@ -264,7 +264,7 @@ async function openverse(query: string, count: number): Promise<PhotoSuggestion[
 const MISTAMA_ORIGIN = 'https://mistama.com'
 
 async function mistama(query: string, count: number): Promise<PhotoSuggestion[]> {
-  let product = firstMistamaProduct(await askMistama(query))
+  let product = await findMistamaProduct(query)
 
   // The shop's search wants every word to match, and a brand it writes
   // differently from us — "BOSCH" against "Bosch Home & Garden" — finds
@@ -272,7 +272,7 @@ async function mistama(query: string, count: number): Promise<PhotoSuggestion[]>
   // shop does index, so a fruitless search is retried on that alone.
   const words = query.split(/\s+/).filter(Boolean)
   if (!product && words.length > 2) {
-    product = firstMistamaProduct(await askMistama(words.slice(-2).join(' ')))
+    product = await findMistamaProduct(words.slice(-2).join(' '))
   }
 
   if (!product) return []
@@ -286,6 +286,19 @@ async function mistama(query: string, count: number): Promise<PhotoSuggestion[]>
   return gallery.slice(0, count)
 }
 
+// The first result that is actually the thing being searched for.
+//
+// The shop answers something for almost any query, and what it answers for
+// one it cannot place is whatever ranked highest — a bearing flange for
+// "Dexter 360". Handing that back is worse than handing back nothing, because
+// it looks like a find. So the ranking is a suggestion and the name has to
+// agree with it.
+async function findMistamaProduct(query: string): Promise<null | MistamaProduct> {
+  const products = mistamaProducts(await askMistama(query))
+
+  return products.find((product) => matchesQuery(query, product)) ?? null
+}
+
 function askMistama(query: string): Promise<string> {
   const url = new URL('/product/search', MISTAMA_ORIGIN)
   url.searchParams.set('query', query)
@@ -293,13 +306,49 @@ function askMistama(query: string): Promise<string> {
   return fetchText(url, 'mistama')
 }
 
-// The first product the shop ranked, ignoring its articles — /webpage/... is a
-// guarantee or a buying guide, never a thing with photographs of a tool.
-export function firstMistamaProduct(html: string): null | { path: string; title: string } {
-  const match = /<a\s+href="(\/[^"]+\.html)"[^>]*class="product_name"[^>]*>([^<]*)</i.exec(html)
-  if (!match || match[1].startsWith('/webpage/')) return null
+export type MistamaProduct = { path: string; title: string }
 
-  return { path: match[1], title: decodeEntities(match[2].trim()) }
+// The products the shop ranked, in its order, ignoring its articles —
+// /webpage/... is a guarantee or a buying guide, never a thing with
+// photographs of a tool.
+export function mistamaProducts(html: string): MistamaProduct[] {
+  const pattern = /<a\s+href="(\/[^"]+\.html)"[^>]*class="product_name"[^>]*>([^<]*)</gi
+
+  return [...html.matchAll(pattern)]
+    .filter((match) => !match[1].startsWith('/webpage/'))
+    .map((match) => ({ path: match[1], title: decodeEntities(match[2].trim()) }))
+}
+
+// Does this result answer the question that was asked?
+//
+// Every part of the query that carries a digit has to appear. Those are the
+// model numbers — "185-LI", "7615", "18V-53" — and they are what distinguishes
+// one machine from the next; a query with none of them is identified by words
+// instead, so one long enough to mean something must appear.
+//
+// Matched against the address as well as the name, because the listing cuts a
+// long name off mid-word while the slug carries the whole of it. Both are
+// hyphenated and lowercased there, which is why the test is a substring: the
+// query's "185-li" sits inside "gho-185-li".
+export function matchesQuery(query: string, product: MistamaProduct): boolean {
+  const haystack = normalise(`${product.title} ${product.path}`)
+  const tokens = normalise(query)
+    .split(' ')
+    .filter((token) => token.length > 1)
+
+  const numbered = tokens.filter((token) => /\d/.test(token))
+  if (numbered.length > 0) return numbered.every((token) => haystack.includes(token))
+
+  return tokens.some((token) => token.length >= 4 && haystack.includes(token))
+}
+
+// Hyphens survive because a model number is written with them on both sides.
+// Everything else that is not a letter or a digit becomes a gap.
+function normalise(value: string): string {
+  return value
+    .toLocaleLowerCase('pl-PL')
+    .replace(/[^\p{Letter}\p{Number}-]+/gu, ' ')
+    .trim()
 }
 
 // The gallery of one product card.

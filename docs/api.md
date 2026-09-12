@@ -512,6 +512,12 @@ best engine here for a tool it sells and useless for one it does not. Its
 search wants every word to match, so a query it cannot place is retried on the
 last two words alone, which is where the model number sits.
 
+A result only counts when its name answers the query: every part of the query
+carrying a digit has to appear in the product's name or address, and a query
+with no such part needs a word of its own to appear. The shop ranks something
+for almost any query — "Dexter 360" returned a bearing flange — and a
+confident answer about the wrong machine is worse than an empty one.
+
 Nothing is downloaded here — these are links. Saving is `POST /photos` with the
 ones that were picked. It asks for `catalog.write` rather than `catalog.read`
 because it costs an API call and exists only to add a photo.

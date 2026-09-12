@@ -310,12 +310,16 @@ testable without a network or a database.
 `mistama` is the odd one: a shop, not an index, read as HTML rather than JSON.
 It costs two requests — find the product card, then take that card's gallery —
 and gives back one model shot from every side at full size, which is what a
-catalog card wants and what a general image search is worst at. Two rules keep
+catalog card wants and what a general image search is worst at. Three rules keep
 it honest: the gallery is anchored on the hash in the page's `og:image`, so a
-cross-sold tool on the same page contributes nothing, and a search that finds
+cross-sold tool on the same page contributes nothing; a search that finds
 nothing is retried on the last two words of the query, because the shop ANDs
 every word and a brand it spells differently ("BOSCH" against "Bosch Home &
-Garden") matches nothing at all. Both halves are pure functions over the
+Garden") matches nothing at all; and a result is used only when its name
+answers the query, because the shop ranks _something_ for almost anything and
+an answer about the wrong machine looks like a find. The match is tested
+against the address as well as the name, since the listing truncates a long
+name while the slug carries the model whole. Both halves are pure functions over the
 markup, pinned by tests copied from the real pages — a template change there is
 the one thing that can quietly break this engine.
 

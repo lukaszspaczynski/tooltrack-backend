@@ -5,11 +5,12 @@ import { clampResultLimit, searchEngine } from './search-engines'
 import {
   combineFailures,
   defaultQuery,
-  firstMistamaProduct,
+  mapMistamaGallery,
+  matchesQuery,
+  mistamaProducts,
   interleave,
   mapBraveResults,
   mapGoogleResults,
-  mapMistamaGallery,
   mapOpenverseResults,
   PhotoSearchUnavailableError,
   searchPhotos,
@@ -210,24 +211,25 @@ const PRODUCT_HTML = `
 <img src="/media/products/40d2ab20/images/thumbnail/large_z1.jpg" />
 <img src="/media/products/ffffffff/images/thumbnail/large_inne-narzedzie.jpg" />`
 
-test("the shop's first result is the product it ranked first", () => {
-  const product = firstMistamaProduct(SEARCH_HTML)
+test('the products come back in the order the shop ranked them', () => {
+  const products = mistamaProducts(SEARCH_HTML)
 
-  assert.equal(product?.path, '/strug-akumulatorowy-gho-185-li-bosch-2x5-0ah.html')
-  assert.equal(product?.title, 'Strug akumulatorowy GHO 185-LI BOSCH 2x5,0Ah')
+  assert.equal(products.length, 2)
+  assert.equal(products[0].path, '/strug-akumulatorowy-gho-185-li-bosch-2x5-0ah.html')
+  assert.equal(products[0].title, 'Strug akumulatorowy GHO 185-LI BOSCH 2x5,0Ah')
 })
 
 test('an article is not a product, and nothing found is not a crash', () => {
   // /webpage/... is a guarantee or a buying guide. It has no gallery, so
   // following it would cost two requests to find that out.
-  assert.equal(
-    firstMistamaProduct(
+  assert.deepEqual(
+    mistamaProducts(
       '<a href="/webpage/5-letnia-gwarancja-skil.html" class="product_name">Gwarancja</a>',
     ),
-    null,
+    [],
   )
-  assert.equal(firstMistamaProduct(''), null)
-  assert.equal(firstMistamaProduct('<html><body>Nic nie znaleziono</body></html>'), null)
+  assert.deepEqual(mistamaProducts(''), [])
+  assert.deepEqual(mistamaProducts('<html><body>Nic nie znaleziono</body></html>'), [])
 })
 
 test('the gallery is the originals, listed once each', () => {
