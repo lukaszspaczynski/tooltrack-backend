@@ -263,3 +263,14 @@ test('a page with no og:image yields nothing rather than guessing', () => {
   assert.deepEqual(mapMistamaGallery('<html></html>', { title: 'x', url: 'y' }), [])
   assert.deepEqual(mapMistamaGallery('', { title: 'x', url: 'y' }), [])
 })
+
+test("the merged list holds every engine's share, not one engine's worth", () => {
+  // Three engines at their own limits is the sum. Capping the merge at one
+  // share is how a third engine could be switched on and change nothing.
+  const list = (prefix: string, provider: 'brave' | 'google', size: number) =>
+    Array.from({ length: size }, (_, index) => suggestion(`${prefix}${index}`, provider))
+
+  const merged = interleave([list('g', 'google', 4), list('b', 'brave', 12)], 4 + 12)
+
+  assert.equal(merged.length, 16)
+})

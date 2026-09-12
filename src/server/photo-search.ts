@@ -147,7 +147,7 @@ export async function searchPhotos(
     // much to choose from, which is the whole point of switching on a second.
     suggestions: interleave(
       answers.map((answer) => answer.suggestions),
-      count,
+      count * answers.length,
     ),
   }
 }
