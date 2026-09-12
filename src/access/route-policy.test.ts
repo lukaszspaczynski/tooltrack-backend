@@ -324,4 +324,9 @@ test("the whole shelf of labels is read and redrawn like one organizer's", () =>
   assert.equal(allows('/api/labels', 'POST', user('editor')), false)
   assert.equal(allows('/api/labels/refresh', 'POST', user('viewer')), false)
   assert.equal(allows('/api/labels/refresh', 'POST', user('editor')), true)
+
+  // The sheet only rearranges labels that exist, so it is a read — and 'sheet'
+  // must not fall through to the list's rule or to the refresh's.
+  assert.equal(allows('/api/labels/sheet', 'GET', user('viewer')), true)
+  assert.equal(allows('/api/labels/sheet', 'POST', user('editor')), false)
 })

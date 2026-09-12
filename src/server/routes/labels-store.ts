@@ -154,6 +154,45 @@ export async function labelsToRedraw(
   }))
 }
 
+// Everything a sheet needs to draw the labels asked for: the same rows a
+// redraw reads, plus the template, because a sheet draws the artwork again
+// rather than embedding the print-ready file the label points at.
+//
+// Ordered by the organizer and its own size, which is the order they end up in
+// on the paper when nothing else decides — labels of one box together.
+export async function labelsToDraw(
+  labelIds: number[],
+  pool: PgPool = db(),
+): Promise<(LabelToRedraw & { template: string })[]> {
+  const result = await pool.query<{
+    height_mm: number | string
+    id: string
+    options: null | Record<string, unknown>
+    organizer_id: string
+    template: string
+    width_mm: number | string
+  }>(
+    `
+      SELECT "l"."id", "l"."organizer_id", "l"."template",
+             "l"."width_mm", "l"."height_mm", "l"."options"
+      FROM "catalog"."organizer_label" AS "l"
+      JOIN "catalog"."organizer" AS "o" ON "o"."id" = "l"."organizer_id"
+      WHERE "l"."id" = ANY($1::bigint[])
+      ORDER BY "o"."number", "l"."width_mm" DESC, "l"."height_mm" DESC, "l"."id"
+    `,
+    [labelIds],
+  )
+
+  return result.rows.map((row) => ({
+    heightMm: Number(row.height_mm),
+    id: Number(row.id),
+    options: row.options ?? {},
+    organizerId: Number(row.organizer_id),
+    template: row.template,
+    widthMm: Number(row.width_mm),
+  }))
+}
+
 // Both files a label is served from. Kept here rather than in each mapper so
 // the two screens cannot disagree about the address of the same PDF.
 export function labelFileUrl(organizerId: number, labelId: number, pdfPath: string): string {

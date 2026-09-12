@@ -155,6 +155,13 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/labels\/refresh$/,
   },
   {
+    // A sheet of labels already drawn. It writes nothing — no row, no file —
+    // so it costs what looking at one label's PDF costs.
+    domain: 'organizers',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/labels\/sheet$/,
+  },
+  {
     // Same shape as the tool rules, and above the :id pattern for the same
     // reason: otherwise a request for the system list looks like a case named
     // "systems".

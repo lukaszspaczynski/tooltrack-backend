@@ -42,6 +42,35 @@ export function parseLabelListQuery(params: URLSearchParams): Parsed<LabelListQu
   })
 }
 
+// The ids a sheet is asked for, as a query string: the screen opens the PDF in
+// a tab rather than downloading it through a script, and a tab is a GET.
+//
+// Fifty at a time, the cap a redraw uses. Each one is drawn from scratch —
+// fifty take about three seconds — so a thousand in one request would be a
+// print job pretending to be a page load.
+export const MAX_SHEET_IDS = 50
+
+export function parseSheetIds(params: URLSearchParams): Parsed<number[]> {
+  const raw = (params.get('ids') ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+
+  if (raw.length === 0) return invalid('Nie wybrano żadnej etykiety')
+  if (raw.length > MAX_SHEET_IDS) return invalid(`Maksymalnie ${MAX_SHEET_IDS} etykiet naraz`)
+
+  const ids: number[] = []
+  for (const value of raw) {
+    const id = parseId(value)
+    if (id === null) return invalid(`Nieprawidłowy identyfikator: ${value}`)
+    // The same picture twice on a sheet is a decision nobody made here; the
+    // selection that produced this link cannot hold one label twice either.
+    if (!ids.includes(id)) ids.push(id)
+  }
+
+  return valid(ids)
+}
+
 function isLabelTemplate(value: string): value is LabelTemplate {
   return (LABEL_TEMPLATES as readonly string[]).includes(value)
 }

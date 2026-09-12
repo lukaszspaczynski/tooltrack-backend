@@ -1,6 +1,7 @@
 // Every label there is, whichever organizer made it.
 //
 //   GET  /api/labels          catalog.read
+//   GET  /api/labels/sheet    catalog.read
 //   POST /api/labels/refresh  catalog.write
 //
 // A separate surface from the routes under an organizer, for the same reason
@@ -12,8 +13,10 @@
 // Refreshing is POST rather than DELETE-with-a-body, like the batch delete in
 // media.ts: it is a form submission with a list in it.
 
-import { parseLabelListQuery } from './labels-input'
-import { labelsToRedraw, listAllLabels } from './labels-store'
+import { generateLabel, LabelDataError, type LabelOptions } from '../labels/generate'
+import { buildLabelSheet, type SheetLabel } from '../labels/sheet'
+import { parseLabelListQuery, parseSheetIds } from './labels-input'
+import { labelsToDraw, labelsToRedraw, listAllLabels } from './labels-store'
 import { redrawLabels } from './label-redraw'
 import { parseLabelIds } from './organizers-input'
 
@@ -23,6 +26,66 @@ export async function GET(request: Request): Promise<Response> {
 
   return Response.json(await listAllLabels(query.value), {
     headers: { 'cache-control': 'no-store' },
+  })
+}
+
+// GET /api/labels/sheet?ids=1,2,3 — the chosen labels ganged onto A4.
+//
+// A GET because the screen opens it in a tab: the answer is a file to look at
+// and print, not a row to keep. Nothing is stored — the sheet is a view of
+// labels that already exist, and keeping it would mean a second thing to
+// redraw whenever one of them changed.
+//
+// The artwork is drawn again with `printReady: false` rather than taken from
+// the label's own file: that file has a margin and crop marks around it, and
+// thirty margins is most of a sheet of paper. Drawing it again also means a
+// sheet can never show something the label no longer says.
+export async function sheetGET(request: Request): Promise<Response> {
+  const ids = parseSheetIds(new URL(request.url).searchParams)
+  if (!ids.ok) return Response.json({ error: ids.error }, { status: 400 })
+
+  const labels = await labelsToDraw(ids.value)
+  if (labels.length === 0) {
+    return Response.json({ error: 'Nie ma takich etykiet' }, { status: 404 })
+  }
+
+  const drawn: SheetLabel[] = []
+  const failed: string[] = []
+
+  for (const label of labels) {
+    try {
+      drawn.push({
+        artwork: await generateLabel(
+          label.organizerId,
+          { heightMm: label.heightMm, widthMm: label.widthMm },
+          { ...label.options, printReady: false } as unknown as LabelOptions,
+        ),
+        heightMm: label.heightMm,
+        widthMm: label.widthMm,
+      })
+    } catch (error) {
+      // One label whose photos have gone missing must not cost the other
+      // twenty-nine their sheet, the same rule the redraw follows.
+      if (!(error instanceof LabelDataError)) throw error
+      failed.push(`${label.widthMm} × ${label.heightMm} mm: ${error.message}`)
+    }
+  }
+
+  if (drawn.length === 0) {
+    return Response.json({ error: failed.join('; ') }, { status: 422 })
+  }
+
+  const sheet = await buildLabelSheet(drawn, 'ToolTrack · arkusz zbiorczy')
+
+  return new Response(sheet.bytes, {
+    headers: {
+      // Never cached: the same ids draw a different sheet as soon as one of
+      // the labels is redrawn.
+      'cache-control': 'no-store',
+      'content-disposition': 'inline; filename="etykiety-arkusz.pdf"',
+      'content-length': String(sheet.bytes.byteLength),
+      'content-type': 'application/pdf',
+    },
   })
 }
 

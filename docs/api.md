@@ -974,6 +974,34 @@ The two file URLs are the ones under the organizer, versioned the same way:
 there is one PDF per label, and this list points at it rather than serving a
 second copy of it.
 
+### `GET /api/labels/sheet` — `catalog.read`
+
+`?ids=14,16,27` — the chosen labels ganged onto A4, as `application/pdf`,
+`inline`. Fifty at a time at most — each label is drawn from scratch, and fifty
+take about three seconds.
+
+This is what a **batch** is printed from. The per-label file wraps one sticker
+in a margin with crop marks around it, which is right for printing one and
+wrong for printing thirty: thirty margins is most of a sheet of paper. The
+sheet puts the artwork alone, side by side, with a hairline where the scissors
+go, a header saying to print at 100% without fitting to the page, and a
+measured 100 mm ruler at the foot of every page.
+
+The measurements are the sibling Qbrick project's `arkusz_zbiorczy`, so a sheet
+from here and one from there are cut the same way. A label wider than the paper
+allows — a 200 mm lid against 190 mm between the margins — goes on sideways;
+turning it costs nothing, since the sticker is cut out either way.
+
+Nothing is stored. The sheet is a view of labels that already exist, and a
+stored one would be a second thing to redraw whenever any of them changed. For
+the same reason it is `no-store`: the same ids draw a different sheet the
+moment one of the labels is redrawn.
+
+The artwork is drawn again from each label's options rather than taken from its
+file, so a sheet can never show something a label no longer says. A label that
+cannot be drawn is left out and the rest are still ganged; `422` when that
+leaves nothing, and `404` when none of the ids is a label.
+
 ### `POST /api/labels/refresh` — `catalog.write`
 
 ```json

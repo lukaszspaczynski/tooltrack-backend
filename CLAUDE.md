@@ -263,6 +263,24 @@ is documented in docs/api.md rather than in the table. It is also what makes
 does not already hold, so the id, the size and the options survive and only the
 file underneath changes.
 
+`labels/sheet.ts` gangs many of them onto A4 and `labels/sheet-layout.ts`
+decides where each one goes — pure millimetres, so the packing is argued with
+in a test rather than by printing. The margins, the 2 mm gutter and the ruler
+are Qbrick's `arkusz_zbiorczy`; the packing is not, and cannot be. Over there
+every sticker in a batch is one width, so a page is columns. Here a 200 mm lid
+shares a sheet with a 30 mm front, and columns would leave a 170 mm strip empty
+beside every front — so it is rows of decreasing height, and anything wider
+than the paper goes on sideways.
+
+The sheet draws each label's artwork again with `printReady: false` rather than
+embedding the file the label points at: that file carries a margin and crop
+marks, and thirty margins is most of a sheet of paper. Nothing about a sheet is
+stored — it is a view of labels that already exist, and a stored one would be a
+second thing to redraw whenever any of them changed. Copies — Qbrick's
+`--kopie`, the same sticker n times on one sheet — are not built; the sheet
+draws each label it is given once, and asking for two of one means asking
+twice.
+
 `routes/labels.ts` is the same labels seen from outside the organizer that made
 them — `GET /api/labels` and `POST /api/labels/refresh`, the shelf rather than
 the drawer, standing in the same relation to the routes under an organizer as

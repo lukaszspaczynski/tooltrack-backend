@@ -150,6 +150,7 @@ const ROUTES = [
   'GET /api/organizers/:id/labels/:labelId/preview',
   'DELETE /api/organizers/:id/labels/:labelId',
   'GET /api/labels',
+  'GET /api/labels/sheet',
   'POST /api/labels/refresh',
   'GET /api/settings/search-engines',
   'PATCH /api/settings/search-engines/:provider',
@@ -301,6 +302,8 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   if (path === '/api/labels/refresh') {
     return methodHandler(method, { POST: labels.refreshPOST })
   }
+
+  if (path === '/api/labels/sheet') return methodHandler(method, { GET: labels.sheetGET })
 
   if (path === '/api/labels') return methodHandler(method, { GET: labels.GET })
 
