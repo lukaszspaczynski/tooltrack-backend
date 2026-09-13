@@ -133,6 +133,18 @@ importer, so a script written next year cannot forget it, and after the
 clamping rather than before, because an address cut in the middle is not an
 address.
 
+`POST /api/tools/:id/import` reads a page into a card that already exists. The
+split is what the page can know and what it cannot: the maker, the model, the
+category, the description, the spec sheet and the documents are overwritten;
+the name, the serial number, the condition and the photographs are not — a card
+called "Pilarka Janka" was called that on purpose, and a photograph may be one
+somebody took themselves.
+
+The parameters and the manuals are cleared and written again rather than
+merged, in one transaction for the parameters. A page is the source of truth
+for what a machine is, so one the maker has dropped should leave the card;
+matching old rows against new ones by name would keep exactly the wrong ones.
+
 The page's own limits are not the card's, so `fitToCard` cuts every field to
 what the column takes rather than failing an import somebody is watching. The
 serial number is deliberately left blank: it identifies one physical machine,

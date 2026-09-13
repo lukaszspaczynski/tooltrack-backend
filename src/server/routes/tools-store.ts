@@ -2,7 +2,7 @@
 // SQL, and every statement here is parameterised: the only user input that
 // reaches the query text is a column name chosen from a fixed map.
 
-import { db, type PgPool } from '../db'
+import { db, withTransaction, type PgPool } from '../db'
 import { brandIdForName } from './brands-store'
 import { t } from '../i18n'
 import {
@@ -282,6 +282,47 @@ export async function listAttributeNames(pool: PgPool = db()): Promise<Attribute
   )
 
   return result.rows.map((row) => ({ count: Number(row.count), name: row.name }))
+}
+
+// The whole spec sheet at once: what an update from a product page writes.
+//
+// Cleared and written again rather than merged, because a page is the source
+// of truth for what a machine is: a parameter the maker has dropped should
+// leave the card too, and matching old rows against new ones by name would
+// keep exactly the ones that are wrong. One transaction, so a card is never
+// left with half a spec sheet.
+export async function replaceAttributes(
+  toolId: number,
+  attributes: { name: string; value: string }[],
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<ToolAttribute[]> {
+  return withTransaction(pool, async (client) => {
+    await client.query(`DELETE FROM "catalog"."tool_attribute" WHERE "tool_id" = $1`, [toolId])
+
+    for (const attribute of attributes) {
+      await client.query(
+        `
+          INSERT INTO "catalog"."tool_attribute" ("tool_id", "name", "value", "created_by")
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT DO NOTHING
+        `,
+        [toolId, attribute.name, attribute.value, actorId],
+      )
+    }
+
+    const result = await client.query<AttributeRow>(
+      `
+        SELECT "id", "name", "value"
+        FROM "catalog"."tool_attribute"
+        WHERE "tool_id" = $1
+        ORDER BY "id" ASC
+      `,
+      [toolId],
+    )
+
+    return result.rows.map(toAttribute)
+  })
 }
 
 async function findAttribute(

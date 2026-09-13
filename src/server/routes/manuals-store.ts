@@ -343,6 +343,20 @@ export async function unlinkManual(
   })
 }
 
+// Every document off one card, and off the disk where no other card keeps it.
+// What an update from a product page does before fetching the new ones: the
+// page is the source of truth, and a manual it no longer publishes is one the
+// card should stop claiming to have.
+export async function clearManuals(toolId: number, pool: PgPool = db()): Promise<number> {
+  const manualIds = await manualIdsOf(toolId, pool)
+  if (manualIds.length === 0) return 0
+
+  await pool.query(`DELETE FROM "catalog"."manual_tool" WHERE "tool_id" = $1`, [toolId])
+  await dropOrphanedManuals(manualIds, pool)
+
+  return manualIds.length
+}
+
 // Called when a whole tool goes: its links cascade away with it, and this
 // clears the documents nothing keeps any more.
 export async function dropOrphanedManuals(

@@ -16,7 +16,15 @@ import { ManualRejectedError, saveManualFromUrl } from './manuals'
 import type { Manual } from './manuals-store'
 import { importPhotoLinks } from './photos'
 import { parseImportInput } from './tools-input'
-import { addAttribute, createTool, getToolDetail } from './tools-store'
+import { clearManuals } from './manuals-store'
+import {
+  addAttribute,
+  createTool,
+  getTool,
+  getToolDetail,
+  replaceAttributes,
+  updateTool,
+} from './tools-store'
 
 // A product page is text; a shop that answers with a hundred megabytes of
 // something else is a shop that is not answering.
@@ -67,6 +75,102 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   }
 
   return createCard(fitToCard(product), context.user?.id ?? 0)
+}
+
+// POST /api/tools/:id/import — reading the page again into a card that exists.
+//
+// What a product page knows, it overwrites: the maker, the model, the
+// category, the description, the whole spec sheet and the documents. What it
+// cannot know, it leaves alone — the name somebody gave this card, the serial
+// number of this particular machine, its condition, and the photographs, which
+// somebody may well have taken themselves.
+//
+// The parameters and the manuals are cleared and written again rather than
+// merged. The page is the source of truth for what a machine is, so a
+// parameter the maker has dropped should leave the card; keeping the old rows
+// and adding to them would preserve exactly the ones that are wrong.
+export async function refreshPOST(request: Request, context: RouteContext): Promise<Response> {
+  const toolId = parseId(context.params.id)
+  if (toolId === null) return notFound()
+
+  const existing = await getTool(toolId)
+  if (!existing) return notFound()
+
+  const parsed = parseImportInput(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const importer = importerFor(parsed.value.url)
+  if (!importer) {
+    return Response.json(
+      {
+        error: t('Nie umiem czytać tej strony. Obsługiwane źródła: {sources}', {
+          sources: IMPORT_SOURCES.map((source) => source.label).join(', '),
+        }),
+      },
+      { status: 400 },
+    )
+  }
+
+  let html: string
+  try {
+    html = await fetchPage(parsed.value.url)
+  } catch {
+    return Response.json({ error: t('Nie udało się pobrać strony produktu') }, { status: 422 })
+  }
+
+  const read = importer.parse(html, parsed.value.url)
+  if (!read) {
+    return Response.json({ error: t('Pod tym adresem nie ma karty produktu') }, { status: 422 })
+  }
+
+  const product = fitToCard(read)
+  const actorId = context.user?.id ?? 0
+
+  // The fields the page is allowed to have an opinion about. The name is not
+  // among them: somebody called this card "Pilarka Janka" on purpose.
+  await updateTool(
+    toolId,
+    {
+      brand: product.brand,
+      category: product.category,
+      model: product.model,
+      notes: product.notes,
+    },
+    actorId,
+  )
+
+  const attributes = await replaceAttributes(toolId, product.attributes, actorId)
+  await clearManuals(toolId)
+
+  const manuals: Manual[] = []
+  const manualsFailed: string[] = []
+
+  for (const manual of product.manuals.slice(0, MAX_IMPORT_MANUALS)) {
+    try {
+      manuals.push(await saveManualFromUrl(toolId, manual.url, manual.title, 'import', actorId))
+    } catch (error) {
+      if (error instanceof ManualRejectedError) {
+        manualsFailed.push(manual.url)
+        continue
+      }
+      throw error
+    }
+  }
+
+  return Response.json({
+    imported: {
+      attributes: attributes.length,
+      attributesFailed: [],
+      manuals: manuals.length,
+      manualsFailed: manualsFailed.length,
+      // The photographs are deliberately untouched, and saying so beats a
+      // screen wondering whether they were quietly replaced.
+      photos: 0,
+      photosFailed: 0,
+      sourceUrl: product.sourceUrl,
+    },
+    tool: await getToolDetail(toolId),
+  })
 }
 
 // The card, then its parameters, then its pictures — in that order, because
@@ -172,6 +276,15 @@ async function fetchPage(url: string): Promise<string> {
   if (bytes.byteLength > MAX_PAGE_BYTES) throw new Error('page too large')
 
   return new TextDecoder('utf-8').decode(bytes)
+}
+
+function parseId(value: string | undefined): null | number {
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
+function notFound(): Response {
+  return Response.json({ error: 'Tool not found' }, { status: 404 })
 }
 
 async function readJson(request: Request): Promise<unknown> {

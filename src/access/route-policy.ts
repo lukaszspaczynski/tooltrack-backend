@@ -83,6 +83,13 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/import$/,
   },
   {
+    // Reading the page again into a card that exists. It overwrites most of
+    // one, so it asks for the same thing.
+    domain: 'tools',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/import$/,
+  },
+  {
     // Makers. Part of the catalog like everything else: looking is read,
     // changing is write.
     domain: 'brands',

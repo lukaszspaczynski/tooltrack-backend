@@ -54,6 +54,7 @@ const TOOL_MANUAL_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/(\d+)$/
 const MANUAL_FILE_PATTERN = /^\/api\/manuals\/(\d+)\/file$/
 const MANUAL_DETAIL_PATTERN = /^\/api\/manuals\/(\d+)$/
 const TOOL_MANUALS_ATTACH_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/attach$/
+const TOOL_REFRESH_PATTERN = /^\/api\/tools\/(\d+)\/import$/
 const TOOL_ATTRIBUTES_PATTERN = /^\/api\/tools\/(\d+)\/attributes$/
 const TOOL_ATTRIBUTE_PATTERN = /^\/api\/tools\/(\d+)\/attributes\/(\d+)$/
 const BRAND_DETAIL_PATTERN = /^\/api\/brands\/(\d+)$/
@@ -110,6 +111,7 @@ const ROUTES = [
   'GET /api/tools/attributes',
   'GET /api/tools/import/sources',
   'POST /api/tools/import',
+  'POST /api/tools/:id/import',
   'GET /api/tools/:id/manuals',
   'POST /api/tools/:id/manuals',
   'POST /api/tools/:id/manuals/from-page',
@@ -569,6 +571,11 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   const attributes = TOOL_ATTRIBUTES_PATTERN.exec(path)
   if (attributes) {
     return methodHandler(method, { POST: tools.attributePOST }, { id: attributes[1] })
+  }
+
+  const refresh = TOOL_REFRESH_PATTERN.exec(path)
+  if (refresh) {
+    return methodHandler(method, { POST: toolImport.refreshPOST }, { id: refresh[1] })
   }
 
   const duplicate = TOOL_DUPLICATE_PATTERN.exec(path)

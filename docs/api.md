@@ -206,6 +206,28 @@ the message names the ones it can. `422` when the page could not be fetched, or
 when there is no product on it. Expect the call to take around ten seconds for a
 gallery of a dozen photographs: each one is fetched, converted and stored.
 
+### `POST /api/tools/:id/import` — `catalog.write`
+
+`{ "url": "https://…" }` — reading the page again into a card that exists.
+Answers like the import above: `200 { tool, imported }`.
+
+What the page knows, it **overwrites**: the maker, the model, the category, the
+description, the whole spec sheet and the documents. What it cannot know, it
+leaves alone: the **name** somebody gave this card, the **serial number** of
+this particular machine, its **condition**, and the **photographs** — which
+somebody may well have taken themselves. `imported.photos` is therefore always
+0 here, which is a statement rather than an omission.
+
+Parameters and manuals are **cleared and written again** rather than merged. A
+page is the source of truth for what a machine is, so a parameter the maker has
+dropped should leave the card; keeping the old rows and adding to them would
+preserve exactly the ones that are wrong. A parameter typed in by hand goes the
+same way — the dialog says so before it happens.
+
+Same refusals as the import: `400` for an address this server cannot read,
+`422` when the page cannot be fetched or holds no product. None of them touch
+the card.
+
 ### `POST /api/tools` — `catalog.write`
 
 ```json
