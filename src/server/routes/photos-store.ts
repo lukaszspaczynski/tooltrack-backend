@@ -571,9 +571,15 @@ export async function deletePhotosByIds(
   return { deleted: removed, promoted }
 }
 
-// Deletes any of these pictures that no card shows any more, and answers with
+// Deletes any of these pictures that nothing uses any more, and answers with
 // the files that nothing points at. Shared by the per-card bin and by deleting
 // a whole card.
+//
+// Three things hold a picture, not two: a tool, a case, and a maker whose logo
+// it is. `photo_brand` cascades on the photo, so leaving it out here does not
+// fail — it quietly takes the logo off a brand that had nothing to do with the
+// card being deleted. The media library has always said as much before
+// deleting a picture; this is the same knowledge in the rule that decides.
 async function dropIfUnused(
   client: { query: PgPool['query'] },
   photoIds: number[],
@@ -586,6 +592,7 @@ async function dropIfUnused(
       WHERE "p"."id" = ANY($1::bigint[])
         AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_tool" WHERE "photo_id" = "p"."id")
         AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_case" WHERE "photo_id" = "p"."id")
+        AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_brand" WHERE "photo_id" = "p"."id")
       RETURNING "storage_key"
     `,
     [photoIds],
@@ -601,6 +608,41 @@ async function dropIfUnused(
   const used = new Set(stillUsed.rows.map((row) => row.storage_key))
 
   return keys.filter((key) => !used.has(key))
+}
+
+// The pictures this card is the only home of: what deleting it would take with
+// it, asked before the fact rather than found out after.
+//
+// The same three holds as `dropIfUnused` — another card of either kind, or a
+// maker whose logo this is — except that the card's own link is not one of
+// them, since that is the link about to disappear. A confirmation that says
+// "and its photographs" without a number is a confirmation nobody can weigh.
+export async function exclusivePhotoIds(owner: PhotoOwner, pool: PgPool = db()): Promise<number[]> {
+  const other: PhotoOwnerKind = owner.kind === 'tool' ? 'case' : 'tool'
+
+  const result = await pool.query<{ photo_id: number | string }>(
+    `
+      SELECT "l"."photo_id"
+      FROM "catalog"."${linkTable(owner.kind)}" AS "l"
+      WHERE "l"."${ownerColumn(owner.kind)}" = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM "catalog"."${linkTable(owner.kind)}" AS "same"
+          WHERE "same"."photo_id" = "l"."photo_id"
+            AND "same"."${ownerColumn(owner.kind)}" <> $1
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM "catalog"."${linkTable(other)}" AS "cross"
+          WHERE "cross"."photo_id" = "l"."photo_id"
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM "catalog"."photo_brand" AS "logo"
+          WHERE "logo"."photo_id" = "l"."photo_id"
+        )
+    `,
+    [owner.id],
+  )
+
+  return result.rows.map((row) => Number(row.photo_id))
 }
 
 // Called when a whole tool or case goes. Its links cascade away with it; this

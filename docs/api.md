@@ -243,6 +243,11 @@ row rather than a second file.
 
 `200 { "ok": true }` or `404` if it was already gone.
 
+The photographs go with it — but only the ones nothing else holds. One that
+another card shows, or that is a maker's logo, stays. `GET .../photos?exclusive=1`
+answers which those are, which is what the delete confirmation counts before
+asking.
+
 ### The tool object
 
 ```json
@@ -420,6 +425,11 @@ card. Each entry carries `isPrimary` and the picture's own `contentType`,
 `byteSize`, `width`, `height`, `source` (`upload` \| `url` \| `search` \|
 `edit`), `sourceUrl`, `attribution`, `derivedFrom`, `createdBy` and
 `createdAt`.
+
+`?exclusive=1` narrows the answer to the pictures this card is the only home
+of — what deleting the card would take with it. Not the whole gallery: one that
+another card shows, or that a maker uses as its logo, survives the card. This
+is what the delete confirmation counts before asking.
 
 ### `POST /api/{tools,cases}/:id/photos` — `catalog.write`
 

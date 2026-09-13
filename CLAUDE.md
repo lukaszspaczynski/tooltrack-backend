@@ -174,12 +174,20 @@ column name — the same fixed-map trick as `SORT_COLUMNS`. That is why there is
 one set of photo handlers and not two.
 
 Two consequences worth knowing before changing the delete paths. Taking a
-picture off a card removes the link and then deletes the picture **if no other
-card shows it**, because a bin on a card has to mean the photograph is gone
+picture off a card removes the link and then deletes the picture **if nothing
+else holds it**, because a bin on a card has to mean the photograph is gone
 rather than that it moved to a library nobody asked to fill. Deleting a whole
 tool or case does the same through `dropOrphanedPhotos`, which is application
 code on purpose: a foreign key cannot say "delete the parent when its last
 child goes".
+
+Three things hold a picture, not two: a tool, a case, and **a maker whose logo
+it is**. `photo_brand` cascades on the photo, so a rule that only knew about
+cards did not fail — it quietly took the logo off a brand that had nothing to
+do with the card being deleted. `exclusivePhotoIds` asks the same three holds
+before the fact, which is what a delete confirmation shows: "and its
+photographs" is not something anybody can weigh without a number, and the
+number is not the size of the gallery when another card shows half of it.
 
 Previews live in their own directory with a TTL (`photo-storage.ts`), apart
 from the photos on purpose: a directory nothing in the catalog points at can be

@@ -52,6 +52,7 @@ import {
 } from './photo-owner'
 import {
   attachPhotosTo,
+  exclusivePhotoIds,
   getCardPhoto,
   insertPhoto,
   linkPhoto,
@@ -98,14 +99,23 @@ type OwnerCard = {
   searchQuery: string
 }
 
-export async function listGET(_request: Request, context: RouteContext): Promise<Response> {
+export async function listGET(request: Request, context: RouteContext): Promise<Response> {
   const owner = parsePhotoOwner(context.params)
   if (!owner) return ownerNotFound(context)
 
-  return Response.json(
-    { photos: await listPhotos(owner) },
-    { headers: { 'cache-control': 'no-store' } },
-  )
+  // `?exclusive=1` — only the pictures this card is the only home of. What a
+  // delete confirmation needs: "and its photographs" is not something somebody
+  // can weigh without a number, and the number is not the length of the
+  // gallery when another card shows half of it.
+  const photos = await listPhotos(owner)
+  let shown = photos
+
+  if (new URL(request.url).searchParams.get('exclusive') === '1') {
+    const ids = new Set(await exclusivePhotoIds(owner))
+    shown = photos.filter((photo) => ids.has(photo.id))
+  }
+
+  return Response.json({ photos: shown }, { headers: { 'cache-control': 'no-store' } })
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {

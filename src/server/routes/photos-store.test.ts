@@ -6,6 +6,7 @@ import {
   attachPhotosTo,
   copyPhotoLinks,
   deletePhotosByIds,
+  exclusivePhotoIds,
   insertPhoto,
   linkPhoto,
   listAllPhotos,
@@ -158,6 +159,47 @@ test('taking a picture off its last card deletes the picture', async () => {
   assert.match(calls[2].text, /DELETE FROM "catalog"\."photo"/)
   assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_tool"/)
   assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_case"/)
+})
+
+test('what a card is the only home of is asked before it is deleted, not after', async () => {
+  // The same three holds as the delete rule, minus this card's own link: that
+  // is the one about to go. A confirmation saying "and its photographs"
+  // without a number is one nobody can weigh.
+  const { calls, pool } = fakePool([[{ photo_id: '5' }, { photo_id: '7' }]])
+
+  assert.deepEqual(await exclusivePhotoIds(TOOL, pool), [5, 7])
+
+  const [{ text, params }] = calls
+  assert.match(text, /FROM "catalog"\."photo_tool" AS "l"/)
+  // Another card of the same kind, one of the other kind, or a maker's logo.
+  assert.match(text, /"same"\."tool_id" <> \$1/)
+  assert.match(text, /FROM "catalog"\."photo_case" AS "cross"/)
+  assert.match(text, /FROM "catalog"\."photo_brand" AS "logo"/)
+  assert.deepEqual(params, [TOOL.id])
+})
+
+test('a case asks the same question about its own table', async () => {
+  const { calls, pool } = fakePool([[]])
+
+  await exclusivePhotoIds(CASE, pool)
+
+  assert.match(calls[0].text, /FROM "catalog"\."photo_case" AS "l"/)
+  assert.match(calls[0].text, /"same"\."case_id" <> \$1/)
+  assert.match(calls[0].text, /FROM "catalog"\."photo_tool" AS "cross"/)
+})
+
+test('a picture that is a maker’s logo is not deleted with the card it sat on', async () => {
+  // photo_brand cascades on the photo, so a rule that only knows about cards
+  // does not fail here — it quietly takes the logo off a brand that had
+  // nothing to do with the tool being deleted.
+  const { calls, pool } = fakePool([
+    [], // BEGIN
+    [{ is_primary: false }], // the link, removed
+    [], // the conditional delete matched nothing: the logo still holds it
+  ])
+
+  assert.equal(await unlinkPhoto(TOOL, 5, pool), true)
+  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_brand"/)
 })
 
 test('a picture another card still shows survives being taken off this one', async () => {
