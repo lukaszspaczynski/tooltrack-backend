@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { fitToCard, importerFor } from './index'
-import { mergeDuplicates, modelOf, parseMistamaProduct, specifications } from './mistama'
+import { mergeDuplicates } from './attributes'
+import { modelOf, parseMistamaProduct, specifications } from './mistama'
 
 const PAGE_URL = 'https://mistama.com/podkaszarka-akumulatorowa-easygrasscut-18v-bosch-korpus.html'
 

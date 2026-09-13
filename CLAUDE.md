@@ -68,10 +68,13 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Two scripts so far, and they have almost nothing in common beyond the
-contract: a shop publishes schema.org and a manufacturer publishes its own CMS.
-That is the argument for a script per domain rather than one parser with
-options — the shapes are not variations of each other.
+Three scripts so far, and they have almost nothing in common beyond the
+contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
+and the other publishes both halves in different places. That is the argument
+for a script per domain rather than one parser with options — the shapes are
+not variations of each other. What they did turn out to share is two small
+things, `html.ts` and `attributes.ts`: taking tags out of a paragraph, merging
+a parameter the page lists twice, and cutting "(PDF 12.4 MB)" off a title.
 
 What mistama.ts knows about that shop:
 
@@ -144,6 +147,25 @@ The parameters and the manuals are cleared and written again rather than
 merged, in one transaction for the parameters. A page is the source of truth
 for what a machine is, so one the maker has dropped should leave the card;
 matching old rows against new ones by name would keep exactly the wrong ones.
+
+`bosch-professional.ts` reads the blue line's own site — the third shape. It
+publishes a schema.org Product like the shop does, and leaves out of it exactly
+what a card needs most:
+
+- The **spec table is markup**: two cells to a row, and the name carries a
+  footnote marker pointing at small print the card has no room for.
+- The **category is in the analytics payload**. An odd place to read it from
+  and the only one that has it: the JSON-LD carries no category, and the
+  breadcrumb markup on this site is a list of empty names. The last entry is
+  the product, so the one before it is what it is a kind of.
+- A **document is titled by its own link** rather than by the heading above it.
+  The heading says "Instrukcja obsługi" for all of them; the link says which
+  machines each one covers — "Instrukcja obsługi | GBH 18V-26, GBH 18V-26 F" —
+  and that is what tells two apart on a card. Unlike the DIY site, this page
+  lists only its own product's files, so there is nothing to filter out.
+- The **brand needs no mapping**: the page writes "Bosch Professional", which
+  is what the catalog calls it. The model is the name without the "PRO" in
+  front, because the line already lives in the brand.
 
 The page's own limits are not the card's, so `fitToCard` cuts every field to
 what the column takes rather than failing an import somebody is watching. The

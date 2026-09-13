@@ -156,12 +156,13 @@ later. Names that differ only in case or spacing count as one.
 {
   "sources": [
     { "host": "mistama.com", "label": "mistama.com", "manuals": false },
-    { "host": "bosch-diy.com", "label": "bosch-diy.com", "manuals": true }
+    { "host": "bosch-diy.com", "label": "bosch-diy.com", "manuals": true },
+    { "host": "bosch-professional.com", "label": "bosch-professional.com", "manuals": true }
   ]
 }
 ```
 
-The pages this server can read — a shop and a manufacturer's own site.
+The pages this server can read — a shop and the two lines of one maker.
 `manuals` says whether that page publishes documents at all: a shop sells the
 tool and leaves the manual to the maker, so a screen asking for one offers only
 the sources that have any. The import dialog lists them before asking for an address,

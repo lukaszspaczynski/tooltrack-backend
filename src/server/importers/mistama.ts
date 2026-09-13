@@ -11,6 +11,7 @@
 // what this file decides can be argued with in a test rather than over the
 // network.
 
+import { mergeDuplicates } from './attributes'
 import { decodeEntities, text } from './html'
 import type { ImportedAttribute, ImportedProduct, Importer } from './types'
 
@@ -262,28 +263,6 @@ export function specifications(html: string): ImportedAttribute[] {
   }
 
   return attributes
-}
-
-// One parameter cannot be listed twice on a card — the database says so — and
-// a spec table names two moments of torque, one for hard materials and one for
-// soft. Neither reading is worth losing, so they become one parameter with
-// both: their qualifiers are what tell them apart anyway.
-export function mergeDuplicates(attributes: ImportedAttribute[]): ImportedAttribute[] {
-  const byName = new Map<string, ImportedAttribute>()
-
-  for (const attribute of attributes) {
-    const key = attribute.name.toLocaleLowerCase('pl-PL')
-    const seen = byName.get(key)
-
-    if (!seen) {
-      byName.set(key, { ...attribute })
-      continue
-    }
-
-    if (!seen.value.includes(attribute.value)) seen.value = `${seen.value}; ${attribute.value}`
-  }
-
-  return [...byName.values()]
 }
 
 // The block under one of the page's `seo-title` headings, up to the next one.

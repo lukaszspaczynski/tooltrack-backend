@@ -12,6 +12,7 @@
 //
 // Pure, like every importer. The fetching lives in routes/tool-import.ts.
 
+import { manualTitle } from './attributes'
 import { text } from './html'
 import type { ImportedAttribute, ImportedManual, ImportedProduct, Importer } from './types'
 
@@ -275,16 +276,6 @@ function manualLinks(section: Section): ImportedManual[] {
   }
 
   return manuals
-}
-
-// "Instrukcja obsługi (PDF - 7,7 MB)" is a label for a button. The size is the
-// page's business and the card knows its own; what is left is the title.
-export function manualTitle(label: string): string {
-  const written = text(label)
-    .replace(/\s*\((?:PDF|pdf)[^)]*\)\s*$/, '')
-    .trim()
-
-  return written || 'Instrukcja'
 }
 
 function isSection(value: unknown): value is Section {

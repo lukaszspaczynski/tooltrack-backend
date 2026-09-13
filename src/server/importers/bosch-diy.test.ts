@@ -144,10 +144,16 @@ test('the maker’s own site is where the documents are', () => {
   assert.equal(importerFor(PAGE_URL)?.manuals, true)
 })
 
-test('both shops are reachable, and nothing else is', () => {
+test('every source the registry holds is reachable, and nothing else is', () => {
   assert.equal(importerFor(PAGE_URL)?.label, 'bosch-diy.com')
   assert.equal(importerFor('https://bosch-diy.com/pl/pl/p/x')?.label, 'bosch-diy.com')
   assert.equal(importerFor('https://mistama.com/x.html')?.label, 'mistama.com')
+  assert.equal(
+    importerFor('https://www.bosch-professional.com/pl/pl/products/x')?.label,
+    'bosch-professional.com',
+  )
+  // The two lines are separate sites and separate scripts; a host that merely
+  // contains one of their names is neither.
   assert.equal(importerFor('https://bosch-diy.com.evil.example/x'), null)
-  assert.equal(importerFor('https://www.bosch-professional.com/pl/pl/p/x'), null)
+  assert.equal(importerFor('https://allegro.pl/oferta/1'), null)
 })
