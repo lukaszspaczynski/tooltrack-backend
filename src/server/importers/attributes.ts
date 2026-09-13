@@ -30,7 +30,8 @@ export function mergeDuplicates(attributes: ImportedAttribute[]): ImportedAttrib
 // title.
 export function manualTitle(label: string, fallback = 'Instrukcja'): string {
   const written = label
-    .replace(/\s*\((?:PDF|pdf)[^)]*\)\s*$/, '')
+    // "(PDF 12.4 MB)" on one site, "(.PDF)" on another.
+    .replace(/\s*\(\s*\.?\s*PDF[^)]*\)\s*$/i, '')
     .replace(/\s+/g, ' ')
     .trim()
 

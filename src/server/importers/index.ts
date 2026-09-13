@@ -15,11 +15,12 @@ import {
 import { boschDiy } from './bosch-diy'
 import { boschProfessional } from './bosch-professional'
 import { mistama } from './mistama'
+import { skil } from './skil'
 import type { ImportedProduct, Importer } from './types'
 
 export type { ImportedAttribute, ImportedProduct, Importer } from './types'
 
-const IMPORTERS: readonly Importer[] = [mistama, boschDiy, boschProfessional]
+const IMPORTERS: readonly Importer[] = [mistama, boschDiy, boschProfessional, skil]
 
 // What the import dialog lists, so the screen never offers a source this
 // server cannot actually read.
@@ -65,9 +66,33 @@ export const REFERENCE_ATTRIBUTE = 'Referencja'
 // The reference is added here rather than by each importer, so a script added
 // later cannot forget it — and after the clamping rather than before, because
 // an address cut in the middle is not an address.
+// What a link picks up on its way to somebody: the analytics tail a shop adds
+// when the address is shared or clicked through from a campaign. It says
+// nothing about the product and it is what the card would show as its source
+// for ever after, so it is cut before the address is written down.
+const TRACKING_PARAMS = /^(?:_gl|_ga.*|gclid|fbclid|msclkid|mc_[a-z]+|utm_[a-z]+)$/i
+
+export function withoutTracking(rawUrl: string): string {
+  let url: URL
+  try {
+    url = new URL(rawUrl)
+  } catch {
+    return rawUrl
+  }
+
+  for (const name of [...url.searchParams.keys()]) {
+    if (TRACKING_PARAMS.test(name)) url.searchParams.delete(name)
+  }
+
+  return url.toString().replace(/\?$/, '')
+}
+
 export function fitToCard(product: ImportedProduct): ImportedProduct {
+  const sourceUrl = withoutTracking(product.sourceUrl)
+
   return {
     ...product,
+    sourceUrl,
     attributes: [
       ...product.attributes
         .map((attribute) => ({
@@ -77,7 +102,7 @@ export function fitToCard(product: ImportedProduct): ImportedProduct {
         .filter((attribute) => attribute.name && attribute.value)
         // Whatever a page calls it, the reference is the one this adds.
         .filter((attribute) => attribute.name !== REFERENCE_ATTRIBUTE),
-      { name: REFERENCE_ATTRIBUTE, value: product.sourceUrl },
+      { name: REFERENCE_ATTRIBUTE, value: sourceUrl },
     ],
     brand: clamp(product.brand, MAX_FIELD_LENGTH),
     category: clamp(product.category, MAX_FIELD_LENGTH),

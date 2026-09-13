@@ -157,12 +157,15 @@ later. Names that differ only in case or spacing count as one.
   "sources": [
     { "host": "mistama.com", "label": "mistama.com", "manuals": false },
     { "host": "bosch-diy.com", "label": "bosch-diy.com", "manuals": true },
-    { "host": "bosch-professional.com", "label": "bosch-professional.com", "manuals": true }
+    { "host": "bosch-professional.com", "label": "bosch-professional.com", "manuals": true },
+    { "host": "skileurope.com", "label": "skileurope.com", "manuals": true }
   ]
 }
 ```
 
-The pages this server can read — a shop and the two lines of one maker.
+The pages this server can read — a shop, the two lines of one maker, and one
+more maker's own site. The address is remembered without its analytics tail:
+`?_gl=…` and `utm_*` say nothing about the product.
 `manuals` says whether that page publishes documents at all: a shop sells the
 tool and leaves the manual to the maker, so a screen asking for one offers only
 the sources that have any. The import dialog lists them before asking for an address,

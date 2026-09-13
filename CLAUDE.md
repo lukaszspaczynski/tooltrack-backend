@@ -68,9 +68,10 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Three scripts so far, and they have almost nothing in common beyond the
+Four scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
-and the other publishes both halves in different places. That is the argument
+another publishes both halves in different places, and a fourth names the kind
+of tool where the others name the machine. That is the argument
 for a script per domain rather than one parser with options — the shapes are
 not variations of each other. What they did turn out to share is two small
 things, `html.ts` and `attributes.ts`: taking tags out of a paragraph, merging
@@ -166,6 +167,22 @@ what a card needs most:
 - The **brand needs no mapping**: the page writes "Bosch Professional", which
   is what the catalog calls it. The model is the name without the "PRO" in
   front, because the line already lives in the brand.
+
+`skil.ts` is the fourth. Its Product names the **kind** of tool — "Szlifierka
+taśmowa" — and keeps the machine's number in the sku, so the card is named for
+both: one of those is three of the tools in the shed and the other is none of
+them until somebody remembers what it is. The spec table is Magento's own, the
+category is again only in the analytics payload (the narrowest `item_categoryN`
+this time), and a document is titled by the `title` attribute of its link
+rather than by the text, which carries the arrow icon's own name along with it.
+
+Its gallery is served twice, once under `/cache/<hash>/` at whatever size the
+page wanted and once at its own address. The catalog keeps the second: the hash
+belongs to a layout that will change.
+
+`withoutTracking` cuts the analytics tail off an address before it is written
+down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
+otherwise show it as its source for ever after.
 
 The page's own limits are not the card's, so `fitToCard` cuts every field to
 what the column takes rather than failing an import somebody is watching. The
