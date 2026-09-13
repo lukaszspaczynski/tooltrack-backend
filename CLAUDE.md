@@ -68,10 +68,11 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Four scripts so far, and they have almost nothing in common beyond the
+Five scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
-another publishes both halves in different places, and a fourth names the kind
-of tool where the others name the machine. That is the argument
+another publishes both halves in different places, a fourth names the kind of
+tool where the others name the machine, and the fifth publishes no structured
+data at all. That is the argument
 for a script per domain rather than one parser with options — the shapes are
 not variations of each other. What they did turn out to share is two small
 things, `html.ts` and `attributes.ts`: taking tags out of a paragraph, merging
@@ -179,6 +180,20 @@ rather than by the text, which carries the arrow icon's own name along with it.
 Its gallery is served twice, once under `/cache/<hash>/` at whatever size the
 page wanted and once at its own address. The catalog keeps the second: the hash
 belongs to a layout that will change.
+
+`stanley.ts` is the fifth and the plainest: no schema.org, no CMS payload, no
+analytics category — a Drupal page with the facts in its markup. The name is
+the heading, the category is the last breadcrumb that is not the product, the
+spec table is a table, and a picture is kept without the `?resize=` the layout
+asked for. A page with a heading and no spec table is refused: on this site
+that is a category page or a redirect, not a product.
+
+It is the second source declaring `manuals: false`, and for a different reason
+than mistama's. The page links one EU declaration and loads its actual manuals
+from `/pdp/get-manuals/<nodeId>` after rendering. An importer is handed one
+page and makes no requests of its own, so what this one can promise is what the
+page itself says — and it says none. Reading that endpoint would mean a second
+fetch, which is a change to the contract rather than to a script.
 
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would

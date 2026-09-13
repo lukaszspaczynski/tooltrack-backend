@@ -16,11 +16,12 @@ import { boschDiy } from './bosch-diy'
 import { boschProfessional } from './bosch-professional'
 import { mistama } from './mistama'
 import { skil } from './skil'
+import { stanley } from './stanley'
 import type { ImportedProduct, Importer } from './types'
 
 export type { ImportedAttribute, ImportedProduct, Importer } from './types'
 
-const IMPORTERS: readonly Importer[] = [mistama, boschDiy, boschProfessional, skil]
+const IMPORTERS: readonly Importer[] = [mistama, boschDiy, boschProfessional, skil, stanley]
 
 // What the import dialog lists, so the screen never offers a source this
 // server cannot actually read.
