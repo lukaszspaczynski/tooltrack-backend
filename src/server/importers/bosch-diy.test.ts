@@ -140,6 +140,10 @@ test('the biggest picture the page names is the one kept', () => {
   ])
 })
 
+test('the maker’s own site is where the documents are', () => {
+  assert.equal(importerFor(PAGE_URL)?.manuals, true)
+})
+
 test('both shops are reachable, and nothing else is', () => {
   assert.equal(importerFor(PAGE_URL)?.label, 'bosch-diy.com')
   assert.equal(importerFor('https://bosch-diy.com/pl/pl/p/x')?.label, 'bosch-diy.com')

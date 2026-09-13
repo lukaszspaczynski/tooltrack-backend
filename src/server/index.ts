@@ -52,6 +52,8 @@ const TOOL_MANUALS_PATTERN = /^\/api\/tools\/(\d+)\/manuals$/
 const TOOL_MANUALS_FROM_PAGE_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/from-page$/
 const TOOL_MANUAL_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/(\d+)$/
 const MANUAL_FILE_PATTERN = /^\/api\/manuals\/(\d+)\/file$/
+const MANUAL_DETAIL_PATTERN = /^\/api\/manuals\/(\d+)$/
+const TOOL_MANUALS_ATTACH_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/attach$/
 const TOOL_ATTRIBUTES_PATTERN = /^\/api\/tools\/(\d+)\/attributes$/
 const TOOL_ATTRIBUTE_PATTERN = /^\/api\/tools\/(\d+)\/attributes\/(\d+)$/
 const BRAND_DETAIL_PATTERN = /^\/api\/brands\/(\d+)$/
@@ -114,6 +116,10 @@ const ROUTES = [
   'PATCH /api/tools/:id/manuals/:manualId',
   'DELETE /api/tools/:id/manuals/:manualId',
   'GET /api/manuals/:id/file',
+  'GET /api/manuals',
+  'PATCH /api/manuals/:id',
+  'POST /api/manuals/delete',
+  'POST /api/tools/:id/manuals/attach',
   'POST /api/tools/:id/attributes',
   'PATCH /api/tools/:id/attributes/:attributeId',
   'DELETE /api/tools/:id/attributes/:attributeId',
@@ -504,9 +510,24 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
     )
   }
 
+  if (path === '/api/manuals') return methodHandler(method, { GET: manuals.libraryGET })
+  if (path === '/api/manuals/delete') {
+    return methodHandler(method, { POST: manuals.libraryDeletePOST })
+  }
+
   const manualFile = MANUAL_FILE_PATTERN.exec(path)
   if (manualFile) {
     return methodHandler(method, { GET: manuals.fileGET }, { id: manualFile[1] })
+  }
+
+  const manualDetail = MANUAL_DETAIL_PATTERN.exec(path)
+  if (manualDetail) {
+    return methodHandler(method, { PATCH: manuals.libraryPATCH }, { id: manualDetail[1] })
+  }
+
+  const manualsAttach = TOOL_MANUALS_ATTACH_PATTERN.exec(path)
+  if (manualsAttach) {
+    return methodHandler(method, { POST: manuals.attachPOST }, { id: manualsAttach[1] })
   }
 
   // Longest first here too: "from-page" is a word, not a manual's id, and the

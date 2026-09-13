@@ -171,6 +171,12 @@ a claim by the other side and a `.pdf` on the end of an address is a claim by
 nobody: a shop answering an error page under a PDF address is the common case,
 and the run that proved this caught exactly that.
 
+An importer says whether it finds any at all — `manuals: true` on bosch-diy,
+`false` on mistama — and that flag travels to the screens: the dialog offers
+only pages that publish documents, the card hides the "fetch from the maker"
+button when its own source has none, and the route refuses such an address by
+name rather than fetching a page to report it empty afterwards.
+
 `bosch-diy.ts` is the one importer that finds any, because mistama publishes
 none — its product pages have three sections and "Instrukcję obsługi" there is
 a line on a packing list. Bosch's download block lists more than one machine's
@@ -178,6 +184,14 @@ manuals, so they are filtered by the asset number baked into every file it
 publishes: a manual whose number appears in one of this product's pictures is
 this product's. Where nothing matches, the card gets no manuals rather than
 somebody else's — nobody re-reads a document they believe they already have.
+
+`GET /api/manuals` is the shelf rather than the drawer — every document,
+whichever tool keeps it, with the cards that keep it rolled up per row. The
+same split the photo library makes, and the screen behind it answers the
+question a card's panel cannot: which tools is this the manual for, and has the
+same PDF been uploaded three times under three names. Deleting from there is
+not the bin on a card: it takes the file out of the catalog and off every card
+at once, which is why the confirmation names them.
 
 The file is served by the manual's own id, `inline`, with two file names in the
 `content-disposition`: an ASCII one every client can read and a `filename*` for

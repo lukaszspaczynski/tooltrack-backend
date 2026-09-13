@@ -37,6 +37,11 @@ export type Importer = {
   // what the import dialog offers and what an address is checked against.
   hosts: readonly string[]
   label: string
+  // Whether this source publishes documents at all. A shop that sells a tool
+  // is not obliged to host its manual, and most do not — offering a page as a
+  // place to fetch manuals from when it can only ever answer "none" is a
+  // promise the screen cannot keep.
+  manuals: boolean
   // Pure: the page as text, the address it came from, and a product or nothing.
   // Nothing means "this is not a product page", which is a refusal the person
   // can act on rather than a card full of empty fields.

@@ -32,6 +32,9 @@ const BOLD = /<(?:strong|b)[^>]*>([\s\S]*?)<\/(?:strong|b)>/i
 export const mistama: Importer = {
   hosts: ['mistama.com', 'www.mistama.com'],
   label: 'mistama.com',
+  // The shop publishes none: its product pages have three sections, and
+  // "Instrukcję obsługi" there is a line on a packing list rather than a file.
+  manuals: false,
   parse: parseMistamaProduct,
 }
 

@@ -78,6 +78,149 @@ export async function listManuals(toolId: number, pool: PgPool = db()): Promise<
   return result.rows.map(toManual)
 }
 
+// Every manual there is, whichever tool keeps it — the library screen, the
+// same relation to a card's list as the photo library has to a gallery.
+//
+// Each row carries the cards that keep it, because "which tools is this the
+// manual for" is the question the screen exists to answer, and asking it per
+// row would be a query per manual.
+export type ManualLibraryPage = {
+  items: (Manual & { tools: { id: number; model: string; name: string }[] })[]
+  limit: number
+  offset: number
+  total: number
+}
+
+export async function listAllManuals(
+  query: { limit: number; offset: number; search: null | string },
+  pool: PgPool = db(),
+): Promise<ManualLibraryPage> {
+  const result = await pool.query<
+    ManualRow & {
+      tools: null | { id: number | string; model: string; name: string }[]
+      total_count: string
+    }
+  >(
+    `
+      WITH "kept_by" AS (
+        SELECT "l"."manual_id",
+               -- The model as well as the name: a shelf of "Instrukcja
+               -- obsługi" on cards called "Sekator akumulatorowy" is told
+               -- apart by the model and by nothing else.
+               jsonb_agg(jsonb_build_object('id', "t"."id", 'name', "t"."name",
+                                            'model', "t"."model")
+                         ORDER BY "t"."name") AS "tools",
+               string_agg("t"."name" || ' ' || "t"."brand" || ' ' || "t"."model", ' ') AS "text"
+        FROM "catalog"."manual_tool" AS "l"
+        JOIN "catalog"."tool" AS "t" ON "t"."id" = "l"."tool_id"
+        GROUP BY "l"."manual_id"
+      )
+      SELECT ${PREFIXED_COLUMNS},
+             COALESCE("k"."tools", '[]'::jsonb) AS "tools",
+             count(*) OVER () AS "total_count"
+      FROM "catalog"."manual" AS "m"
+      LEFT JOIN "kept_by" AS "k" ON "k"."manual_id" = "m"."id"
+      -- Searched by its own title and by the tools it belongs to: a document
+      -- called "Instrukcja obsługi" is findable only by the machine it is for.
+      WHERE ($1::text IS NULL OR "m"."title" ILIKE $1 OR "k"."text" ILIKE $1)
+      ORDER BY "m"."created_at" DESC, "m"."id" DESC
+      LIMIT $2 OFFSET $3
+    `,
+    [
+      query.search === null ? null : `%${query.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`,
+      query.limit,
+      query.offset,
+    ],
+  )
+
+  return {
+    items: result.rows.map((row) => ({
+      ...toManual(row),
+      tools: (row.tools ?? []).map((tool) => ({
+        id: Number(tool.id),
+        model: tool.model ?? '',
+        name: tool.name,
+      })),
+    })),
+    limit: query.limit,
+    offset: query.offset,
+    total: Number(result.rows[0]?.total_count ?? 0),
+  }
+}
+
+// Renaming from the library, where a manual is not being looked at through any
+// one card.
+export async function retitleManual(
+  manualId: number,
+  title: string,
+  pool: PgPool = db(),
+): Promise<null | Manual> {
+  const result = await pool.query<ManualRow>(
+    `UPDATE "catalog"."manual" SET "title" = $2 WHERE "id" = $1 RETURNING ${MANUAL_COLUMNS}`,
+    [manualId, title],
+  )
+
+  const row = result.rows[0]
+  return row ? toManual(row) : null
+}
+
+// Deleting from the library: off every card at once and off the disk.
+//
+// Unlike the bin on a card, this is not "take it off here" — it is "this
+// document should not be in the catalog", which is why it does not ask whether
+// another tool still keeps it.
+export async function deleteManualsByIds(
+  manualIds: number[],
+  pool: PgPool = db(),
+): Promise<number> {
+  if (manualIds.length === 0) return 0
+
+  const keys = await withTransaction(pool, async (client) => {
+    const deleted = await client.query<{ storage_key: string }>(
+      `DELETE FROM "catalog"."manual" WHERE "id" = ANY($1::bigint[]) RETURNING "storage_key"`,
+      [manualIds],
+    )
+
+    const written = [...new Set(deleted.rows.map((row) => row.storage_key))]
+    if (written.length === 0) return []
+
+    const stillUsed = await client.query<{ storage_key: string }>(
+      `SELECT DISTINCT "storage_key" FROM "catalog"."manual" WHERE "storage_key" = ANY($1::text[])`,
+      [written],
+    )
+    const used = new Set(stillUsed.rows.map((row) => row.storage_key))
+
+    return written.filter((key) => !used.has(key))
+  })
+
+  for (const key of keys) await deleteManualFile(key)
+
+  return keys.length
+}
+
+// Putting documents the catalog already has onto another card. The same
+// operation as attaching an existing photo, and for the same reason: one
+// manual, several machines.
+export async function attachManualsTo(
+  toolId: number,
+  manualIds: number[],
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<number> {
+  if (manualIds.length === 0) return 0
+
+  const result = await pool.query(
+    `
+      INSERT INTO "catalog"."manual_tool" ("tool_id", "manual_id", "created_by")
+      SELECT $1, "id", $3 FROM "catalog"."manual" WHERE "id" = ANY($2::bigint[])
+      ON CONFLICT DO NOTHING
+    `,
+    [toolId, manualIds, actorId],
+  )
+
+  return result.rowCount ?? 0
+}
+
 export async function getManualById(
   manualId: number,
   pool: PgPool = db(),

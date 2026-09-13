@@ -16,7 +16,7 @@
 // trusted from a header or a file extension.
 
 import { fetchRemoteFile, ImageFetchError } from '../image-fetch'
-import { fitToCard, importerFor, IMPORT_SOURCES } from '../importers'
+import { fitToCard, importerFor, MANUAL_SOURCES } from '../importers'
 import { t } from '../i18n'
 import {
   isPdf,
@@ -27,17 +27,21 @@ import {
 } from '../manual-storage'
 import type { RouteContext } from '../route-context'
 import {
+  attachManualsTo,
+  deleteManualsByIds,
   getManualById,
   insertManual,
   linkManual,
+  listAllManuals,
   listManuals,
   ManualAlreadyOnCardError,
+  retitleManual,
   renameManual,
   unlinkManual,
   type Manual,
   type ManualSource,
 } from './manuals-store'
-import { parseManualTitle, parseManualUrl } from './manuals-input'
+import { parseManualIds, parseManualQuery, parseManualTitle, parseManualUrl } from './manuals-input'
 import { getTool } from './tools-store'
 
 // A page offering thirty documents is a page listing somebody's whole
@@ -102,12 +106,20 @@ export async function fromPagePOST(request: Request, context: RouteContext): Pro
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
 
   const importer = importerFor(parsed.value.url)
-  if (!importer) {
+  // Only the pages that publish documents are offered, so only those are
+  // accepted: fetching a shop's product page to tell somebody afterwards that
+  // it has no manuals is a round trip nobody needed.
+  if (!importer || !importer.manuals) {
     return Response.json(
       {
-        error: t('Nie umiem czytać tej strony. Obsługiwane źródła: {sources}', {
-          sources: IMPORT_SOURCES.map((source) => source.label).join(', '),
-        }),
+        error: importer
+          ? t('{source} nie udostępnia instrukcji. Spróbuj ze strony producenta: {sources}', {
+              source: importer.label,
+              sources: MANUAL_SOURCES.map((source) => source.label).join(', '),
+            })
+          : t('Nie umiem czytać tej strony. Obsługiwane źródła: {sources}', {
+              sources: MANUAL_SOURCES.map((source) => source.label).join(', '),
+            }),
       },
       { status: 400 },
     )
@@ -163,6 +175,66 @@ export async function fromPagePOST(request: Request, context: RouteContext): Pro
   }
 
   return Response.json({ failed, manuals }, { status: 201 })
+}
+
+// GET /api/manuals — every manual there is, whichever tool keeps it.
+//
+// The shelf rather than the drawer, the same split the photo library makes:
+// the panel on a card answers "what does this tool come with", this answers
+// "what documents do we have", which is the question somebody asks when a
+// manual is missing from a card that should have it.
+export async function libraryGET(request: Request): Promise<Response> {
+  const query = parseManualQuery(new URL(request.url).searchParams)
+
+  return Response.json(await listAllManuals(query), {
+    headers: { 'cache-control': 'no-store' },
+  })
+}
+
+// PATCH /api/manuals/:id — renaming from the library, where the document is
+// not being looked at through any one card.
+export async function libraryPATCH(request: Request, context: RouteContext): Promise<Response> {
+  const manualId = parseId(context.params.id)
+  if (manualId === null) return notFound()
+
+  const parsed = parseManualTitle(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const manual = await retitleManual(manualId, parsed.value)
+  if (!manual) return notFound()
+
+  return Response.json({ manual })
+}
+
+// POST /api/manuals/delete — off every card at once and off the disk.
+//
+// A batch, like the photo library's bin: "these documents should not be in the
+// catalog" is a decision somebody makes about several at a time, and it is a
+// different decision from taking one off a card.
+export async function libraryDeletePOST(request: Request): Promise<Response> {
+  const parsed = parseManualIds(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const kept = await listKeptBy(parsed.value)
+  await deleteManualsByIds(parsed.value)
+
+  // What the delete took off which cards, so a screen showing them can say so
+  // rather than quietly refreshing.
+  return Response.json({ deleted: parsed.value.length, tools: kept })
+}
+
+// POST /api/tools/:id/manuals/attach — documents the catalog already has.
+export async function attachPOST(request: Request, context: RouteContext): Promise<Response> {
+  const toolId = parseId(context.params.id)
+  if (toolId === null) return notFound()
+  if (!(await getTool(toolId))) return notFound()
+
+  const parsed = parseManualIds(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const attached = await attachManualsTo(toolId, parsed.value, context.user?.id ?? 0)
+
+  return Response.json({ attached, manuals: await listManuals(toolId) }, { status: 201 })
 }
 
 export async function detailPATCH(request: Request, context: RouteContext): Promise<Response> {
@@ -297,6 +369,19 @@ export async function saveManualBytesFor(
 
 // The same work as an answer rather than as an exception: a route hands back a
 // Response, while the importer collects failures beside its successes.
+async function listKeptBy(manualIds: number[]): Promise<{ id: number; name: string }[]> {
+  const page = await listAllManuals({ limit: manualIds.length, offset: 0, search: null })
+  const wanted = new Set(manualIds)
+
+  const byId = new Map<number, { id: number; name: string }>()
+  for (const manual of page.items) {
+    if (!wanted.has(manual.id)) continue
+    for (const tool of manual.tools) byId.set(tool.id, tool)
+  }
+
+  return [...byId.values()]
+}
+
 async function answering(work: () => Promise<Manual>): Promise<Response> {
   try {
     return Response.json({ manual: await work() }, { status: 201 })

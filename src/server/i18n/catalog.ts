@@ -38,6 +38,8 @@ export const EN: Record<string, string> = {
   // What the request has to say
   'Nie wybrano żadnej etykiety': 'No label was chosen',
   'Nie zaznaczono żadnego zdjęcia': 'No photo was selected',
+  'Nie zaznaczono żadnej instrukcji': 'No manual was selected',
+  'Maksymalnie {max} instrukcji naraz': 'At most {max} manuals at a time',
   'Nieprawidłowy identyfikator: {value}': 'Not an identifier: {value}',
   'Podaj adres zdjęcia (url)': 'Give the photo’s address (url)',
   'Podaj adres zdjęcia (url) albo listę (items)':
@@ -57,6 +59,8 @@ export const EN: Record<string, string> = {
     'I cannot read that page. Supported sources: {sources}',
   'Nie udało się pobrać strony produktu': 'The product page could not be fetched',
   'Ta strona nie udostępnia żadnych instrukcji': 'That page publishes no manuals',
+  '{source} nie udostępnia instrukcji. Spróbuj ze strony producenta: {sources}':
+    '{source} publishes no manuals. Try the maker’s own site: {sources}',
   'Nie udało się pobrać instrukcji': 'The manuals could not be fetched',
   'Ten plik nie jest PDF-em': 'That file is not a PDF',
   'Pusty plik': 'An empty file',

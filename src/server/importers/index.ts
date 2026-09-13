@@ -25,7 +25,12 @@ const IMPORTERS: readonly Importer[] = [mistama, boschDiy]
 export const IMPORT_SOURCES = IMPORTERS.map((importer) => ({
   host: importer.hosts[0],
   label: importer.label,
+  // So a screen asking for documents can offer only the pages that have any.
+  manuals: importer.manuals,
 }))
+
+// The sources worth offering when what is wanted is a manual.
+export const MANUAL_SOURCES = IMPORT_SOURCES.filter((source) => source.manuals)
 
 export function importerFor(rawUrl: string): null | Importer {
   let url: URL

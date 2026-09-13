@@ -155,13 +155,16 @@ later. Names that differ only in case or spacing count as one.
 ```json
 {
   "sources": [
-    { "host": "mistama.com", "label": "mistama.com" },
-    { "host": "bosch-diy.com", "label": "bosch-diy.com" }
+    { "host": "mistama.com", "label": "mistama.com", "manuals": false },
+    { "host": "bosch-diy.com", "label": "bosch-diy.com", "manuals": true }
   ]
 }
 ```
 
-The pages this server can read — a shop and a manufacturer's own site. The import dialog lists them before asking for an address,
+The pages this server can read — a shop and a manufacturer's own site.
+`manuals` says whether that page publishes documents at all: a shop sells the
+tool and leaves the manual to the maker, so a screen asking for one offers only
+the sources that have any. The import dialog lists them before asking for an address,
 so it never offers a source this installation does not have.
 
 ### `POST /api/tools/import` — `catalog.write`
@@ -317,7 +320,11 @@ Read by the same importers as `POST /api/tools/import`, so an address from a
 page this server cannot read is refused in the same words.
 
 `201 { manuals, failed }` — one document that will not download does not lose
-the others. `422` when the page publishes none, which most shops do not.
+the others. `422` when the page publishes none.
+
+`400` for an address this server cannot read **and** for one it can read but
+that publishes no documents — `mistama.com` is refused here by name rather than
+fetched and then reported empty, since that round trip helps nobody.
 
 ### `PATCH /api/tools/:id/manuals/:manualId` — `catalog.write`
 
@@ -328,6 +335,34 @@ the others. `422` when the page publishes none, which most shops do not.
 
 `200 { "ok": true }`. Takes the manual off **this** card; the document itself
 goes when no card keeps it any more.
+
+### `GET /api/manuals` — `catalog.read`
+
+The library: every manual there is, whichever tool keeps it. `?q=` matches the
+title **and** the tools it belongs to — a document called "Instrukcja obsługi"
+is findable only by the machine it is for. `?limit=` 1–200 (24), `?offset=`.
+
+`200 { items, total, limit, offset }`, newest first. Each item is a manual plus
+`tools: [{ id, name }]` — the cards that keep it, which is the question this
+screen exists to answer, and one query rather than one per row.
+
+### `PATCH /api/manuals/:id` — `catalog.write`
+
+`{ "title": "…" }` → `200 { manual }`. Renaming from the library, where the
+document is not being looked at through any one card.
+
+### `POST /api/manuals/delete` — `catalog.write`
+
+`{ "ids": [1, 2] }`, at most 50 → `200 { deleted, tools }`. Off every card at
+once and off the disk. A different decision from
+`DELETE /api/tools/:id/manuals/:manualId`, which takes one off **one** card and
+leaves the file where another card still keeps it. `tools` names the cards that
+lost something, so the screen can say so.
+
+### `POST /api/tools/:id/manuals/attach` — `catalog.write`
+
+`{ "ids": [1, 2] }` → `201 { attached, manuals }`. Documents the catalog
+already has, put onto another card: one manual, several machines.
 
 ### `GET /api/manuals/:id/file` — `catalog.read`
 

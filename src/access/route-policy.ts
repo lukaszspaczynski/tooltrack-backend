@@ -245,6 +245,30 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/\d+\/manuals\/\d+$/,
   },
   {
+    // The library: every manual there is, whichever tool keeps it. Looking is
+    // reading the catalog; renaming one or taking it out of the catalog
+    // altogether is changing it.
+    domain: 'tools',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/manuals$/,
+  },
+  {
+    domain: 'tools',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/manuals\/delete$/,
+  },
+  {
+    domain: 'tools',
+    methods: { PATCH: WRITE_CATALOG },
+    pattern: /^\/api\/manuals\/\d+$/,
+  },
+  {
+    // Putting a document the catalog already has onto another card.
+    domain: 'tools',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/manuals\/attach$/,
+  },
+  {
     // The bytes of a manual, by the document's own id — it belongs to several
     // cards and none of them owns it. Readable by anyone who may read the
     // catalog, like the bytes of a photo.

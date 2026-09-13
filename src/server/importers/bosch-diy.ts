@@ -26,6 +26,9 @@ const BRAND = 'Bosch Home & Garden'
 export const boschDiy: Importer = {
   hosts: ['bosch-diy.com', 'www.bosch-diy.com'],
   label: 'bosch-diy.com',
+  // The maker publishes its own documents, which is the whole difference
+  // between its site and a shop's.
+  manuals: true,
   parse: parseBoschDiyProduct,
 }
 

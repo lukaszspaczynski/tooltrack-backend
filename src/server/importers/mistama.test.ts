@@ -194,6 +194,12 @@ test('the pictures are the originals, not the thumbnails', () => {
   ])
 })
 
+test('a shop that publishes no documents says so about itself', () => {
+  // Which is what keeps a screen asking for manuals from offering a page that
+  // can only ever answer "none".
+  assert.equal(importerFor('https://mistama.com/x.html')?.manuals, false)
+})
+
 test('an address from anywhere else has no importer', () => {
   assert.equal(importerFor('https://mistama.com/cokolwiek.html')?.label, 'mistama.com')
   assert.equal(importerFor('https://www.mistama.com/cokolwiek.html')?.label, 'mistama.com')
