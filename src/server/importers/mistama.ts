@@ -47,6 +47,11 @@ export function parseMistamaProduct(html: string, pageUrl: string): null | Impor
     attributes: attributesOf(html, product),
     brand,
     category: categoryOf(crumbs, product, brand),
+    // The shop publishes none. Its product pages have three sections — the
+    // description, the spec table and what is in the box — and "Instrukcję
+    // obsługi w języku polskim" there is a line on a packing list rather than
+    // a file. The maker's own site is where the PDF lives.
+    manuals: [],
     model: modelOf(name, brand),
     name,
     // The maker's own sentence about the thing. It is the only prose the page

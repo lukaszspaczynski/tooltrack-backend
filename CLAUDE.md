@@ -138,10 +138,51 @@ what the column takes rather than failing an import somebody is watching. The
 serial number is deliberately left blank: it identifies one physical machine,
 and the page describes a model.
 
-The pictures go through `importPhotoLinks`, the same path a pasted address and
-a ticked search result take. Sixteen of them is around a dozen seconds of one
+The pictures go through `importPhotoLinks` and the manuals through
+`saveManualFromUrl` — the same paths a pasted address and a ticked search
+result take, so a file arriving with a whole card is fetched, checked and
+refused on exactly the terms it would be on its own. Sixteen of them is around a dozen seconds of one
 request — the ceiling is twenty, which is what keeps that from becoming a
 minute.
+
+## Manuals
+
+`catalog.manual` holds the PDFs that belong beside a tool: the one from the
+box, a parts diagram, a safety sheet. Its own table with `manual_tool` beside
+it, exactly like the photos — a manual describes a model rather than one
+machine, so three identical grinders share one file, a duplicated card costs a
+link, and deleting a card takes with it only what no other card keeps.
+
+Content addressed by checksum, so the same document uploaded from a laptop and
+fetched from the maker's website is one row. That is not a corner case: it
+happened on the first end-to-end run.
+
+Three ways in, because that is how a document actually reaches somebody:
+
+- **the bytes**, posted as the body with `content-type: application/pdf`, the
+  same shape a photo upload takes;
+- **an address**, fetched through `fetchRemoteFile` — the generic half of the
+  photo fetcher, with the local-network guard, the redirect re-check, the
+  timeout and the ceiling that a server fetching a URL needs;
+- **a product page**, read by the same importers that import a whole card.
+
+Whichever way it arrives, `isPdf` looks at the bytes. A content-type header is
+a claim by the other side and a `.pdf` on the end of an address is a claim by
+nobody: a shop answering an error page under a PDF address is the common case,
+and the run that proved this caught exactly that.
+
+`bosch-diy.ts` is the one importer that finds any, because mistama publishes
+none — its product pages have three sections and "Instrukcję obsługi" there is
+a line on a packing list. Bosch's download block lists more than one machine's
+manuals, so they are filtered by the asset number baked into every file it
+publishes: a manual whose number appears in one of this product's pictures is
+this product's. Where nothing matches, the card gets no manuals rather than
+somebody else's — nobody re-reads a document they believe they already have.
+
+The file is served by the manual's own id, `inline`, with two file names in the
+`content-disposition`: an ASCII one every client can read and a `filename*` for
+the real title. A header is bytes, and "Instrukcja obsługi" cannot be written
+in one — which is how the first version answered 500.
 
 ## What a tool is
 

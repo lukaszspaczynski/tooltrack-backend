@@ -12,6 +12,8 @@
 import { fitToCard, IMPORT_SOURCES, importerFor, type ImportedProduct } from '../importers'
 import { t } from '../i18n'
 import type { RouteContext } from '../route-context'
+import { ManualRejectedError, saveManualFromUrl } from './manuals'
+import type { Manual } from './manuals-store'
 import { importPhotoLinks } from './photos'
 import { parseImportInput } from './tools-input'
 import { addAttribute, createTool, getToolDetail } from './tools-store'
@@ -25,6 +27,10 @@ const PAGE_TIMEOUT_MS = 20_000
 // fetched, decoded and stored, so the ceiling is what keeps an import from
 // being a minute of somebody watching a spinner.
 const MAX_IMPORT_PHOTOS = 20
+
+// A tool has a manual, maybe a diagram, maybe a safety sheet. A page offering
+// more than this is listing somebody's whole catalogue.
+const MAX_IMPORT_MANUALS = 8
 
 export async function sourcesGET(): Promise<Response> {
   return Response.json({ sources: IMPORT_SOURCES }, { headers: { 'cache-control': 'no-store' } })
@@ -106,11 +112,32 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
     actorId,
   )
 
+  // And the documents the page publishes. Most shops publish none, so this is
+  // usually nothing; where there are some, the card arrives with the manual on
+  // it rather than with an errand attached.
+  const manuals: Manual[] = []
+  const manualsFailed: string[] = []
+
+  for (const manual of product.manuals.slice(0, MAX_IMPORT_MANUALS)) {
+    try {
+      manuals.push(await saveManualFromUrl(tool.id, manual.url, manual.title, 'import', actorId))
+    } catch (error) {
+      // A PDF that will not download is not worth the card it came with.
+      if (error instanceof ManualRejectedError) {
+        manualsFailed.push(manual.url)
+        continue
+      }
+      throw error
+    }
+  }
+
   return Response.json(
     {
       imported: {
         attributes: product.attributes.length - failed.length,
         attributesFailed: failed,
+        manuals: manuals.length,
+        manualsFailed: manualsFailed.length,
         photos: photos.photos.length,
         photosFailed: photos.failed.length,
         sourceUrl: product.sourceUrl,

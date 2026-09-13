@@ -13,7 +13,7 @@
 // Pure, like every importer. The fetching lives in routes/tool-import.ts.
 
 import { text } from './html'
-import type { ImportedAttribute, ImportedProduct, Importer } from './types'
+import type { ImportedAttribute, ImportedManual, ImportedProduct, Importer } from './types'
 
 const ORIGIN = 'https://www.bosch-diy.com'
 
@@ -41,14 +41,17 @@ export function parseBoschDiyProduct(html: string, pageUrl: string): null | Impo
 
   const sku = String(stage.sku ?? '').trim()
 
+  const photoUrls = photosOf(stage)
+
   return {
     attributes: attributesOf(sections, sku),
     brand: BRAND,
     category: categoryOf(stage),
+    manuals: manualsOf(sections, photoUrls, name),
     model: modelOf(name),
     name,
     notes: text(String(asSection(sections.productDescriptionSection).text ?? '')),
-    photoUrls: photosOf(stage),
+    photoUrls,
     sourceUrl: pageUrl,
   }
 }
@@ -219,6 +222,66 @@ function photosOf(stage: Section): string[] {
   }
 
   return urls
+}
+
+// The PDFs the page publishes — and only the ones belonging to this product.
+//
+// The download block lists more than one machine's manuals: a CityMower page
+// offers an AdvancedRotak's and a PSR's beside its own. A manual for the wrong
+// tool on a card is worse than no manual, because nobody re-reads a document
+// they believe they already have.
+//
+// What tells them apart is the asset number Bosch bakes into every file it
+// publishes — `sao-hg-citymower-100053460-original-pdf-474770-pl-pl.pdf` beside
+// `sao-hg-citymower-100053460-hires-png-...` in the gallery. A manual whose
+// number appears in one of this product's pictures is this product's. Where
+// nothing matches, the model's own first word is the fallback, and where that
+// finds nothing either, the card gets no manuals rather than somebody else's.
+export function manualsOf(sections: Section, photoUrls: string[], name: string): ImportedManual[] {
+  const offered = manualLinks(asSection(sections.userManualsSection))
+  if (offered.length === 0) return []
+
+  const assets = new Set(photoUrls.flatMap((url) => [...url.matchAll(/\d{6,}/g)].map((m) => m[0])))
+  const byAsset = offered.filter((manual) => [...assets].some((id) => manual.url.includes(id)))
+  if (byAsset.length > 0) return byAsset
+
+  const token = modelOf(name).split(/\s+/)[0]?.toLocaleLowerCase('en-US') ?? ''
+  if (token.length < 4) return []
+
+  return offered.filter((manual) => manual.url.toLocaleLowerCase('en-US').includes(token))
+}
+
+function manualLinks(section: Section): ImportedManual[] {
+  const groups = Array.isArray(section.manuals) ? section.manuals : []
+  const manuals: ImportedManual[] = []
+  const seen = new Set<string>()
+
+  for (const group of groups) {
+    const links = Array.isArray((group as Section).links)
+      ? ((group as Section).links as unknown[])
+      : []
+
+    for (const entry of links) {
+      const link = asSection((entry as Section)?.link)
+      const url = String(link.href ?? '').trim()
+      if (!/^https?:\/\/\S+\.pdf(\?|$)/i.test(url) || seen.has(url)) continue
+
+      seen.add(url)
+      manuals.push({ title: manualTitle(String(link.label ?? '')), url })
+    }
+  }
+
+  return manuals
+}
+
+// "Instrukcja obsługi (PDF - 7,7 MB)" is a label for a button. The size is the
+// page's business and the card knows its own; what is left is the title.
+export function manualTitle(label: string): string {
+  const written = text(label)
+    .replace(/\s*\((?:PDF|pdf)[^)]*\)\s*$/, '')
+    .trim()
+
+  return written || 'Instrukcja'
 }
 
 function isSection(value: unknown): value is Section {

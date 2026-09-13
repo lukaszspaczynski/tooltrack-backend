@@ -177,6 +177,8 @@ so it never offers a source this installation does not have.
     "photosFailed": 0,
     "attributes": 12,
     "attributesFailed": [],
+    "manuals": 0,
+    "manualsFailed": 0,
     "sourceUrl": "https://mistama.com/…"
   }
 }
@@ -185,6 +187,11 @@ so it never offers a source this installation does not have.
 Every imported card gets a **`Referencja`** parameter holding the address it
 was read from, so what the import said can be checked against what the page
 says today.
+
+The manuals come too, at most 8 of them, where the page publishes any — most
+shops publish none. They go through the same path as
+`POST /api/tools/:id/manuals`, so a PDF that will not download is reported
+rather than failing the card.
 
 The card is created with `condition: "new"` and **no serial number** — that
 identifies one physical machine, and the page describes a model. Parameters and
@@ -278,6 +285,54 @@ asking.
   "updatedAt": "2026-01-02T00:00:00.000Z"
 }
 ```
+
+### `GET /api/tools/:id/manuals` — `catalog.read`
+
+`200 { manuals }` — the PDFs kept beside this tool, oldest attachment first.
+Each carries `title`, `byteSize`, `source` (`upload` \| `url` \| `import`),
+`sourceUrl`, `createdBy`, `createdAt` and a `url` to read it at.
+
+### `POST /api/tools/:id/manuals` — `catalog.write`
+
+Two request shapes on one route.
+
+**The bytes.** `content-type: application/pdf` with the file as the body, and
+`?name=` carrying the file name so the card can call it something before
+anybody types a title.
+
+**An address.** `{ "url": "https://…/instrukcja.pdf", "title"? }` — fetched
+under the same rules a photo URL is: no local network, no redirect into one, a
+timeout, and a ceiling of 40 MB read as the bytes arrive.
+
+`201 { manual }`. `415` when the bytes are not a PDF — the header and the
+extension are both claims, and an error page served under a `.pdf` address is
+the common one this catches. `409` when this card already keeps that exact
+file: the checksum is the identity, so the same document from two directions is
+one row.
+
+### `POST /api/tools/:id/manuals/from-page` — `catalog.write`
+
+`{ "url": "https://…" }` — every manual a product page publishes, at most 8.
+Read by the same importers as `POST /api/tools/import`, so an address from a
+page this server cannot read is refused in the same words.
+
+`201 { manuals, failed }` — one document that will not download does not lose
+the others. `422` when the page publishes none, which most shops do not.
+
+### `PATCH /api/tools/:id/manuals/:manualId` — `catalog.write`
+
+`{ "title": "Instrukcja obsługi" }` → `200 { manual }`. Blank is a `400`:
+"instrukcja_pl_v2_final" is a poor title and an empty one is not a title.
+
+### `DELETE /api/tools/:id/manuals/:manualId` — `catalog.write`
+
+`200 { "ok": true }`. Takes the manual off **this** card; the document itself
+goes when no card keeps it any more.
+
+### `GET /api/manuals/:id/file` — `catalog.read`
+
+The PDF, `inline`. By the manual's own id rather than through a card, because
+several cards share one document and none of them owns it.
 
 ### `POST /api/tools/:id/attributes` — `catalog.write`
 

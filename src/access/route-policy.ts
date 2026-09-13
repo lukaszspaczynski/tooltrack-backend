@@ -228,6 +228,31 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/\d+\/duplicate$/,
   },
   {
+    // The manuals of a tool. Reading one is reading the card; adding, renaming
+    // or binning one is changing it.
+    domain: 'tools',
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/manuals$/,
+  },
+  {
+    domain: 'tools',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/manuals\/from-page$/,
+  },
+  {
+    domain: 'tools',
+    methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/manuals\/\d+$/,
+  },
+  {
+    // The bytes of a manual, by the document's own id — it belongs to several
+    // cards and none of them owns it. Readable by anyone who may read the
+    // catalog, like the bytes of a photo.
+    domain: 'tools',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/manuals\/\d+\/file$/,
+  },
+  {
     // What this tool is: 230 V, 300 rpm, SDS-plus. Part of the card, so
     // reading one is reading the card and changing one is changing it. The
     // parameters themselves come back with the tool, which is why there is no

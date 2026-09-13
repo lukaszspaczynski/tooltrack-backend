@@ -10,6 +10,12 @@ export type ImportedAttribute = {
   value: string
 }
 
+// A document the page offers beside the product: the manual, a parts diagram.
+export type ImportedManual = {
+  title: string
+  url: string
+}
+
 export type ImportedProduct = {
   brand: string
   category: string
@@ -17,6 +23,9 @@ export type ImportedProduct = {
   name: string
   notes: string
   attributes: ImportedAttribute[]
+  // The PDFs the page publishes for this product, in the order it lists them.
+  // Empty when the page publishes none, which is most shops.
+  manuals: ImportedManual[]
   // Full-size, in the order the page lists them. The first is the shop's own
   // main picture, which is why order is kept: it becomes the card's.
   photoUrls: string[]

@@ -23,6 +23,7 @@ import * as auth from './routes/auth'
 import * as brands from './routes/brands'
 import * as cases from './routes/cases'
 import * as labels from './routes/labels'
+import * as manuals from './routes/manuals'
 import * as media from './routes/media'
 import * as organizers from './routes/organizers'
 import * as photos from './routes/photos'
@@ -47,6 +48,10 @@ const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
 const TOOL_DUPLICATE_PATTERN = /^\/api\/tools\/(\d+)\/duplicate$/
+const TOOL_MANUALS_PATTERN = /^\/api\/tools\/(\d+)\/manuals$/
+const TOOL_MANUALS_FROM_PAGE_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/from-page$/
+const TOOL_MANUAL_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/(\d+)$/
+const MANUAL_FILE_PATTERN = /^\/api\/manuals\/(\d+)\/file$/
 const TOOL_ATTRIBUTES_PATTERN = /^\/api\/tools\/(\d+)\/attributes$/
 const TOOL_ATTRIBUTE_PATTERN = /^\/api\/tools\/(\d+)\/attributes\/(\d+)$/
 const BRAND_DETAIL_PATTERN = /^\/api\/brands\/(\d+)$/
@@ -103,6 +108,12 @@ const ROUTES = [
   'GET /api/tools/attributes',
   'GET /api/tools/import/sources',
   'POST /api/tools/import',
+  'GET /api/tools/:id/manuals',
+  'POST /api/tools/:id/manuals',
+  'POST /api/tools/:id/manuals/from-page',
+  'PATCH /api/tools/:id/manuals/:manualId',
+  'DELETE /api/tools/:id/manuals/:manualId',
+  'GET /api/manuals/:id/file',
   'POST /api/tools/:id/attributes',
   'PATCH /api/tools/:id/attributes/:attributeId',
   'DELETE /api/tools/:id/attributes/:attributeId',
@@ -490,6 +501,36 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
       method,
       { GET: photos.suggestionsGET },
       { id: suggestions[2], owner: suggestions[1] },
+    )
+  }
+
+  const manualFile = MANUAL_FILE_PATTERN.exec(path)
+  if (manualFile) {
+    return methodHandler(method, { GET: manuals.fileGET }, { id: manualFile[1] })
+  }
+
+  // Longest first here too: "from-page" is a word, not a manual's id, and the
+  // id pattern would not match it — but the reading order should say so.
+  const manualsFromPage = TOOL_MANUALS_FROM_PAGE_PATTERN.exec(path)
+  if (manualsFromPage) {
+    return methodHandler(method, { POST: manuals.fromPagePOST }, { id: manualsFromPage[1] })
+  }
+
+  const manual = TOOL_MANUAL_PATTERN.exec(path)
+  if (manual) {
+    return methodHandler(
+      method,
+      { DELETE: manuals.detailDELETE, PATCH: manuals.detailPATCH },
+      { id: manual[1], manualId: manual[2] },
+    )
+  }
+
+  const toolManuals = TOOL_MANUALS_PATTERN.exec(path)
+  if (toolManuals) {
+    return methodHandler(
+      method,
+      { GET: manuals.listGET, POST: manuals.POST },
+      { id: toolManuals[1] },
     )
   }
 

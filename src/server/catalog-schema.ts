@@ -79,6 +79,41 @@ CREATE INDEX IF NOT EXISTS "catalog_tool_case_manufacturer_idx"
 CREATE INDEX IF NOT EXISTS "catalog_tool_case_system_idx"
   ON "catalog"."tool_case" (lower("system"));
 
+-- The manuals: the PDF that came in the box, and whatever else is worth
+-- keeping beside a tool — a parts diagram, a safety sheet.
+--
+-- Its own table with a link table beside it, exactly like the photos and for
+-- the same reason: a manual describes a model, not one machine, so three
+-- identical grinders share one file rather than three copies of it. Content
+-- addressed by checksum, so the same PDF uploaded twice is one row.
+CREATE TABLE IF NOT EXISTS "catalog"."manual" (
+  "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  "storage_key" text NOT NULL,
+  -- SHA-256 of the bytes. Unique: the same file arriving from an upload and
+  -- from the maker's website is one manual with one name, not two.
+  "checksum" text NOT NULL UNIQUE,
+  "byte_size" bigint NOT NULL,
+  -- What the card calls it. Taken from the file name or from the page it came
+  -- from, and editable, because "instrukcja_pl_v2_final.pdf" is not a title.
+  "title" text NOT NULL DEFAULT '',
+  "source" text NOT NULL DEFAULT 'upload'
+    CHECK ("source" IN ('upload', 'url', 'import')),
+  "source_url" text NOT NULL DEFAULT '',
+  "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
+  "created_at" timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS "catalog"."manual_tool" (
+  "tool_id" bigint NOT NULL REFERENCES "catalog"."tool"("id") ON DELETE CASCADE,
+  "manual_id" bigint NOT NULL REFERENCES "catalog"."manual"("id") ON DELETE CASCADE,
+  "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
+  "created_at" timestamp with time zone NOT NULL DEFAULT now(),
+  PRIMARY KEY ("tool_id", "manual_id")
+);
+
+CREATE INDEX IF NOT EXISTS "catalog_manual_tool_manual_idx"
+  ON "catalog"."manual_tool" ("manual_id");
+
 -- What this particular tool is: mains voltage 230 V, 300 rpm, SDS-plus, 4.2 kg.
 --
 -- A row per parameter rather than columns on the tool, because no two kinds of
@@ -142,6 +177,8 @@ COMMENT ON TABLE "catalog"."tool" IS 'One row per physical tool, the card shown 
 COMMENT ON TABLE "catalog"."tool_case" IS 'One row per case, box or drawer unit the tools are kept in.';
 COMMENT ON COLUMN "catalog"."tool_case"."ean" IS 'Barcode of the product, not of this box: duplicates are expected.';
 COMMENT ON TABLE "catalog"."case_label_slot" IS 'Where a label goes on a case: a size in mm, unique per case.';
+COMMENT ON TABLE "catalog"."manual" IS 'One PDF kept beside the tools: the manual, a parts diagram, a safety sheet.';
+COMMENT ON TABLE "catalog"."manual_tool" IS 'Which tools a manual belongs to. A manual describes a model, so several cards can share one file.';
 COMMENT ON TABLE "catalog"."tool_attribute" IS 'One parameter of one tool: a name and a value, both free text, unique per tool.';
 `
 

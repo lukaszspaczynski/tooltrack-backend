@@ -25,6 +25,7 @@ export const EN: Record<string, string> = {
   'Tego narzędzia nie ma w tym organizerze': 'That tool is not in this arrangement',
   'To narzędzie jest już w innym organizerze': 'That tool is already in another arrangement',
   'To zdjęcie jest już na tej karcie': 'That photo is already on this card',
+  'Ta instrukcja jest już na tej karcie': 'That manual is already on this card',
   'Ten parametr jest już na tej karcie: {name}': 'That parameter is already on this card: {name}',
   'To zdjęcie jest już logo innej marki': 'That photo is already another maker’s logo',
   'Takie wycięcie już jest na tej karcie': 'That cutout is already on this card',
@@ -55,6 +56,10 @@ export const EN: Record<string, string> = {
   'Nie umiem czytać tej strony. Obsługiwane źródła: {sources}':
     'I cannot read that page. Supported sources: {sources}',
   'Nie udało się pobrać strony produktu': 'The product page could not be fetched',
+  'Ta strona nie udostępnia żadnych instrukcji': 'That page publishes no manuals',
+  'Nie udało się pobrać instrukcji': 'The manuals could not be fetched',
+  'Ten plik nie jest PDF-em': 'That file is not a PDF',
+  'Pusty plik': 'An empty file',
   'Pod tym adresem nie ma karty produktu': 'There is no product card at that address',
 
   // Fetching a picture from somewhere else

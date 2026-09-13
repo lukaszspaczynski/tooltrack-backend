@@ -134,17 +134,41 @@ export async function assertPublicHost(url: URL): Promise<void> {
   }
 }
 
+// A picture from an address: the file, fetched under all the rules below, and
+// then checked to be a picture.
 export async function fetchRemoteImage(
   raw: string,
   limit = maxPhotoBytes(),
 ): Promise<FetchedImage> {
+  const { bytes, sourceUrl } = await fetchRemoteFile(raw, { accept: 'image/*', limit })
+
+  const metadata = readImageMetadata(bytes)
+  // The decisive check. A content-type header is a claim by the other side;
+  // this is the file itself.
+  if (!metadata) throw new ImageFetchError('Ten plik nie jest obrazem JPEG, PNG, GIF ani WebP')
+
+  return { bytes, metadata, sourceUrl }
+}
+
+// Any file from any address, under the rules that make fetching one on a
+// server safe: no local network, no redirect into it either, a timeout, and a
+// ceiling read as the bytes arrive rather than trusted from a header.
+//
+// Shared with the manuals, which are PDFs and need every one of those things.
+// What the bytes turn out to be is the caller's question — this one only
+// answers "did they arrive".
+export async function fetchRemoteFile(
+  raw: string,
+  options: { accept: string; limit: number },
+): Promise<{ bytes: Uint8Array; sourceUrl: string }> {
+  const limit = options.limit
   const url = parseImageUrl(raw)
   await assertPublicHost(url)
 
   let response: Response
   try {
     response = await fetch(url, {
-      headers: { accept: 'image/*', 'user-agent': USER_AGENT },
+      headers: { accept: options.accept, 'user-agent': USER_AGENT },
       // No cookies, no credentials, and no following a redirect into somewhere
       // the host check never saw.
       redirect: 'follow',
@@ -172,13 +196,7 @@ export async function fetchRemoteImage(
     )
   }
 
-  const bytes = await readCapped(response, limit)
-  const metadata = readImageMetadata(bytes)
-  // The decisive check. A content-type header is a claim by the other side;
-  // this is the file itself.
-  if (!metadata) throw new ImageFetchError('Ten plik nie jest obrazem JPEG, PNG, GIF ani WebP')
-
-  return { bytes, metadata, sourceUrl: finalUrl.toString() }
+  return { bytes: await readCapped(response, limit), sourceUrl: finalUrl.toString() }
 }
 
 async function readCapped(response: Response, limit: number): Promise<Uint8Array> {

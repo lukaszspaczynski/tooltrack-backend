@@ -88,6 +88,25 @@ The EAN and the SKU identify the product, not this box. Two identical cases on
 the shelf are two rows carrying the same barcode, which is why neither column
 is unique — the opposite of `tool.serial_number`, which is one machine.
 
+### `catalog.manual` and `catalog.manual_tool`
+
+| Column        | Type              | Notes                                            |
+| ------------- | ----------------- | ------------------------------------------------ |
+| `id`          | `bigint` identity |                                                  |
+| `storage_key` | `text`            | `<xx>/<checksum>.pdf` under `media/manuals/`     |
+| `checksum`    | `text` unique     | SHA-256 of the bytes                             |
+| `byte_size`   | `bigint`          |                                                  |
+| `title`       | `text`            | What the card calls it; editable                 |
+| `source`      | `text`            | `upload` \| `url` \| `import`, CHECK constrained |
+| `source_url`  | `text`            | Where it was fetched from, when it was           |
+| `created_by`  | `bigint`          | → `account.user_account`, `ON DELETE SET NULL`   |
+
+`manual_tool` pairs a manual with a tool, primary key on both columns, cascading
+from either side. The same arrangement as the photos and for the same reason: a
+manual describes a model rather than one machine, so several cards share one
+file. The checksum being unique is what makes that true in practice — the same
+PDF uploaded from a laptop and fetched from the maker's site is one row.
+
 ### `catalog.tool_attribute`
 
 | Column       | Type              | Notes                                          |

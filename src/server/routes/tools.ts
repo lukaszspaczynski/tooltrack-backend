@@ -8,6 +8,7 @@
 // answer to a question the policy already answers.
 
 import type { RouteContext } from '../route-context'
+import { copyManualLinks, dropOrphanedManuals, manualIdsOf } from './manuals-store'
 import { placementsFor } from './organizers-store'
 import {
   copyPhotoLinks,
@@ -208,6 +209,9 @@ export async function duplicatePOST(_request: Request, context: RouteContext): P
   if (!copy) return notFound()
 
   await copyPhotoLinks({ id, kind: 'tool' }, { id: copy.id, kind: 'tool' }, actor)
+  // The manuals come along as links to the same files. Two of the same model
+  // read the same manual, and a link costs a row rather than a second 7 MB PDF.
+  await copyManualLinks(id, copy.id, actor)
 
   return Response.json({ tool: copy }, { status: 201 })
 }
@@ -219,6 +223,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   // Read before the delete: once the tool is gone its links have cascaded away
   // and there is nothing left to say which pictures were its.
   const photoIds = await photoIdsOf({ id, kind: 'tool' })
+  const manualIds = await manualIdsOf(id)
 
   const deleted = await deleteTool(id)
   // Deleting a card that is already gone is the outcome the caller wanted, but
@@ -229,6 +234,9 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   // The pictures no other card shows go with it. One that another card still
   // uses stays, which is the whole point of the links.
   await dropOrphanedPhotos(photoIds)
+  // And the documents no other card keeps. Same rule as the pictures: a manual
+  // describes a model, so one that another card still uses stays.
+  await dropOrphanedManuals(manualIds)
 
   return Response.json({ ok: true })
 }
