@@ -977,9 +977,17 @@ second copy of it.
 ### `GET /api/labels/sheet` — `catalog.read`
 
 `?ids=14,16,27` — the chosen labels ganged onto A4, as `application/pdf`,
-`inline`. Two hundred at a time at most, which is what `GET /api/labels` shows
-on one page: "show everything, tick everything, print it" must not end in a
-refusal. Each label is drawn from scratch, and fifty take about three seconds.
+`inline`. Two hundred at a time at most, which is the highest `limit` the label
+list accepts: "show everything, tick everything, print it" must not end in a
+refusal. Each label is drawn from scratch — fifty take about three seconds, and
+a full two hundred is tens of seconds of one request.
+
+A label that cannot be drawn, because its pictures have gone missing since, is
+left out rather than failing the sheet; one that no page can hold is left out
+by the layout. Either way the count is written under the title on every page,
+because a sheet of a hundred and ninety-four looks exactly like one of two
+hundred. Only when nothing at all could be drawn is the answer an error
+(`422`).
 
 This is what a **batch** is printed from. The per-label file wraps one sticker
 in a margin with crop marks around it, which is right for printing one and

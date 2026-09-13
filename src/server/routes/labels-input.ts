@@ -47,8 +47,9 @@ export function parseLabelListQuery(params: URLSearchParams): Parsed<LabelListQu
 //
 // As many as the list itself will show at once, so "show everything, tick
 // everything, print it" cannot end in a refusal. Each label is drawn from
-// scratch — fifty take about three seconds — which is why there is a ceiling
-// at all, and why it is the list's rather than a round thousand.
+// scratch — fifty take about three seconds, and a sheet of this many is tens
+// of seconds of one request — which is why there is a ceiling at all, and why
+// it is the list's rather than a round thousand.
 export const MAX_SHEET_IDS = MAX_LABEL_LIMIT
 
 export function parseSheetIds(params: URLSearchParams): Parsed<number[]> {

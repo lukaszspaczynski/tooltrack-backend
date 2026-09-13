@@ -274,8 +274,13 @@ than the paper goes on sideways.
 
 The sheet draws each label's artwork again with `printReady: false` rather than
 embedding the file the label points at: that file carries a margin and crop
-marks, and thirty margins is most of a sheet of paper. Nothing about a sheet is
-stored — it is a view of labels that already exist, and a stored one would be a
+marks, and thirty margins is most of a sheet of paper. Whatever is missing from
+it — a label whose pictures have gone since, one no page can hold — is written
+under the title in red on every page, because the sheet is the only thing the
+person printing ever sees and a short one looks complete. The artworks are
+parsed a few at a time rather than all at once: each is a whole document in
+memory, and two hundred of them at their peak is how a container runs out of
+it. Nothing about a sheet is stored — it is a view of labels that already exist, and a stored one would be a
 second thing to redraw whenever any of them changed. Copies — Qbrick's
 `--kopie`, the same sticker n times on one sheet — are not built; the sheet
 draws each label it is given once, and asking for two of one means asking

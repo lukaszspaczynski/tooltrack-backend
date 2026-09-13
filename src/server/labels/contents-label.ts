@@ -12,6 +12,7 @@
 // the one that draws them largest wins.
 
 import { rgb, type PDFFont } from 'pdf-lib'
+import sharp from 'sharp'
 
 import {
   CORNER,
@@ -254,6 +255,24 @@ function captionBlock(
   return { lines, size: minSize }
 }
 
+// 300 dpi is what a label printer resolves; more is paper the picture never
+// reaches.
+const PHOTO_DPI = 300
+
+// Kept as PNG because that is what the store holds and what `embedPng` reads.
+// A picture sharp cannot make sense of goes on untouched: a heavy photograph
+// on the label beats no photograph on it.
+async function forPrint(bytes: Uint8Array, limitPx: number): Promise<Uint8Array> {
+  try {
+    return await sharp(bytes)
+      .resize({ fit: 'inside', height: limitPx, width: limitPx, withoutEnlargement: true })
+      .png()
+      .toBuffer()
+  } catch {
+    return bytes
+  }
+}
+
 type Area = { bottom: number; gap: number; left: number; right: number; top: number }
 
 // Every arrangement that holds the pictures, measured; the one that draws them
@@ -263,7 +282,15 @@ async function drawPhotos(label: LabelPage, photos: Uint8Array[], area: Area): P
   const height = area.top - area.bottom
   if (width <= 0 || height <= 0) return
 
-  const images = await Promise.all(photos.map((bytes) => label.doc.embedPng(bytes)))
+  // Nothing above print resolution for the space it lands in can ever be seen:
+  // a picture here is a couple of centimetres of sticker, and a phone
+  // photograph embedded whole is tens of megabytes of pixels thrown away at
+  // draw time. Two hundred labels of six each is the difference between a slow
+  // sheet and a process out of memory.
+  const limitPx = Math.max(1, Math.ceil((Math.max(width, height) / 72) * PHOTO_DPI))
+  const images = await Promise.all(
+    photos.map(async (bytes) => label.doc.embedPng(await forPrint(bytes, limitPx))),
+  )
   const gap = area.gap
 
   // The measure is how much of the label the pictures actually cover once each

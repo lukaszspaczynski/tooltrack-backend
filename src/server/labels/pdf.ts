@@ -33,14 +33,31 @@ export type LabelPage = {
   width: number
 }
 
+// Two files of about seven hundred kilobytes each, read once for the life of
+// the process rather than once per label: a sheet of two hundred embeds fonts
+// two hundred times, and reading the same bytes off the disk four hundred times
+// is seconds of a sheet's render spent on nothing. The bytes are only the
+// input to `embedFont` — every document still gets its own subset.
+const fontBytes = new Map<string, Promise<Uint8Array>>()
+
+function loadFont(file: string): Promise<Uint8Array> {
+  const cached = fontBytes.get(file)
+  if (cached) return cached
+
+  const reading = readFile(join(FONT_DIR, file))
+  fontBytes.set(file, reading)
+
+  return reading
+}
+
 // The same two faces in any document that has to say something in Polish —
 // the sheet that gangs labels onto A4 needs them as much as a label does.
 export async function embedLabelFonts(doc: PDFDocument): Promise<LabelFonts> {
   doc.registerFontkit(fontkit)
 
   const [regular, bold] = await Promise.all([
-    doc.embedFont(await readFile(join(FONT_DIR, 'DejaVuSans.ttf')), { subset: true }),
-    doc.embedFont(await readFile(join(FONT_DIR, 'DejaVuSans-Bold.ttf')), { subset: true }),
+    doc.embedFont(await loadFont('DejaVuSans.ttf'), { subset: true }),
+    doc.embedFont(await loadFont('DejaVuSans-Bold.ttf'), { subset: true }),
   ])
 
   return { bold, regular }

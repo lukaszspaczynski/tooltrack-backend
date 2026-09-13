@@ -75,7 +75,15 @@ export async function sheetGET(request: Request): Promise<Response> {
     return Response.json({ error: failed.join('; ') }, { status: 422 })
   }
 
-  const sheet = await buildLabelSheet(drawn, 'ToolTrack · arkusz zbiorczy')
+  // What could not be drawn goes onto the sheet itself. The answer to this
+  // route is a file in a new tab and nothing reads a header or a status line,
+  // so a sheet of a hundred and ninety-four would otherwise be indistinguish-
+  // able from the two hundred that were asked for.
+  const sheet = await buildLabelSheet(
+    drawn,
+    'ToolTrack · arkusz zbiorczy',
+    failed.length > 0 ? [`nie udało się narysować: ${failed.length}`] : [],
+  )
 
   return new Response(sheet.bytes, {
     headers: {
