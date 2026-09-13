@@ -182,6 +182,10 @@ so it never offers a source this installation does not have.
 }
 ```
 
+Every imported card gets a **`Referencja`** parameter holding the address it
+was read from, so what the import said can be checked against what the page
+says today.
+
 The card is created with `condition: "new"` and **no serial number** — that
 identifies one physical machine, and the page describes a model. Parameters and
 photographs are added after it, and neither failing loses the card: what could

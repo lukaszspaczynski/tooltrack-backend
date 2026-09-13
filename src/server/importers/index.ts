@@ -44,18 +44,35 @@ export function importerFor(rawUrl: string): null | Importer {
   return IMPORTERS.find((importer) => importer.hosts.includes(host)) ?? null
 }
 
+// Where the card came from, as a parameter of the tool.
+//
+// A card that arrived by import is a card somebody will want to check against
+// its source: the shop corrects a spec, a photograph is added, somebody asks
+// where "9,400 kg" came from. The address answers all three, and a parameter
+// is where the card already keeps facts of that kind.
+export const REFERENCE_ATTRIBUTE = 'Referencja'
+
 // A page has no idea what a card can hold. Everything is cut to the length the
 // column takes rather than refused: a description two characters over the
 // limit is not a reason to fail an import somebody is watching.
+//
+// The reference is added here rather than by each importer, so a script added
+// later cannot forget it — and after the clamping rather than before, because
+// an address cut in the middle is not an address.
 export function fitToCard(product: ImportedProduct): ImportedProduct {
   return {
     ...product,
-    attributes: product.attributes
-      .map((attribute) => ({
-        name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
-        value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
-      }))
-      .filter((attribute) => attribute.name && attribute.value),
+    attributes: [
+      ...product.attributes
+        .map((attribute) => ({
+          name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
+          value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
+        }))
+        .filter((attribute) => attribute.name && attribute.value)
+        // Whatever a page calls it, the reference is the one this adds.
+        .filter((attribute) => attribute.name !== REFERENCE_ATTRIBUTE),
+      { name: REFERENCE_ATTRIBUTE, value: product.sourceUrl },
+    ],
     brand: clamp(product.brand, MAX_FIELD_LENGTH),
     category: clamp(product.category, MAX_FIELD_LENGTH),
     model: clamp(product.model, MAX_FIELD_LENGTH),

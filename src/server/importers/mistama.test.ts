@@ -205,6 +205,40 @@ test('an address from anywhere else has no importer', () => {
   assert.equal(importerFor(''), null)
 })
 
+test('every import says where it came from', () => {
+  // A card that arrived by import is one somebody will want to check against
+  // its source later. Added once, in the shared path, so a script written next
+  // year cannot forget it.
+  const referenceOf = (product: { attributes: { name: string; value: string }[] }) =>
+    product.attributes.find((attribute) => attribute.name === 'Referencja')?.value
+
+  const read = parseMistamaProduct(page({}), PAGE_URL)
+  assert.ok(read)
+  assert.equal(referenceOf(fitToCard(read)), PAGE_URL)
+
+  // Last, after the spec sheet: it is provenance rather than a property of the
+  // machine, and the card reads top to bottom.
+  assert.equal(fitToCard(read).attributes.at(-1)?.name, 'Referencja')
+})
+
+test('an address is never cut in the middle to fit', () => {
+  // Everything else is clamped to what the column takes; half an address is
+  // not an address, so the reference is added after that and left whole.
+  const long = `${PAGE_URL}?${'x'.repeat(400)}`
+  const product = fitToCard({
+    attributes: [],
+    brand: 'Bosch',
+    category: '',
+    model: '',
+    name: 'Kosiarka',
+    notes: '',
+    photoUrls: [],
+    sourceUrl: long,
+  })
+
+  assert.equal(product.attributes[0].value, long)
+})
+
 test('what the page says is cut to what the card can hold', () => {
   const product = fitToCard({
     attributes: [
@@ -222,7 +256,11 @@ test('what the page says is cut to what the card can hold', () => {
 
   assert.equal(product.name.length, 200)
   assert.ok(product.name.endsWith('…'))
-  assert.equal(product.attributes.length, 1)
+  // The page's one usable parameter, and the reference every import adds.
+  assert.deepEqual(
+    product.attributes.map((attribute) => attribute.name),
+    ['W zestawie', 'Referencja'],
+  )
   assert.ok(product.attributes[0].value.length <= 200)
   // A parameter with nothing on one side is dropped rather than sent to be
   // refused by a rule that would fail the whole import.

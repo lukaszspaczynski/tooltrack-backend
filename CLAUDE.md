@@ -124,6 +124,15 @@ by its address in the tree.
   the biggest is kept, because a card is looked at on a phone today and printed
   on a label tomorrow.
 
+Every imported card carries a **Referencja** parameter: the address it was read
+from. A card that arrived by import is one somebody will want to check against
+its source later — the shop corrects a spec, a photograph is added, somebody
+asks where "9,400 kg" came from — and a parameter is where the card already
+keeps facts of that kind. It is added by `fitToCard` rather than by each
+importer, so a script written next year cannot forget it, and after the
+clamping rather than before, because an address cut in the middle is not an
+address.
+
 The page's own limits are not the card's, so `fitToCard` cuts every field to
 what the column takes rather than failing an import somebody is watching. The
 serial number is deliberately left blank: it identifies one physical machine,
