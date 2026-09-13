@@ -142,6 +142,14 @@ is a `400`, because silently listing everything would look like an answer.
 `{ "categories": [{ "category": "Wiertarki", "count": 12 }] }`, read from the
 tools themselves. That is the list to offer in a filter.
 
+### `GET /api/tools/attributes` — `catalog.read`
+
+`{ "names": [{ "name": "Napięcie sieciowe", "count": 12 }] }`, most used first.
+What the form offers while somebody types a parameter name, read from the tools
+themselves like the category list above — the names in use are the vocabulary,
+and one typed the same way on every card is what makes the catalog answerable
+later. Names that differ only in case or spacing count as one.
+
 ### `POST /api/tools` — `catalog.write`
 
 ```json
@@ -162,7 +170,22 @@ number (blank serial numbers are exempt).
 
 ### `GET /api/tools/:id` — `catalog.read`
 
-`200 { tool }` or `404`.
+`200 { tool }` or `404`. A single tool carries `attributes` as well — what this
+particular machine is — which the list deliberately does not:
+
+```json
+{
+  "attributes": [
+    { "id": 5, "name": "Napięcie sieciowe", "value": "230 V" },
+    { "id": 6, "name": "Prędkość obrotowa", "value": "300 obr./min" }
+  ]
+}
+```
+
+In the order they were typed, which is the order a spec sheet is copied in. A
+grid of cards shows a name, a maker and a condition, so sending every card's
+parameters to draw it would be paying for what nobody reads — every **single**
+tool answer carries them, including `POST /api/tools` (empty) and a duplicate.
 
 ### `PATCH /api/tools/:id` — `catalog.write`
 
@@ -204,6 +227,33 @@ row rather than a second file.
   "updatedAt": "2026-01-02T00:00:00.000Z"
 }
 ```
+
+### `POST /api/tools/:id/attributes` — `catalog.write`
+
+`{ "name": "Napięcie sieciowe", "value": "230 V" }` — one parameter of this
+tool. Both halves are required and neither may be blank: a parameter with no
+name says nothing, and one with no value is a question rather than an answer.
+The value carries its unit (`"230 V"`, not `230`), because half of these have
+no unit anybody agrees on and a number without one cannot be read.
+
+`201 { tool }` — the whole card, so a screen showing the list does not have to
+merge one row into a list it already holds, the same as a case answering with
+itself when a label slot is added. `404` when there is no such tool, `409` when
+this card already lists that parameter: the second "napięcie" is somebody
+correcting the first, not a second fact about the machine. Names are compared
+trimmed, case-folded and with runs of spaces collapsed.
+
+### `PATCH /api/tools/:id/attributes/:attributeId` — `catalog.write`
+
+`{ "name"?, "value"? }` — send either half or both; sending neither is a `400`
+rather than an answer with the row unchanged, which would look like it saved.
+`200 { tool }`, `404` when the parameter is not this tool's — which is the same
+answer as one that never existed — and `409` on a name the card already lists.
+
+### `DELETE /api/tools/:id/attributes/:attributeId` — `catalog.write`
+
+`200 { tool }` or `404`. Deleting the last parameter leaves an empty list, not
+a card without the field.
 
 ## Cases
 

@@ -3,8 +3,13 @@ import test from 'node:test'
 
 import type { PgPool, PgQueryResult } from '../db'
 import {
+  addAttribute,
+  AttributeNameTakenError,
   createTool,
+  deleteAttribute,
   duplicateTool,
+  listAttributes,
+  updateAttribute,
   listTools,
   SerialNumberTakenError,
   updateTool,
@@ -239,4 +244,77 @@ test('duplicating a card that is not there is not found, not a copy of nothing',
   const { pool } = fakePool([])
 
   assert.equal(await duplicateTool(404, 3, pool), null)
+})
+
+function attributeRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return { id: '5', name: 'Napięcie sieciowe', value: '230 V', ...overrides }
+}
+
+test('the parameters of a tool come back in the order they were typed', async () => {
+  // A spec sheet is copied from the top down. Sorting by name would shuffle it
+  // into an order nobody wrote and nobody reads.
+  const { calls, pool } = fakePool([attributeRow(), attributeRow({ id: '6', name: 'Moc' })])
+
+  const attributes = await listAttributes(7, pool)
+
+  assert.deepEqual(attributes, [
+    { id: 5, name: 'Napięcie sieciowe', value: '230 V' },
+    { id: 6, name: 'Moc', value: '230 V' },
+  ])
+  assert.match(calls[0].text, /ORDER BY "id" ASC/)
+  assert.deepEqual(calls[0].params, [7])
+})
+
+test('the same parameter twice on one card is a named error', async () => {
+  // The second "napięcie" is somebody correcting the first, not a second fact
+  // about the machine — a 409 the screen can point at a row with.
+  const { pool } = fakePool([], Object.assign(new Error('duplicate key'), { code: '23505' }))
+
+  await assert.rejects(
+    () => addAttribute(7, { name: 'Napięcie', value: '230 V' }, 3, pool),
+    AttributeNameTakenError,
+  )
+})
+
+test('editing a parameter only touches this card’s row', async () => {
+  // The id in the path came from somewhere, but not necessarily from this
+  // card. Scoping the UPDATE by tool as well is what keeps a stale link from
+  // editing somebody else's parameter.
+  const { calls, pool } = fakePool([attributeRow({ value: '400 V' })])
+
+  const updated = await updateAttribute(7, 5, { value: '400 V' }, pool)
+
+  assert.equal(updated?.value, '400 V')
+  assert.match(calls[0].text, /WHERE "tool_id" = \$1 AND "id" = \$2/)
+  assert.deepEqual(calls[0].params, [7, 5, '400 V'])
+})
+
+test('a parameter that is not this card’s reads as not found', async () => {
+  const { pool } = fakePool([])
+
+  assert.equal(await updateAttribute(7, 404, { value: '400 V' }, pool), null)
+  assert.equal(await deleteAttribute(7, 404, pool), false)
+})
+
+test('an empty patch reads the row rather than writing an empty UPDATE', async () => {
+  const { calls, pool } = fakePool([attributeRow()])
+
+  await updateAttribute(7, 5, {}, pool)
+
+  assert.match(calls[0].text, /^\s*SELECT/)
+})
+
+test('a duplicated card carries the spec sheet with it', async () => {
+  // The parameters describe the model rather than this particular machine: a
+  // second identical grinder is still 230 V, and retyping them is the reason
+  // somebody presses Duplicate in the first place.
+  const { calls, pool } = fakePool([toolRow({ id: '12', serial_number: '' })])
+
+  const copy = await duplicateTool(7, 3, pool)
+
+  assert.equal(copy?.id, 12)
+  const insert = calls.find((call) => call.text.includes('"catalog"."tool_attribute"'))
+  assert.ok(insert, 'the parameters are copied')
+  assert.match(insert.text, /INSERT INTO "catalog"\."tool_attribute"[\s\S]*SELECT/)
+  assert.deepEqual(insert.params, [7, 12, 3])
 })

@@ -46,6 +46,8 @@ const DEFAULT_PORT = 37411
 
 const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
 const TOOL_DUPLICATE_PATTERN = /^\/api\/tools\/(\d+)\/duplicate$/
+const TOOL_ATTRIBUTES_PATTERN = /^\/api\/tools\/(\d+)\/attributes$/
+const TOOL_ATTRIBUTE_PATTERN = /^\/api\/tools\/(\d+)\/attributes\/(\d+)$/
 const BRAND_DETAIL_PATTERN = /^\/api\/brands\/(\d+)$/
 const BRAND_LOGO_PATTERN = /^\/api\/brands\/(\d+)\/logo$/
 const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
@@ -97,6 +99,10 @@ const ROUTES = [
   'GET /api/tools',
   'POST /api/tools',
   'GET /api/tools/categories',
+  'GET /api/tools/attributes',
+  'POST /api/tools/:id/attributes',
+  'PATCH /api/tools/:id/attributes/:attributeId',
+  'DELETE /api/tools/:id/attributes/:attributeId',
   'GET /api/tools/:id',
   'PATCH /api/tools/:id',
   'DELETE /api/tools/:id',
@@ -276,6 +282,9 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   // "categories" could not be mistaken for one, but the reading order should
   // match the routing order anyway.
   if (path === '/api/tools/categories') return methodHandler(method, { GET: tools.categoriesGET })
+  if (path === '/api/tools/attributes') {
+    return methodHandler(method, { GET: tools.attributeNamesGET })
+  }
   if (path === '/api/tools') return methodHandler(method, { GET: tools.GET, POST: tools.POST })
 
   // Same ordering rule as categories above: the list of systems before the
@@ -474,6 +483,22 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
       { GET: photos.suggestionsGET },
       { id: suggestions[2], owner: suggestions[1] },
     )
+  }
+
+  // Longest first: the parameter's own path would otherwise be read as the
+  // list's with a stray segment.
+  const attribute = TOOL_ATTRIBUTE_PATTERN.exec(path)
+  if (attribute) {
+    return methodHandler(
+      method,
+      { DELETE: tools.attributeDELETE, PATCH: tools.attributePATCH },
+      { attributeId: attribute[2], id: attribute[1] },
+    )
+  }
+
+  const attributes = TOOL_ATTRIBUTES_PATTERN.exec(path)
+  if (attributes) {
+    return methodHandler(method, { POST: tools.attributePOST }, { id: attributes[1] })
   }
 
   const duplicate = TOOL_DUPLICATE_PATTERN.exec(path)

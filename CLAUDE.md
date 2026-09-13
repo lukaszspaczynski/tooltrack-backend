@@ -54,6 +54,30 @@ docs/
 - **Stores take a pool argument** defaulting to `db()`, so a test hands in a
   recording fake instead of reaching Postgres.
 
+## What a tool is
+
+`catalog.tool_attribute` holds the parameters of one tool — mains voltage,
+speed, chuck, working height — as a name and a value, both free text, `n` rows
+per card. Columns on the tool would have been a table of mostly nulls: no two
+kinds of tool share a spec sheet, and a new kind of thing would mean a
+migration rather than a row.
+
+The value carries its unit. "230 V" rather than 230 with a unit column, because
+half these parameters have no unit anybody agrees on — "SDS-plus", "3 tryby" —
+and a number nobody can read is worse than a string somebody can.
+
+They live under the card in the API: `POST /api/tools/:id/attributes`, `PATCH`
+and `DELETE` on one of them, each answering with the whole tool the way a case
+answers with itself when a label slot is added. The list at `GET /api/tools`
+deliberately leaves them out — a grid shows a name, a maker and a condition —
+while every single-tool answer carries them.
+
+One card cannot list the same parameter twice; the unique index folds case and
+trims, and the parser collapses runs of spaces so that "napięcie sieciowe"
+cannot slip past it as a second row. `GET /api/tools/attributes` is the
+vocabulary in use, read from the tools themselves like the category list, so
+the form can offer what other cards already call the same thing.
+
 ## Cases
 
 `catalog.tool_case` is the box the tools live in, and it is a thing rather than

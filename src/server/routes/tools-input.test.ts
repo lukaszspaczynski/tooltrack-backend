@@ -3,7 +3,11 @@ import test from 'node:test'
 
 import {
   DEFAULT_LIMIT,
+  MAX_ATTRIBUTE_NAME_LENGTH,
+  MAX_ATTRIBUTE_VALUE_LENGTH,
   MAX_LIMIT,
+  parseAttributeCreate,
+  parseAttributePatch,
   parseToolCreate,
   parseToolPatch,
   parseToolQuery,
@@ -130,4 +134,54 @@ test('blank filters read as no filter', () => {
   assert.equal(parsed.value.search, null)
   assert.equal(parsed.value.category, null)
   assert.equal(parsed.value.condition, null)
+})
+
+test('a parameter needs both halves, and neither may be blank', () => {
+  // A parameter with no name says nothing; one with no value is a question
+  // rather than an answer.
+  assert.equal(parseAttributeCreate({ name: 'Napięcie sieciowe', value: '230 V' }).ok, true)
+  assert.equal(parseAttributeCreate({ name: 'Napięcie sieciowe' }).ok, false)
+  assert.equal(parseAttributeCreate({ value: '230 V' }).ok, false)
+  assert.equal(parseAttributeCreate({ name: '  ', value: '230 V' }).ok, false)
+  assert.equal(parseAttributeCreate({ name: 'Napięcie', value: '   ' }).ok, false)
+  assert.equal(parseAttributeCreate('napięcie').ok, false)
+})
+
+test('a parameter arrives trimmed, the way it will be compared', () => {
+  // The unique index folds case and trims, so storing the untrimmed version
+  // would mean a name that looks different from the one that blocked it.
+  const parsed = parseAttributeCreate({ name: '  Napięcie sieciowe ', value: '  230 V ' })
+
+  assert.ok(parsed.ok)
+  assert.deepEqual(parsed.value, { name: 'Napięcie sieciowe', value: '230 V' })
+})
+
+test('one space is one space, however many were typed', () => {
+  // The unique index folds case and trims the ends; without collapsing the
+  // middle, "napięcie  sieciowe" would be a second parameter beside the first.
+  const parsed = parseAttributeCreate({ name: 'Napięcie\t sieciowe', value: '230   V' })
+
+  assert.ok(parsed.ok)
+  assert.deepEqual(parsed.value, { name: 'Napięcie sieciowe', value: '230 V' })
+})
+
+test('a parameter is a line off a rating plate, not a paragraph', () => {
+  assert.equal(
+    parseAttributeCreate({ name: 'x'.repeat(MAX_ATTRIBUTE_NAME_LENGTH + 1), value: '230 V' }).ok,
+    false,
+  )
+  assert.equal(
+    parseAttributeCreate({ name: 'Napięcie', value: 'x'.repeat(MAX_ATTRIBUTE_VALUE_LENGTH + 1) })
+      .ok,
+    false,
+  )
+})
+
+test('editing a parameter takes either half, but not neither', () => {
+  assert.equal(parseAttributePatch({ value: '400 V' }).ok, true)
+  assert.equal(parseAttributePatch({ name: 'Napięcie' }).ok, true)
+  // Answering an empty patch with the row unchanged would look to the screen
+  // like it saved something.
+  assert.equal(parseAttributePatch({}).ok, false)
+  assert.equal(parseAttributePatch({ name: '' }).ok, false)
 })

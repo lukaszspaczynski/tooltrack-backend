@@ -1,5 +1,6 @@
-// The tool catalog: GET/POST /api/tools, GET/PATCH/DELETE /api/tools/:id and
-// GET /api/tools/categories.
+// The tool catalog: GET/POST /api/tools, GET/PATCH/DELETE /api/tools/:id,
+// GET /api/tools/categories, and the parameters under a card —
+// POST/PATCH/DELETE /api/tools/:id/attributes.
 //
 // Reading needs catalog.read, writing needs catalog.write, and both are checked by
 // the guard before any of this runs (src/access/route-policy.ts). Nothing here
@@ -15,15 +16,28 @@ import {
   photoUrl,
   primaryPhotoIds,
 } from './photos-store'
-import { parseToolCreate, parseToolPatch, parseToolQuery } from './tools-input'
 import {
+  parseAttributeCreate,
+  parseAttributePatch,
+  parseToolCreate,
+  parseToolPatch,
+  parseToolQuery,
+} from './tools-input'
+import {
+  addAttribute,
+  AttributeNameTakenError,
   createTool,
+  deleteAttribute,
   deleteTool,
   duplicateTool,
   getTool,
+  getToolDetail,
+  listAttributeNames,
+  listAttributes,
   listCategories,
   listTools,
   SerialNumberTakenError,
+  updateAttribute,
   updateTool,
 } from './tools-store'
 
@@ -61,7 +75,9 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   try {
     const tool = await createTool(parsed.value, actorId(context))
 
-    return Response.json({ tool }, { status: 201 })
+    // A new card has no parameters yet; saying so is better than leaving the
+    // client to guess whether the field is missing or empty.
+    return Response.json({ tool: { ...tool, attributes: [] } }, { status: 201 })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return Response.json({ error: error.message }, { status: 409 })
@@ -81,10 +97,79 @@ export async function detailGET(_request: Request, context: RouteContext): Promi
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
-  const tool = await getTool(id)
+  const tool = await getToolDetail(id)
   if (!tool) return notFound()
 
   return Response.json({ tool }, { headers: { 'cache-control': 'no-store' } })
+}
+
+// GET /api/tools/attributes — the parameter names already in use.
+//
+// What the form offers while somebody types one, read from the tools
+// themselves for the same reason the category list is: the names in use are
+// the vocabulary, and "napięcie sieciowe" typed the same way on every card is
+// what makes the catalog answerable later.
+export async function attributeNamesGET(): Promise<Response> {
+  return Response.json(
+    { names: await listAttributeNames() },
+    { headers: { 'cache-control': 'no-store' } },
+  )
+}
+
+// The parameters under a card: mains voltage, speed, chuck, weight. Each one
+// answers with the whole tool rather than the row that changed, the same way a
+// case answers with itself when a label slot is added — a screen showing the
+// list does not then have to merge one row into a list it already holds.
+export async function attributePOST(request: Request, context: RouteContext): Promise<Response> {
+  const id = parseId(context.params.id)
+  if (id === null) return notFound()
+  if (!(await getTool(id))) return notFound()
+
+  const parsed = parseAttributeCreate(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  try {
+    await addAttribute(id, parsed.value, actorId(context))
+  } catch (error) {
+    if (error instanceof AttributeNameTakenError) {
+      return Response.json({ error: error.message }, { status: 409 })
+    }
+    throw error
+  }
+
+  return Response.json({ tool: await getToolDetail(id) }, { status: 201 })
+}
+
+export async function attributePATCH(request: Request, context: RouteContext): Promise<Response> {
+  const id = parseId(context.params.id)
+  const attributeId = parseId(context.params.attributeId)
+  if (id === null || attributeId === null) return notFound()
+
+  const parsed = parseAttributePatch(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  try {
+    // Null here is a parameter that is not this tool's, which is the same
+    // answer as one that never existed.
+    if (!(await updateAttribute(id, attributeId, parsed.value))) return notFound()
+  } catch (error) {
+    if (error instanceof AttributeNameTakenError) {
+      return Response.json({ error: error.message }, { status: 409 })
+    }
+    throw error
+  }
+
+  return Response.json({ tool: await getToolDetail(id) })
+}
+
+export async function attributeDELETE(_request: Request, context: RouteContext): Promise<Response> {
+  const id = parseId(context.params.id)
+  const attributeId = parseId(context.params.attributeId)
+  if (id === null || attributeId === null) return notFound()
+
+  if (!(await deleteAttribute(id, attributeId))) return notFound()
+
+  return Response.json({ tool: await getToolDetail(id) })
 }
 
 export async function detailPATCH(request: Request, context: RouteContext): Promise<Response> {
@@ -98,7 +183,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
     const tool = await updateTool(id, parsed.value, actorId(context))
     if (!tool) return notFound()
 
-    return Response.json({ tool })
+    return Response.json({ tool: { ...tool, attributes: await listAttributes(id) } })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return Response.json({ error: error.message }, { status: 409 })

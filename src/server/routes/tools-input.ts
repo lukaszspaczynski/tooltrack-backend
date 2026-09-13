@@ -11,6 +11,11 @@ export const DEFAULT_CONDITION: ToolCondition = 'good'
 export const MAX_NAME_LENGTH = 200
 export const MAX_FIELD_LENGTH = 120
 export const MAX_NOTES_LENGTH = 4000
+// A parameter is a line off a rating plate, not a paragraph: "napięcie
+// sieciowe" and "230 V". The value is the longer of the two because some of
+// them are a list — "SDS-plus, 24 mm, 3 tryby".
+export const MAX_ATTRIBUTE_NAME_LENGTH = 80
+export const MAX_ATTRIBUTE_VALUE_LENGTH = 200
 
 export const DEFAULT_LIMIT = 50
 export const MAX_LIMIT = 200
@@ -29,6 +34,13 @@ export type ToolFields = {
 // alone" and is not the same as '' — clearing the brand is a real edit, and a
 // PATCH that could not express it would force the client to resend the card.
 export type ToolPatch = Partial<ToolFields>
+
+export type AttributeFields = {
+  name: string
+  value: string
+}
+
+export type AttributePatch = Partial<AttributeFields>
 
 export type ToolSort = 'createdAt' | 'name' | 'updatedAt'
 
@@ -108,6 +120,51 @@ export function parseToolPatch(body: unknown): Parsed<ToolPatch> {
       return invalid(`condition must be one of: ${TOOL_CONDITIONS.join(', ')}`)
     }
     patch.condition = body.condition
+  }
+
+  if (Object.keys(patch).length === 0) return invalid('No editable fields in request body')
+
+  return valid(patch)
+}
+
+// One parameter of a tool. Both halves are required and neither may be blank:
+// a parameter with no name says nothing, and one with no value is a question
+// rather than an answer.
+export function parseAttributeCreate(body: unknown): Parsed<AttributeFields> {
+  const patch = parseAttributePatch(body)
+  if (!patch.ok) return patch
+
+  if (patch.value.name === undefined) return invalid('name is required')
+  if (patch.value.value === undefined) return invalid('value is required')
+
+  return valid({ name: patch.value.name, value: patch.value.value })
+}
+
+// Editing one: a typo in the name, a value read off the plate again. Sending
+// neither is refused rather than answered with the row unchanged, which would
+// look to the screen like it saved something.
+export function parseAttributePatch(body: unknown): Parsed<AttributePatch> {
+  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+
+  const patch: AttributePatch = {}
+
+  for (const [field, limit] of [
+    ['name', MAX_ATTRIBUTE_NAME_LENGTH],
+    ['value', MAX_ATTRIBUTE_VALUE_LENGTH],
+  ] as const) {
+    if (!(field in body)) continue
+
+    const raw = trimmedString(body[field])
+    if (!raw) return invalid(`${field} must be a non-empty string`)
+
+    // Runs of whitespace collapse to one space. The unique index folds case
+    // and trims the ends, so without this "napięcie  sieciowe" would be stored
+    // as a second parameter beside "napięcie sieciowe" — the same accident as
+    // a trailing space, and the same answer.
+    const value = raw.replace(/\s+/g, ' ')
+    if (value.length > limit) return invalid(`${field} must be at most ${limit} characters`)
+
+    patch[field] = value
   }
 
   if (Object.keys(patch).length === 0) return invalid('No editable fields in request body')

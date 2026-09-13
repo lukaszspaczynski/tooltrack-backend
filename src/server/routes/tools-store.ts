@@ -4,6 +4,7 @@
 
 import { db, type PgPool } from '../db'
 import { brandIdForName } from './brands-store'
+import { t } from '../i18n'
 import {
   DEFAULT_CONDITION,
   isToolCondition,
@@ -28,6 +29,21 @@ export type Tool = {
   updatedBy: null | number
 }
 
+// One parameter of one tool. The value carries its unit — "230 V" rather than
+// 230 — because half of these have no unit anybody agrees on.
+export type ToolAttribute = {
+  id: number
+  name: string
+  value: string
+}
+
+// A tool with what is only worth reading one at a time. The list answers with
+// `Tool`: a grid of cards shows a name, a maker and a condition, and sending
+// every card's spec sheet to draw that would be paying for what nobody reads.
+export type ToolDetail = Tool & {
+  attributes: ToolAttribute[]
+}
+
 export type ToolPage = {
   items: Tool[]
   limit: number
@@ -40,11 +56,29 @@ export type CategoryCount = {
   count: number
 }
 
+export type AttributeNameCount = {
+  count: number
+  name: string
+}
+
+export class AttributeNameTakenError extends Error {
+  constructor(name: string) {
+    super(t('Ten parametr jest już na tej karcie: {name}', { name }))
+    this.name = 'AttributeNameTakenError'
+  }
+}
+
 export class SerialNumberTakenError extends Error {
   constructor(serialNumber: string) {
     super(`Serial number ${serialNumber} is already on another tool`)
     this.name = 'SerialNumberTakenError'
   }
+}
+
+type AttributeRow = {
+  id: number | string
+  name: string
+  value: string
 }
 
 type ToolRow = {
@@ -126,6 +160,142 @@ export async function getTool(id: number, pool: PgPool = db()): Promise<null | T
 
   const row = result.rows[0]
   return row ? toTool(row) : null
+}
+
+// Oldest first, which is the order they were typed in — a spec sheet is copied
+// from the top, and sorting by name would shuffle it into something nobody
+// wrote. Two statements rather than a join: a join would repeat the whole tool
+// row once per parameter, and the two are assembled here anyway.
+export async function getToolDetail(id: number, pool: PgPool = db()): Promise<null | ToolDetail> {
+  const tool = await getTool(id, pool)
+  if (!tool) return null
+
+  return { ...tool, attributes: await listAttributes(id, pool) }
+}
+
+export async function listAttributes(
+  toolId: number,
+  pool: PgPool = db(),
+): Promise<ToolAttribute[]> {
+  const result = await pool.query<AttributeRow>(
+    `
+      SELECT "id", "name", "value"
+      FROM "catalog"."tool_attribute"
+      WHERE "tool_id" = $1
+      ORDER BY "id" ASC
+    `,
+    [toolId],
+  )
+
+  return result.rows.map(toAttribute)
+}
+
+export async function addAttribute(
+  toolId: number,
+  attribute: { name: string; value: string },
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<ToolAttribute> {
+  try {
+    const result = await pool.query<AttributeRow>(
+      `
+        INSERT INTO "catalog"."tool_attribute" ("tool_id", "name", "value", "created_by")
+        VALUES ($1, $2, $3, $4)
+        RETURNING "id", "name", "value"
+      `,
+      [toolId, attribute.name, attribute.value, actorId],
+    )
+
+    return toAttribute(result.rows[0])
+  } catch (error) {
+    throw translateAttributeError(error, attribute.name)
+  }
+}
+
+// Null when the parameter is not this tool's, which is a 404 rather than a
+// silent no-op: the id in the path came from somewhere, and answering "done"
+// to a row that was never touched is how a screen shows a value nobody saved.
+export async function updateAttribute(
+  toolId: number,
+  attributeId: number,
+  patch: { name?: string; value?: string },
+  pool: PgPool = db(),
+): Promise<null | ToolAttribute> {
+  const assignments: string[] = []
+  const params: unknown[] = [toolId, attributeId]
+
+  for (const [field, column] of [
+    ['name', 'name'],
+    ['value', 'value'],
+  ] as const) {
+    const value = patch[field]
+    if (value === undefined) continue
+    params.push(value)
+    assignments.push(`"${column}" = $${params.length}`)
+  }
+
+  if (assignments.length === 0) return findAttribute(toolId, attributeId, pool)
+
+  try {
+    const result = await pool.query<AttributeRow>(
+      `
+        UPDATE "catalog"."tool_attribute"
+        SET ${assignments.join(', ')}, "updated_at" = now()
+        WHERE "tool_id" = $1 AND "id" = $2
+        RETURNING "id", "name", "value"
+      `,
+      params,
+    )
+
+    const row = result.rows[0]
+    return row ? toAttribute(row) : null
+  } catch (error) {
+    throw translateAttributeError(error, patch.name ?? '')
+  }
+}
+
+export async function deleteAttribute(
+  toolId: number,
+  attributeId: number,
+  pool: PgPool = db(),
+): Promise<boolean> {
+  const result = await pool.query(
+    `DELETE FROM "catalog"."tool_attribute" WHERE "tool_id" = $1 AND "id" = $2`,
+    [toolId, attributeId],
+  )
+
+  return (result.rowCount ?? 0) > 0
+}
+
+// What the form offers while somebody types a parameter name. Read from the
+// tools themselves, like the category list next to it: the names in use are
+// where the vocabulary comes from, and one typed the same way twice is what
+// makes the catalog answerable.
+export async function listAttributeNames(pool: PgPool = db()): Promise<AttributeNameCount[]> {
+  const result = await pool.query<{ count: string; name: string }>(
+    `
+      SELECT min("name") AS "name", count(*)::text AS "count"
+      FROM "catalog"."tool_attribute"
+      GROUP BY lower(btrim("name"))
+      ORDER BY count(*) DESC, lower(min("name")) ASC
+    `,
+  )
+
+  return result.rows.map((row) => ({ count: Number(row.count), name: row.name }))
+}
+
+async function findAttribute(
+  toolId: number,
+  attributeId: number,
+  pool: PgPool,
+): Promise<null | ToolAttribute> {
+  const result = await pool.query<AttributeRow>(
+    `SELECT "id", "name", "value" FROM "catalog"."tool_attribute" WHERE "tool_id" = $1 AND "id" = $2`,
+    [toolId, attributeId],
+  )
+
+  const row = result.rows[0]
+  return row ? toAttribute(row) : null
 }
 
 export async function createTool(
@@ -231,7 +401,7 @@ export async function duplicateTool(
   id: number,
   actorId: number,
   pool: PgPool = db(),
-): Promise<null | Tool> {
+): Promise<null | ToolDetail> {
   const result = await pool.query<ToolRow>(
     `
       INSERT INTO "catalog"."tool"
@@ -246,7 +416,25 @@ export async function duplicateTool(
   )
 
   const row = result.rows[0]
-  return row ? toTool(row) : null
+  if (!row) return null
+
+  // The spec sheet goes with it. The parameters describe the model rather than
+  // this particular machine — a second identical grinder is still 230 V — and
+  // the reason to duplicate a card is to avoid typing all of that again. The
+  // serial number is the one thing deliberately left behind.
+  const copy = toTool(row)
+  await pool.query(
+    `
+      INSERT INTO "catalog"."tool_attribute" ("tool_id", "name", "value", "created_by")
+      SELECT $2, "name", "value", $3
+      FROM "catalog"."tool_attribute"
+      WHERE "tool_id" = $1
+      ORDER BY "id" ASC
+    `,
+    [id, copy.id, actorId],
+  )
+
+  return { ...copy, attributes: await listAttributes(copy.id, pool) }
 }
 
 export async function deleteTool(id: number, pool: PgPool = db()): Promise<boolean> {
@@ -270,6 +458,16 @@ export async function listCategories(pool: PgPool = db()): Promise<CategoryCount
   return result.rows.map((row) => ({ category: row.category, count: Number(row.count) }))
 }
 
+// 23505 on catalog_tool_attribute_name_idx: this tool already lists that
+// parameter. A 409 the screen can act on — it knows which row to point at —
+// rather than a 500.
+function translateAttributeError(error: unknown, name: string): unknown {
+  if ((error as { code?: string }).code === '23505') {
+    return new AttributeNameTakenError(name)
+  }
+  return error
+}
+
 function translateWriteError(error: unknown, serialNumber: string): unknown {
   // 23505 on catalog_tool_serial_number_idx: the same physical machine already
   // has a card. That is a 409 the client can act on, not a 500.
@@ -284,6 +482,10 @@ function translateWriteError(error: unknown, serialNumber: string): unknown {
 // then be undone by the pattern's own backslashes.
 function likePattern(search: string): string {
   return `%${search.replace(/[\\%_]/g, (match) => `\\${match}`)}%`
+}
+
+function toAttribute(row: AttributeRow): ToolAttribute {
+  return { id: Number(row.id), name: row.name, value: row.value }
 }
 
 function toTool(row: ToolRow): Tool {

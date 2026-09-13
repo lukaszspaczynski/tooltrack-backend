@@ -88,6 +88,27 @@ The EAN and the SKU identify the product, not this box. Two identical cases on
 the shelf are two rows carrying the same barcode, which is why neither column
 is unique — the opposite of `tool.serial_number`, which is one machine.
 
+### `catalog.tool_attribute`
+
+| Column       | Type              | Notes                                          |
+| ------------ | ----------------- | ---------------------------------------------- |
+| `id`         | `bigint` identity |                                                |
+| `tool_id`    | `bigint`          | → `catalog.tool`, `ON DELETE CASCADE`          |
+| `name`       | `text`            | Non-blank; "Napięcie sieciowe"                 |
+| `value`      | `text`            | Non-blank, carries its unit; "230 V"           |
+| `created_by` | `bigint`          | → `account.user_account`, `ON DELETE SET NULL` |
+
+Unique on `(tool_id, lower(btrim(name)))`: one tool cannot list the same
+parameter twice, and the second one is somebody correcting the first rather
+than a second fact about the machine. The name repeats freely across tools,
+which is what makes it worth reading across the catalog — and what the
+suggestion list is built from.
+
+A row per parameter rather than columns on the tool, because no two kinds of
+tool share a spec sheet: a drill has a chuck size and a ladder has a working
+height, and a column for each would be a table of mostly nulls needing a
+migration every time somebody catalogues a new kind of thing.
+
 ### `catalog.case_label_slot`
 
 Where a label goes on a case.

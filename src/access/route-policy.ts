@@ -62,6 +62,13 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/categories$/,
   },
   {
+    // The parameter names in use across the catalog, like the category list
+    // above it — and above /api/tools/:id for the same reason.
+    domain: 'tools',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/tools\/attributes$/,
+  },
+  {
     // Makers. Part of the catalog like everything else: looking is read,
     // changing is write.
     domain: 'brands',
@@ -205,6 +212,20 @@ const RULES: readonly Rule[] = [
     domain: 'tools',
     methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/duplicate$/,
+  },
+  {
+    // What this tool is: 230 V, 300 rpm, SDS-plus. Part of the card, so
+    // reading one is reading the card and changing one is changing it. The
+    // parameters themselves come back with the tool, which is why there is no
+    // GET here.
+    domain: 'tools',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/attributes$/,
+  },
+  {
+    domain: 'tools',
+    methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/\d+\/attributes\/\d+$/,
   },
   {
     // The bytes of a photo. Readable by anyone who may read the catalog — the

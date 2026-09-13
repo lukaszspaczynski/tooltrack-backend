@@ -79,6 +79,44 @@ CREATE INDEX IF NOT EXISTS "catalog_tool_case_manufacturer_idx"
 CREATE INDEX IF NOT EXISTS "catalog_tool_case_system_idx"
   ON "catalog"."tool_case" (lower("system"));
 
+-- What this particular tool is: mains voltage 230 V, 300 rpm, SDS-plus, 4.2 kg.
+--
+-- A row per parameter rather than columns on the tool, because no two kinds of
+-- tool share a spec sheet — a drill has a chuck size and a ladder has a
+-- working height, and a table with a column for each would be mostly nulls and
+-- would need a migration every time somebody catalogues a new kind of thing.
+--
+-- Name and value are both free text, like the brand and the category above and
+-- for the same reason: the crew writes what the plate on the machine says, and
+-- a card that cannot record "prędkość obrotowa" until somebody defines a unit
+-- system is a card that gets written on paper instead. The value carries its
+-- unit — "230 V", not 230 — because half these parameters have no unit anybody
+-- agrees on and a number without one is a number nobody can read.
+CREATE TABLE IF NOT EXISTS "catalog"."tool_attribute" (
+  "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  "tool_id" bigint NOT NULL REFERENCES "catalog"."tool"("id") ON DELETE CASCADE,
+  -- Neither is optional: a parameter with no name says nothing, and one with
+  -- no value is a question rather than an answer.
+  "name" text NOT NULL CHECK (btrim("name") <> ''),
+  "value" text NOT NULL CHECK (btrim("value") <> ''),
+  "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
+  "created_at" timestamp with time zone NOT NULL DEFAULT now(),
+  "updated_at" timestamp with time zone NOT NULL DEFAULT now()
+);
+
+-- One tool cannot list the same parameter twice: the second "napięcie" is
+-- somebody correcting the first, not a second fact about the machine. Compared
+-- trimmed and case-folded, because "Napięcie" and "napięcie " are the same
+-- parameter typed by two people. The name repeats freely across tools, which
+-- is what makes it worth reading across the catalog.
+CREATE UNIQUE INDEX IF NOT EXISTS "catalog_tool_attribute_name_idx"
+  ON "catalog"."tool_attribute" ("tool_id", lower(btrim("name")));
+
+-- Read by the parameter list the form offers as suggestions, which asks the
+-- whole catalog rather than one tool.
+CREATE INDEX IF NOT EXISTS "catalog_tool_attribute_lookup_idx"
+  ON "catalog"."tool_attribute" (lower(btrim("name")));
+
 -- Where a label goes on a case. A slot is a size and nothing else: 30 x 40 mm
 -- on the front, 200 x 60 mm on the lid. What gets printed on it is a different
 -- question, and not one this table answers.
@@ -104,6 +142,7 @@ COMMENT ON TABLE "catalog"."tool" IS 'One row per physical tool, the card shown 
 COMMENT ON TABLE "catalog"."tool_case" IS 'One row per case, box or drawer unit the tools are kept in.';
 COMMENT ON COLUMN "catalog"."tool_case"."ean" IS 'Barcode of the product, not of this box: duplicates are expected.';
 COMMENT ON TABLE "catalog"."case_label_slot" IS 'Where a label goes on a case: a size in mm, unique per case.';
+COMMENT ON TABLE "catalog"."tool_attribute" IS 'One parameter of one tool: a name and a value, both free text, unique per tool.';
 `
 
 export const CATALOG_DROP_DDL = `

@@ -25,6 +25,7 @@ export const EN: Record<string, string> = {
   'Tego narzędzia nie ma w tym organizerze': 'That tool is not in this arrangement',
   'To narzędzie jest już w innym organizerze': 'That tool is already in another arrangement',
   'To zdjęcie jest już na tej karcie': 'That photo is already on this card',
+  'Ten parametr jest już na tej karcie: {name}': 'That parameter is already on this card: {name}',
   'To zdjęcie jest już logo innej marki': 'That photo is already another maker’s logo',
   'Takie wycięcie już jest na tej karcie': 'That cutout is already on this card',
   'Marka „{name}” już istnieje': 'The maker “{name}” already exists',
