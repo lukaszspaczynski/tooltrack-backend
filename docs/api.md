@@ -159,12 +159,13 @@ later. Names that differ only in case or spacing count as one.
     { "host": "bosch-diy.com", "label": "bosch-diy.com", "manuals": true },
     { "host": "bosch-professional.com", "label": "bosch-professional.com", "manuals": true },
     { "host": "skileurope.com", "label": "skileurope.com", "manuals": true },
-    { "host": "stanleyworks.pl", "label": "stanleyworks.pl", "manuals": false }
+    { "host": "stanleyworks.pl", "label": "stanleyworks.pl", "manuals": false },
+    { "host": "lidl.pl", "label": "lidl.pl", "manuals": true }
   ]
 }
 ```
 
-The pages this server can read — a shop and four makers' own sites. The address is remembered without its analytics tail:
+The pages this server can read — two shops and four makers' own sites. The address is remembered without its analytics tail:
 `?_gl=…` and `utm_*` say nothing about the product.
 `manuals` says whether that page publishes documents at all: a shop sells the
 tool and leaves the manual to the maker, so a screen asking for one offers only

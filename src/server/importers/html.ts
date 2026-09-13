@@ -11,14 +11,46 @@ export function text(html: string): string {
     .trim()
 }
 
+// The named entities that actually turn up on the pages this reads: Polish
+// letters, the dashes a spec sheet writes a range with, and the units. A page
+// that writes "11 000&ndash;30 000" means a range, and leaving the entity in
+// puts it on a card as it is written here.
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  apos: "'",
+  deg: '°',
+  eacute: 'é',
+  gt: '>',
+  hellip: '…',
+  laquo: '«',
+  ldquo: '“',
+  lt: '<',
+  mdash: '—',
+  middot: '·',
+  nbsp: ' ',
+  ndash: '–',
+  oacute: 'ó',
+  quot: '"',
+  raquo: '»',
+  rdquo: '”',
+  reg: '®',
+  rsquo: '’',
+  sup2: '²',
+  sup3: '³',
+  times: '×',
+  trade: '™',
+  uuml: 'ü',
+}
+
 export function decodeEntities(value: string): string {
   return value
-    .replace(/&nbsp;| /g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&oacute;/g, 'ó')
+    .replace(/ /g, ' ')
+    .replace(
+      /&([a-z][a-z0-9]*);/gi,
+      (whole, name: string) => NAMED_ENTITIES[name.toLowerCase()] ?? whole,
+    )
+    .replace(/&#x([0-9a-f]+);/gi, (_, code: string) =>
+      String.fromCodePoint(Number.parseInt(code, 16)),
+    )
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
 }

@@ -68,11 +68,11 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Five scripts so far, and they have almost nothing in common beyond the
+Six scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
 another publishes both halves in different places, a fourth names the kind of
-tool where the others name the machine, and the fifth publishes no structured
-data at all. That is the argument
+tool where the others name the machine, the fifth publishes no structured data
+at all, and the sixth keeps its specification inside the description. That is the argument
 for a script per domain rather than one parser with options — the shapes are
 not variations of each other. What they did turn out to share is two small
 things, `html.ts` and `attributes.ts`: taking tags out of a paragraph, merging
@@ -194,6 +194,19 @@ from `/pdp/get-manuals/<nodeId>` after rendering. An importer is handed one
 page and makes no requests of its own, so what this one can promise is what the
 page itself says — and it says none. Reading that endpoint would mean a second
 fetch, which is a change to the contract rather than to a script.
+
+`lidl.ts` is the sixth, and where PARKSIDE is sold. Its Product carries the
+name, the pictures and the numbers, while everything a person would call a
+specification lives **inside the description**, as a table somebody typed in a
+rich-text editor — every name ending in a colon because that is how it was
+written. The downloads block is a table too, so the reading stops at a row
+whose columns are a language and a file name.
+
+Two small things it settles: the brand arrives as "PARKSIDE®", and the ® is the
+shop being careful about a trademark rather than part of a name — left in, it
+would sit in the catalog beside the right one for ever. And the one document
+has no title at all, only a file and a language, so the card calls it "IAN
+525250 (PL)", which is at least what somebody would search for.
 
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
