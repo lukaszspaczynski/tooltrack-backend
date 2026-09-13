@@ -13,6 +13,7 @@
 
 import { cutoutLocally, PhotoNotSuitableError } from './cutout-local'
 import { readImageMetadata, type ImageMetadata } from './image-metadata'
+import { t } from './i18n'
 
 // Which methods this installation allows, and the keys behind them. There is
 // no single configured "mode" any more: an admin says which methods may be
@@ -74,7 +75,9 @@ export function assertAllowed(config: PhotoEditConfig, provider: PhotoEditProvid
   if (config.allowed.includes(provider)) return
 
   throw new PhotoEditUnavailableError(
-    `Metoda ${provider} nie jest dostępna — włącz ją i uzupełnij klucz w Ustawieniach`,
+    t('Metoda {provider} nie jest dostępna — włącz ją i uzupełnij klucz w Ustawieniach', {
+      provider,
+    }),
   )
 }
 
@@ -90,7 +93,7 @@ export async function cutoutSubject(
 ): Promise<CutoutResult> {
   if (config.allowed.length === 0) {
     throw new PhotoEditUnavailableError(
-      'Żadna metoda wycinania nie jest włączona — sprawdź Ustawienia',
+      t('Żadna metoda wycinania nie jest włączona — sprawdź Ustawienia'),
     )
   }
 
@@ -133,7 +136,7 @@ function callAi(
 function finish(result: Uint8Array, provider: PhotoEditProvider): CutoutResult {
   const metadata = readImageMetadata(result)
   if (!metadata) {
-    throw new PhotoEditUnavailableError('Wycinanie zwróciło coś, co nie jest obrazem')
+    throw new PhotoEditUnavailableError(t('Wycinanie zwróciło coś, co nie jest obrazem'))
   }
 
   return { bytes: result, metadata, provider }
@@ -186,7 +189,7 @@ async function gemini(bytes: Uint8Array, contentType: string, apiKey: string): P
   if (!image) {
     // The model answering with words instead of a picture is a refusal or a
     // misread prompt, not a broken server.
-    throw new PhotoEditUnavailableError('Model nie zwrócił obrazu — spróbuj z innym zdjęciem')
+    throw new PhotoEditUnavailableError(t('Model nie zwrócił obrazu — spróbuj z innym zdjęciem'))
   }
 
   return image
@@ -224,7 +227,7 @@ async function call(url: string, init: RequestInit): Promise<Response> {
   } catch {
     // Cutting out takes seconds, not milliseconds; a timeout here usually
     // means the service is struggling rather than that we asked wrongly.
-    throw new PhotoEditUnavailableError('Usługa wycinania nie odpowiedziała na czas')
+    throw new PhotoEditUnavailableError(t('Usługa wycinania nie odpowiedziała na czas'))
   }
 
   if (!response.ok) {
@@ -237,8 +240,8 @@ async function call(url: string, init: RequestInit): Promise<Response> {
     // key back and is written for us, not for whoever pressed the button.
     throw new PhotoEditUnavailableError(
       response.status === 402 || response.status === 429
-        ? 'Wyczerpany limit usługi wycinania. Spróbuj później.'
-        : 'Usługa wycinania odpowiedziała błędem',
+        ? t('Wyczerpany limit usługi wycinania. Spróbuj później.')
+        : t('Usługa wycinania odpowiedziała błędem'),
     )
   }
 

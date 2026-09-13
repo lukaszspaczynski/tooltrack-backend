@@ -15,6 +15,8 @@
 // Nothing is downloaded here. A suggestion is a link; the bytes are only
 // fetched when someone picks one and the server stores it.
 
+import { t } from './i18n'
+
 import {
   clampResultLimit,
   DEFAULT_RESULT_LIMIT,
@@ -103,7 +105,7 @@ export async function searchPhotos(
 
   if (engines.length === 0) {
     throw new PhotoSearchUnavailableError(
-      'Żadna wyszukiwarka nie jest włączona — sprawdź Ustawienia',
+      t('Żadna wyszukiwarka nie jest włączona — sprawdź Ustawienia'),
     )
   }
   if (!trimmed) {
@@ -125,7 +127,7 @@ export async function searchPhotos(
       } catch (error) {
         console.error(`[photo-search] ${engine.provider} failed`, error)
         return {
-          message: error instanceof Error ? error.message : 'Nieznany błąd',
+          message: error instanceof Error ? error.message : t('Nieznany błąd'),
           provider: engine.provider,
           suggestions: [] as PhotoSuggestion[],
         }
@@ -166,7 +168,7 @@ export async function searchPhotos(
 // Pulled out as its own function so the wording is testable without a network:
 // what this says is what an operator reads when the button stops working.
 export function combineFailures(failed: { message: string; provider: SearchProvider }[]): string {
-  if (failed.length === 0) return 'Wyszukiwanie nie powiodło się'
+  if (failed.length === 0) return t('Wyszukiwanie nie powiodło się')
   return failed.map((entry) => entry.message).join(' · ')
 }
 
@@ -521,7 +523,7 @@ async function callProvider(
   try {
     return await response.json()
   } catch {
-    throw new PhotoSearchUnavailableError(`${provider}: nieczytelna odpowiedź`)
+    throw new PhotoSearchUnavailableError(t('{provider}: nieczytelna odpowiedź', { provider }))
   }
 }
 
@@ -534,7 +536,7 @@ async function fetchText(url: URL, provider: SearchProvider): Promise<string> {
   try {
     return await response.text()
   } catch {
-    throw new PhotoSearchUnavailableError(`${provider}: nieczytelna odpowiedź`)
+    throw new PhotoSearchUnavailableError(t('{provider}: nieczytelna odpowiedź', { provider }))
   }
 }
 
@@ -559,10 +561,10 @@ async function call(
     console.error(`[photo-search] ${url.host} answered ${response.status}`)
     throw new PhotoSearchUnavailableError(
       response.status === 429
-        ? `${provider}: wyczerpany limit zapytań`
+        ? t('{provider}: wyczerpany limit zapytań', { provider })
         : response.status === 401 || response.status === 403
           ? `${provider}: klucz odrzucony (${response.status})`
-          : `${provider}: błąd ${response.status}`,
+          : t('{provider}: błąd {status}', { provider, status: response.status }),
     )
   }
 

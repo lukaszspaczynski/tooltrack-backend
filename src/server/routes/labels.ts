@@ -19,6 +19,7 @@ import { parseLabelListQuery, parseSheetIds } from './labels-input'
 import { labelsToDraw, labelsToRedraw, listAllLabels } from './labels-store'
 import { redrawLabels } from './label-redraw'
 import { parseLabelIds } from './organizers-input'
+import { t } from '../i18n'
 
 export async function GET(request: Request): Promise<Response> {
   const query = parseLabelListQuery(new URL(request.url).searchParams)
@@ -46,7 +47,7 @@ export async function sheetGET(request: Request): Promise<Response> {
 
   const labels = await labelsToDraw(ids.value)
   if (labels.length === 0) {
-    return Response.json({ error: 'Nie ma takich etykiet' }, { status: 404 })
+    return Response.json({ error: t('Nie ma takich etykiet') }, { status: 404 })
   }
 
   const drawn: SheetLabel[] = []
@@ -109,7 +110,7 @@ export async function refreshPOST(request: Request): Promise<Response> {
 
   const labels = await labelsToRedraw(parsed.value, null)
   if (labels.length === 0) {
-    return Response.json({ error: 'Nie ma takich etykiet' }, { status: 404 })
+    return Response.json({ error: t('Nie ma takich etykiet') }, { status: 404 })
   }
 
   const { failed, refreshed } = await redrawLabels(labels)

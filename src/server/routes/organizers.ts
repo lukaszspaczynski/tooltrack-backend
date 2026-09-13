@@ -41,6 +41,7 @@ import {
   updateOrganizer,
 } from './organizers-store'
 import type { RouteContext } from '../route-context'
+import { t } from '../i18n'
 
 export async function GET(request: Request): Promise<Response> {
   const query = parseOrganizerQuery(new URL(request.url).searchParams)
@@ -138,7 +139,7 @@ export async function toolDELETE(_request: Request, context: RouteContext): Prom
 
   const removed = await removeTool(id, toolId)
   if (!removed) {
-    return Response.json({ error: 'Tego narzędzia nie ma w tym organizerze' }, { status: 404 })
+    return Response.json({ error: t('Tego narzędzia nie ma w tym organizerze') }, { status: 404 })
   }
 
   return Response.json({ ok: true })
@@ -178,7 +179,7 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
   const slot = (await labelSlotsFor(id)).find((entry) => entry.id === parsed.value.slotId)
   if (!slot) {
     return Response.json(
-      { error: 'Skrzynka tego organizera nie ma takiego miejsca na etykietę' },
+      { error: t('Skrzynka tego organizera nie ma takiego miejsca na etykietę') },
       { status: 400 },
     )
   }
@@ -191,7 +192,13 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
     const allowed = maxContentsPhotos(slot)
     if (photoIds.length > allowed) {
       return Response.json(
-        { error: `Etykieta ${slot.widthMm} × ${slot.heightMm} mm mieści ${allowed} zdjęcia` },
+        {
+          error: t('Etykieta {width} × {height} mm mieści {allowed} zdjęcia', {
+            allowed,
+            height: slot.heightMm,
+            width: slot.widthMm,
+          }),
+        },
         { status: 400 },
       )
     }

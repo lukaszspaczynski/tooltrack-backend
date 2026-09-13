@@ -17,6 +17,7 @@ import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch
 import { readPhotoBytes, savePhotoBytes } from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import { parseDeleteIds, parseMediaQuery } from './media-input'
+import { t } from '../i18n'
 import {
   deletePhotosByIds,
   findPhotoByChecksum,
@@ -88,7 +89,7 @@ export async function uploadPOST(request: Request, context: RouteContext): Promi
 async function importFromUrl(request: Request, actorId: number): Promise<Response> {
   const body = (await readJson(request)) as null | { attribution?: unknown; url?: unknown }
   const url = typeof body?.url === 'string' ? body.url.trim() : ''
-  if (!url) return Response.json({ error: 'Podaj adres zdjęcia (url)' }, { status: 400 })
+  if (!url) return Response.json({ error: t('Podaj adres zdjęcia (url)') }, { status: 400 })
 
   try {
     const fetched = await fetchRemoteImage(url, maxPhotoBytes())
@@ -122,7 +123,7 @@ async function importFromUrl(request: Request, actorId: number): Promise<Respons
       return Response.json({ error: error.message }, { status: 422 })
     }
     if (error instanceof TypeError) {
-      return Response.json({ error: 'Nie udało się pobrać zdjęcia' }, { status: 422 })
+      return Response.json({ error: t('Nie udało się pobrać zdjęcia') }, { status: 422 })
     }
     throw error
   }
@@ -153,7 +154,7 @@ export async function fileGET(_request: Request, context: RouteContext): Promise
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'Nie ma takiego zdjęcia' }, { status: 404 })
+  return Response.json({ error: t('Nie ma takiego zdjęcia') }, { status: 404 })
 }
 
 export async function deletePOST(request: Request, _context: RouteContext): Promise<Response> {

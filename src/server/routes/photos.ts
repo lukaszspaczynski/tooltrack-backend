@@ -62,6 +62,7 @@ import {
   type CardPhoto,
 } from './photos-store'
 import { getTool } from './tools-store'
+import { t } from '../i18n'
 
 // Write the picture, then put it on this card. Two steps because they are two
 // facts — the same photograph can already be on our disk from another card,
@@ -170,10 +171,16 @@ async function importLinks(
   const items = normaliseLinks(body)
 
   if (items.length === 0) {
-    return Response.json({ error: 'Podaj adres zdjęcia (url) albo listę (items)' }, { status: 400 })
+    return Response.json(
+      { error: t('Podaj adres zdjęcia (url) albo listę (items)') },
+      { status: 400 },
+    )
   }
   if (items.length > MAX_IMPORT_ITEMS) {
-    return Response.json({ error: `Maksymalnie ${MAX_IMPORT_ITEMS} zdjęć naraz` }, { status: 400 })
+    return Response.json(
+      { error: t('Maksymalnie {max} zdjęć naraz', { max: MAX_IMPORT_ITEMS }) },
+      { status: 400 },
+    )
   }
 
   const photos: CardPhoto[] = []
@@ -220,7 +227,7 @@ async function importLinks(
 
   if (photos.length === 0) {
     return Response.json(
-      { error: failed[0]?.error ?? 'Nie udało się pobrać zdjęć', failed },
+      { error: failed[0]?.error ?? t('Nie udało się pobrać zdjęć'), failed },
       { status: 422 },
     )
   }
@@ -323,11 +330,11 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   // Expired, or from a tab left open since yesterday. Asked for again rather
   // than half-saved.
   if (!preview) {
-    return Response.json({ error: 'Podgląd wygasł — wygeneruj go ponownie' }, { status: 409 })
+    return Response.json({ error: t('Podgląd wygasł — wygeneruj go ponownie') }, { status: 409 })
   }
 
   const metadata = readImageMetadata(preview.bytes)
-  if (!metadata) return Response.json({ error: 'Podgląd jest uszkodzony' }, { status: 409 })
+  if (!metadata) return Response.json({ error: t('Podgląd jest uszkodzony') }, { status: 409 })
 
   try {
     // Keeping it means copying it out of the cache into the photo store, where
@@ -351,7 +358,7 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
     return Response.json({ photo }, { status: 201 })
   } catch (error) {
     if (error instanceof PhotoAlreadyExistsError) {
-      return Response.json({ error: 'Takie wycięcie już jest na tej karcie' }, { status: 409 })
+      return Response.json({ error: t('Takie wycięcie już jest na tej karcie') }, { status: 409 })
     }
     throw error
   }
@@ -426,7 +433,10 @@ export async function attachPOST(request: Request, context: RouteContext): Promi
   // failing is normal and reported per photo.
   if (result.attached.length === 0) {
     return Response.json(
-      { error: result.failed[0]?.reason ?? 'Nie udało się przypisać zdjęć', failed: result.failed },
+      {
+        error: result.failed[0]?.reason ?? t('Nie udało się przypisać zdjęć'),
+        failed: result.failed,
+      },
       { status: 409 },
     )
   }
@@ -589,7 +599,7 @@ function cutoutError(error: unknown): Response {
     return Response.json({ error: error.message }, { status: 503 })
   }
   if (error instanceof PhotoAlreadyExistsError) {
-    return Response.json({ error: 'Takie wycięcie już jest na tej karcie' }, { status: 409 })
+    return Response.json({ error: t('Takie wycięcie już jest na tej karcie') }, { status: 409 })
   }
   throw error
 }
@@ -600,11 +610,11 @@ function ownerNotFound(context: RouteContext): Response {
   const owner = parsePhotoOwner(context.params)
   const label = owner ? OWNER_LABELS[owner.kind] : OWNER_LABELS.tool
 
-  return Response.json({ error: label }, { status: 404 })
+  return Response.json({ error: t(label) }, { status: 404 })
 }
 
 function photoNotFound(): Response {
-  return Response.json({ error: 'Nie ma takiego zdjęcia' }, { status: 404 })
+  return Response.json({ error: t('Nie ma takiego zdjęcia') }, { status: 404 })
 }
 
 async function readJson(request: Request): Promise<unknown> {

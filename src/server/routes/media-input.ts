@@ -2,6 +2,7 @@
 
 import { invalid, isPlainObject, valid, type Parsed } from './input'
 import { PHOTO_SOURCES, type PhotoSource } from './photos-store'
+import { t } from '../i18n'
 
 export const DEFAULT_MEDIA_LIMIT = 48
 export const MAX_MEDIA_LIMIT = 200
@@ -54,7 +55,7 @@ export function parseAttachIds(body: unknown): Parsed<number[]> {
     return invalid('Expected { "photoIds": [1, 2, 3] }')
   }
 
-  return parseIdList(body.photoIds, 'Nie zaznaczono żadnego zdjęcia')
+  return parseIdList(body.photoIds, t('Nie zaznaczono żadnego zdjęcia'))
 }
 
 export function parseDeleteIds(body: unknown): Parsed<number[]> {
@@ -62,18 +63,20 @@ export function parseDeleteIds(body: unknown): Parsed<number[]> {
     return invalid('Expected { "ids": [1, 2, 3] }')
   }
 
-  return parseIdList(body.ids, 'Nie zaznaczono żadnego zdjęcia')
+  return parseIdList(body.ids, t('Nie zaznaczono żadnego zdjęcia'))
 }
 
 function parseIdList(raw: unknown[], emptyMessage: string): Parsed<number[]> {
   if (raw.length === 0) return invalid(emptyMessage)
-  if (raw.length > MAX_DELETE_IDS) return invalid(`Maksymalnie ${MAX_DELETE_IDS} zdjęć naraz`)
+  if (raw.length > MAX_DELETE_IDS) {
+    return invalid(t('Maksymalnie {max} zdjęć naraz', { max: MAX_DELETE_IDS }))
+  }
 
   const ids: number[] = []
   for (const value of raw) {
     const id = Number(value)
     if (!Number.isSafeInteger(id) || id <= 0) {
-      return invalid(`Nieprawidłowy identyfikator: ${value}`)
+      return invalid(t('Nieprawidłowy identyfikator: {value}', { value: String(value) }))
     }
     // Duplicates in the selection are the client's business, not the
     // database's: it would count the same row twice.

@@ -24,6 +24,7 @@ import {
   parseUserEngineInput,
 } from './settings-input'
 import { listEngineSettings, saveGlobalEngine, saveUserEngine } from './search-settings-store'
+import { t } from '../i18n'
 
 export async function enginesGET(_request: Request, context: RouteContext): Promise<Response> {
   const actorId = context.user?.id
@@ -114,7 +115,7 @@ export async function cutoutMethodPATCH(
   // The local method has no key to set; accepting one would store a value
   // nothing reads.
   if (parsed.value.apiKey !== undefined && method === 'local') {
-    return Response.json({ error: 'Lokalna metoda nie używa klucza' }, { status: 400 })
+    return Response.json({ error: t('Lokalna metoda nie używa klucza') }, { status: 400 })
   }
 
   await saveCutoutMethod(method, parsed.value, actorId)

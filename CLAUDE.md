@@ -24,6 +24,10 @@ src/
 │       ├── *.ts         Handlers: Request -> Response
 │       ├── *-store.ts   All the SQL for one domain
 │       └── *-input.ts   Pure body/query parsers
+├── i18n/            What an answer says, in Polish or English
+│   ├── lang.ts          Accept-Language, placeholders. Pure.
+│   ├── catalog.ts       The English side, keyed by the Polish message
+│   └── index.ts         t(), and the language of the request in hand
 └── version.ts
 scripts/
 ├── apply-db-schema.ts   The only way schema reaches a database
@@ -364,6 +368,46 @@ the one thing that can quietly break this engine.
 3. Add it to `RULES` in `src/access/route-policy.ts`. Skipping this makes the
    route return 403 — that is the design, not a bug.
 4. Document it in `docs/api.md`.
+
+## Two languages
+
+The messages a person reads come back in the language the client asked for.
+`Accept-Language` decides — the web client sends whichever language its own
+interface is in — and anything this API cannot write falls back to Polish.
+
+The key of a message is the Polish message, the same arrangement as the web
+client's: no key namespace to invent, an untranslated message goes out in
+Polish rather than as a raw key, and the code reads the way the answer reads.
+`i18n/catalog.ts` is the English side and the only place it lives.
+
+The language is **ambient rather than a parameter**. A handler is a function
+from a Request to a Response and nothing else, which is what the whole routing
+table is built on, so threading a language through every handler, every store
+and every body parser would change all three. Instead the http adapter runs
+each request inside `withLanguage(...)`, an `AsyncLocalStorage`, and `t` reads
+it from there. Outside a request — a script, a test, `apply-db-schema` — there
+is no store and `t` answers in Polish.
+
+A message carrying a value takes a placeholder rather than being built by
+template literal: `t('Serwer odpowiedział {status}', { status })`. Word order
+is not the same in both languages, and a sentence glued together at the seams
+can only be right in one of them.
+
+Two things stay where they are. A **definition table** — the search engines,
+the cutout methods — holds Polish and is translated where the answer is built
+(`search-settings-store.ts`, `cutout-settings-store.ts`), because a module is
+evaluated once and would otherwise freeze the language of whoever asked first.
+And **messages that answer a broken client** rather than a person —
+`Unauthorized`, `Not found`, `Expected a JSON object` — stay English, like the
+log lines.
+
+What is deliberately not translated: the text drawn onto the label PDFs. Those
+are stickers cut out and stuck on boxes in one workshop, and the sheet they are
+printed on says the same thing to everybody there.
+
+`i18n/catalog.test.ts` keeps it honest: it reads every `t('…')` in the source
+and every note in the two definition tables, and fails when one has no English
+— or when the catalog holds a message the code no longer says.
 
 ## Conventions
 

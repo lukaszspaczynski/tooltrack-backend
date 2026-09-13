@@ -8,6 +8,7 @@
 // without a deploy.
 
 import { db, type PgPool } from '../db'
+import { t } from '../i18n'
 import {
   clampResultLimit,
   DEFAULT_RESULT_LIMIT,
@@ -106,10 +107,10 @@ export async function listEngineSettings(
       configured: isUsable(engine, credentials, true),
       globallyEnabled,
       keyHint: maskCredential(credentials.key),
-      keyLabel: engine.keyLabel,
+      keyLabel: t(engine.keyLabel),
       keySource: source,
-      label: engine.label,
-      note: engine.note,
+      label: t(engine.label),
+      note: t(engine.note),
       provider: engine.provider,
       maxResults: clampResultLimit(engine, MAX_RESULT_LIMIT),
       requiresKey: engine.requiresKey,

@@ -8,6 +8,7 @@ import { db, withTransaction, type PgPool } from '../db'
 import { labelFileUrl, labelPreviewUrl } from './labels-store'
 import type { OrganizerFields, OrganizerPatch, OrganizerQuery } from './organizers-input'
 import { photoUrl } from './photos-store'
+import { t } from '../i18n'
 
 export type OrganizerTool = {
   brand: string
@@ -62,14 +63,14 @@ export type OrganizerPage = {
 
 export class NumberTakenError extends Error {
   constructor(number: number) {
-    super(`Numer ${number} jest już zajęty przez inny organizer`)
+    super(t('Numer {number} jest już zajęty przez inny organizer', { number }))
     this.name = 'NumberTakenError'
   }
 }
 
 export class ToolAlreadyInOrganizerError extends Error {
   constructor() {
-    super('To narzędzie jest już w innym organizerze')
+    super(t('To narzędzie jest już w innym organizerze'))
     this.name = 'ToolAlreadyInOrganizerError'
   }
 }

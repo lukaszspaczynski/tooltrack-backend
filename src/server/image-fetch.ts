@@ -11,6 +11,7 @@
 import { lookup } from 'node:dns/promises'
 
 import { readImageMetadata, type ImageMetadata } from './image-metadata'
+import { t } from './i18n'
 
 export const DEFAULT_MAX_PHOTO_BYTES = 10 * 1024 * 1024
 
@@ -54,7 +55,7 @@ export function parseImageUrl(raw: string): URL {
   // http(s) only. file:, data: and gopher: are all ways of asking the server
   // to read something that is not on the web.
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new ImageFetchError('Adres musi zaczynać się od http:// albo https://')
+    throw new ImageFetchError(t('Adres musi zaczynać się od http:// albo https://'))
   }
 
   return url
@@ -111,7 +112,7 @@ export function isBlockedHostname(hostname: string): boolean {
 
 export async function assertPublicHost(url: URL): Promise<void> {
   if (isBlockedHostname(url.hostname)) {
-    throw new ImageFetchError('Adres wskazuje na sieć lokalną')
+    throw new ImageFetchError(t('Adres wskazuje na sieć lokalną'))
   }
 
   // The hostname alone is not enough: a public name can resolve to 127.0.0.1.
@@ -125,11 +126,11 @@ export async function assertPublicHost(url: URL): Promise<void> {
   try {
     addresses = await lookup(url.hostname, { all: true })
   } catch {
-    throw new ImageFetchError('Nie udało się rozwiązać adresu')
+    throw new ImageFetchError(t('Nie udało się rozwiązać adresu'))
   }
 
   if (addresses.some((entry) => isBlockedAddress(entry.address))) {
-    throw new ImageFetchError('Adres wskazuje na sieć lokalną')
+    throw new ImageFetchError(t('Adres wskazuje na sieć lokalną'))
   }
 }
 
@@ -150,11 +151,11 @@ export async function fetchRemoteImage(
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     })
   } catch {
-    throw new ImageFetchError('Nie udało się pobrać pliku spod tego adresu')
+    throw new ImageFetchError(t('Nie udało się pobrać pliku spod tego adresu'))
   }
 
   if (!response.ok) {
-    throw new ImageFetchError(`Serwer odpowiedział ${response.status}`)
+    throw new ImageFetchError(t('Serwer odpowiedział {status}', { status: response.status }))
   }
 
   // Redirects are followed, so where the bytes actually came from is checked
@@ -166,7 +167,9 @@ export async function fetchRemoteImage(
 
   const declared = Number(response.headers.get('content-length') ?? '')
   if (Number.isFinite(declared) && declared > limit) {
-    throw new ImageFetchError(`Plik jest większy niż ${Math.round(limit / 1024 / 1024)} MB`)
+    throw new ImageFetchError(
+      t('Plik jest większy niż {mb} MB', { mb: Math.round(limit / 1024 / 1024) }),
+    )
   }
 
   const bytes = await readCapped(response, limit)
@@ -180,7 +183,7 @@ export async function fetchRemoteImage(
 
 async function readCapped(response: Response, limit: number): Promise<Uint8Array> {
   const reader = response.body?.getReader()
-  if (!reader) throw new ImageFetchError('Pusta odpowiedź')
+  if (!reader) throw new ImageFetchError(t('Pusta odpowiedź'))
 
   const chunks: Uint8Array[] = []
   let received = 0
@@ -192,7 +195,9 @@ async function readCapped(response: Response, limit: number): Promise<Uint8Array
     if (received > limit) {
       // Stop pulling rather than discover the size after buffering it all.
       await reader.cancel()
-      throw new ImageFetchError(`Plik jest większy niż ${Math.round(limit / 1024 / 1024)} MB`)
+      throw new ImageFetchError(
+        t('Plik jest większy niż {mb} MB', { mb: Math.round(limit / 1024 / 1024) }),
+      )
     }
     chunks.push(value)
   }

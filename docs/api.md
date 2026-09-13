@@ -14,6 +14,22 @@ handler runs. Two refusals are possible and they mean different things:
 | `409`  | Conflict (duplicate email or serial number, last admin) | Show `error`                           |
 | `503`  | Database unavailable                                    | Retry; the request itself was fine     |
 
+## Language
+
+`Accept-Language` decides what language the `error` of a failed call is written
+in — `pl` and `en`, Polish for anything else and Polish when the header is
+absent. It applies to the messages a person reads. The refusals a client acts
+on rather than displays (`Unauthorized`, `Not found`, `Method not allowed`,
+`Expected a JSON object`) are English whatever is asked for, and so is the text
+drawn onto the label PDFs, which are printed and cut out in one workshop.
+
+```
+GET /api/labels/sheet?ids=1,2,3
+Accept-Language: en
+
+400 { "error": "At most 200 labels at a time" }
+```
+
 ## Roles
 
 | Capability                                                  | viewer | editor | admin |

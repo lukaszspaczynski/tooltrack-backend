@@ -7,6 +7,7 @@
 import { db, withTransaction, type PgPool } from '../db'
 import type { BrandFields, BrandPatch, BrandQuery } from './brands-input'
 import { photoUrl } from './photos-store'
+import { t } from '../i18n'
 
 export type Brand = {
   // '#rrggbb', or '' when nobody has said.
@@ -34,21 +35,21 @@ export type BrandPage = {
 
 export class BrandNameTakenError extends Error {
   constructor(name: string) {
-    super(`Marka „${name}" już istnieje`)
+    super(t('Marka „{name}” już istnieje', { name }))
     this.name = 'BrandNameTakenError'
   }
 }
 
 export class PhotoNotFoundError extends Error {
   constructor() {
-    super('Nie ma takiego zdjęcia')
+    super(t('Nie ma takiego zdjęcia'))
     this.name = 'PhotoNotFoundError'
   }
 }
 
 export class LogoTakenError extends Error {
   constructor() {
-    super('To zdjęcie jest już logo innej marki')
+    super(t('To zdjęcie jest już logo innej marki'))
     this.name = 'LogoTakenError'
   }
 }

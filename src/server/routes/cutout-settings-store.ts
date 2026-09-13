@@ -9,6 +9,7 @@ import { CUTOUT_METHOD_DEFINITIONS, cutoutMethod, type CutoutMethod } from '../c
 import { DEFAULT_CUTOUT_OPTIONS } from '../cutout-local'
 import { db, type PgPool } from '../db'
 import { maskCredential } from '../search-engines'
+import { t } from '../i18n'
 
 export type CutoutMethodSettings = {
   // Has whatever it needs to run: a key, or nothing in the local method's case.
@@ -100,11 +101,11 @@ export async function readCutoutSettings(pool: PgPool = db()): Promise<CutoutSet
       configured: definition.requiresKey ? Boolean(credential.value) : true,
       enabled: enabledFor(definition.method, row),
       keyHint: maskCredential(credential.value),
-      keyLabel: definition.keyLabel,
+      keyLabel: t(definition.keyLabel),
       keySource: credential.source,
-      label: definition.label,
+      label: t(definition.label),
       method: definition.method,
-      note: definition.note,
+      note: t(definition.note),
       requiresKey: definition.requiresKey,
     }
   })

@@ -15,6 +15,7 @@
 import sharp from 'sharp'
 
 import { readImageMetadata, type ImageMetadata } from './image-metadata'
+import { t } from './i18n'
 
 export const STORED_CONTENT_TYPE = 'image/png'
 
@@ -56,12 +57,15 @@ export async function toStoredPng(bytes: Uint8Array): Promise<ConvertedImage> {
       .toBuffer()
   } catch (error) {
     throw new ImageConversionError(
-      `Nie udało się przekonwertować zdjęcia na PNG: ${error instanceof Error ? error.message : 'nieznany błąd'}`,
+      t('Nie udało się przekonwertować zdjęcia na PNG: {reason}', {
+        reason: error instanceof Error ? error.message : t('nieznany błąd'),
+      }),
     )
   }
 
   const metadata = readImageMetadata(converted)
-  if (!metadata) throw new ImageConversionError('Konwersja zwróciła coś, co nie jest obrazem PNG')
+  if (!metadata)
+    throw new ImageConversionError(t('Konwersja zwróciła coś, co nie jest obrazem PNG'))
 
   return { bytes: converted, metadata, sourceContentType: source.contentType }
 }
@@ -81,7 +85,7 @@ export async function toRgba(
 
     return { height: info.height, pixels: data, width: info.width }
   } catch {
-    throw new ImageConversionError('Nie udało się odczytać pikseli zdjęcia')
+    throw new ImageConversionError(t('Nie udało się odczytać pikseli zdjęcia'))
   }
 }
 

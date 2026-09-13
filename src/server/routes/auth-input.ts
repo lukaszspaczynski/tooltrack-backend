@@ -1,6 +1,7 @@
 // Registration, login and password-change bodies. Pure; see input.ts.
 
 import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
+import { t } from '../i18n'
 
 export const MIN_PASSWORD_LENGTH = 8
 export const MAX_PASSWORD_LENGTH = 200
@@ -92,7 +93,7 @@ function parseEmail(value: unknown): Parsed<string> {
 function parsePassword(value: unknown, field: string): Parsed<string> {
   if (typeof value !== 'string' || value.length === 0) return invalid(`${field} is required`)
   if (value.length < MIN_PASSWORD_LENGTH) {
-    return invalid(`${field} must be at least ${MIN_PASSWORD_LENGTH} characters`)
+    return invalid(t('Hasło musi mieć co najmniej {n} znaków', { n: MIN_PASSWORD_LENGTH }))
   }
   // PBKDF2 hashes any length, but an unbounded password is an unbounded amount
   // of work per login attempt.

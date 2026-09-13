@@ -7,6 +7,7 @@
 
 import { capabilitiesFor, effectiveRole, type User } from '../../access/roles'
 import { parseLoginInput, parsePasswordChangeInput, parseRegisterInput } from './auth-input'
+import { t } from '../i18n'
 import {
   authenticateRequest,
   clearedSessionCookie,
@@ -53,7 +54,7 @@ export async function login(request: Request): Promise<Response> {
     credentials.status === 'disabled' ||
     !(await verifyPassword(parsed.value.password, credentials))
   ) {
-    return Response.json({ error: 'Invalid email or password' }, { status: 401 })
+    return Response.json({ error: t('Nieprawidłowy e-mail lub hasło') }, { status: 401 })
   }
 
   // A database failure is deliberately not caught and turned into a 401. A
@@ -96,7 +97,7 @@ export async function changePassword(request: Request): Promise<Response> {
 
   const credentials = await findCredentialsById(user.id)
   if (!credentials || !(await verifyPassword(parsed.value.currentPassword, credentials))) {
-    return Response.json({ error: 'Current password is incorrect' }, { status: 403 })
+    return Response.json({ error: t('Obecne hasło jest nieprawidłowe') }, { status: 403 })
   }
 
   // setPassword revokes every session, this one included, so the answer clears

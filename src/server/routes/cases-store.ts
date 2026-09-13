@@ -4,6 +4,7 @@
 
 import { db, type PgPool } from '../db'
 import type { CaseFields, CasePatch, CaseQuery } from './cases-input'
+import { t } from '../i18n'
 
 // Where a label goes on this case: a size and nothing else. What gets printed
 // on it is a different question.
@@ -15,7 +16,12 @@ export type LabelSlot = {
 
 export class LabelSlotTakenError extends Error {
   constructor(widthMm: number, heightMm: number) {
-    super(`Ta skrzynka ma już miejsce ${widthMm} x ${heightMm} mm`)
+    super(
+      t('Ta skrzynka ma już miejsce {width} x {height} mm', {
+        height: heightMm,
+        width: widthMm,
+      }),
+    )
     this.name = 'LabelSlotTakenError'
   }
 }

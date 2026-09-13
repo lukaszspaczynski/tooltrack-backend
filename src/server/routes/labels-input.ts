@@ -2,6 +2,7 @@
 
 import { LABEL_TEMPLATES, type LabelTemplate } from '../labels/generate'
 import { invalid, valid, type Parsed } from './input'
+import { t } from '../i18n'
 
 export const DEFAULT_LABEL_LIMIT = 48
 export const MAX_LABEL_LIMIT = 200
@@ -58,13 +59,15 @@ export function parseSheetIds(params: URLSearchParams): Parsed<number[]> {
     .map((value) => value.trim())
     .filter(Boolean)
 
-  if (raw.length === 0) return invalid('Nie wybrano żadnej etykiety')
-  if (raw.length > MAX_SHEET_IDS) return invalid(`Maksymalnie ${MAX_SHEET_IDS} etykiet naraz`)
+  if (raw.length === 0) return invalid(t('Nie wybrano żadnej etykiety'))
+  if (raw.length > MAX_SHEET_IDS) {
+    return invalid(t('Maksymalnie {max} etykiet naraz', { max: MAX_SHEET_IDS }))
+  }
 
   const ids: number[] = []
   for (const value of raw) {
     const id = parseId(value)
-    if (id === null) return invalid(`Nieprawidłowy identyfikator: ${value}`)
+    if (id === null) return invalid(t('Nieprawidłowy identyfikator: {value}', { value }))
     // The same picture twice on a sheet is a decision nobody made here; the
     // selection that produced this link cannot hold one label twice either.
     if (!ids.includes(id)) ids.push(id)

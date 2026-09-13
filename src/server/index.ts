@@ -7,7 +7,7 @@
 // a Request built by hand, and the whole routing surface is one readable list
 // rather than an assembly of middleware whose order decides the behaviour.
 
-import { createServer } from 'node:http'
+import { createServer, type ServerResponse } from 'node:http'
 import type { IncomingMessage } from 'node:http'
 
 import 'dotenv/config'
@@ -16,6 +16,7 @@ import { preflightResponse, withCorsHeaders } from './cors'
 import { routeErrorResponse } from './pg-error-response'
 import { startPreviewSweeping } from './photo-storage'
 import { readRequestBody, requestUrl } from './request-body-limit'
+import { parseAcceptLanguage, withLanguage } from './i18n'
 import { enforceRoutePolicy } from './route-guard'
 import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
@@ -168,6 +169,13 @@ const ROUTES = [
 ] as const
 
 const server = createServer(async (req, res) => {
+  // Everything this request does happens inside the language it asked for, so
+  // a handler, a store or a body parser can say something in it without the
+  // language being threaded through all three as a parameter. See i18n/index.
+  await withLanguage(parseAcceptLanguage(req.headers['accept-language']), () => answer(req, res))
+})
+
+async function answer(req: IncomingMessage, res: ServerResponse): Promise<void> {
   let request: null | Request = null
 
   try {
@@ -237,7 +245,7 @@ const server = createServer(async (req, res) => {
     const response = routeErrorResponse('api', error)
     await writeResponse(res, request ? withCorsHeaders(response, request) : response)
   }
-})
+}
 
 const port = Number.parseInt(process.env.PORT ?? '', 10) || DEFAULT_PORT
 

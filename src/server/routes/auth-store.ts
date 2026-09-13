@@ -17,6 +17,7 @@ import {
   type User,
 } from '../../access/roles'
 import { db, type PgPool } from '../db'
+import { t } from '../i18n'
 
 export const SESSION_COOKIE = 'tooltrack_session'
 
@@ -58,7 +59,7 @@ export type Session = {
 
 export class EmailTakenError extends Error {
   constructor() {
-    super('An account with that email already exists')
+    super(t('Konto z tym adresem już istnieje'))
     this.name = 'EmailTakenError'
   }
 }

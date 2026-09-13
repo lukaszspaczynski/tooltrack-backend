@@ -14,6 +14,7 @@ import { db, withTransaction, type PgPool } from '../db'
 import { deletePhotoFile, type StoredPhoto } from '../photo-storage'
 import type { ImageMetadata } from '../image-metadata'
 import { linkTable, ownerColumn, type PhotoOwner, type PhotoOwnerKind } from './photo-owner'
+import { t } from '../i18n'
 
 export const PHOTO_SOURCES = ['upload', 'url', 'search', 'edit'] as const
 
@@ -54,7 +55,7 @@ export type StoredPhotoRow = CardPhoto & {
 
 export class PhotoAlreadyExistsError extends Error {
   constructor() {
-    super('To zdjęcie jest już na tej karcie')
+    super(t('To zdjęcie jest już na tej karcie'))
     this.name = 'PhotoAlreadyExistsError'
   }
 }
@@ -478,7 +479,7 @@ export async function attachPhotosTo(
 
   for (const photoId of photoIds) {
     if (!(await getPhotoById(photoId, pool))) {
-      failed.push({ id: photoId, reason: 'Nie ma takiego zdjęcia' })
+      failed.push({ id: photoId, reason: t('Nie ma takiego zdjęcia') })
       continue
     }
 

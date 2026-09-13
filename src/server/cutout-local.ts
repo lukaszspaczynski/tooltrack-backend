@@ -18,6 +18,7 @@
 // background to flood, and half a cut-out bench is worse than no cutout.
 
 import { ImageConversionError, pngFromRgba, toRgba } from './image-convert'
+import { t } from './i18n'
 
 export type CutoutOptions = {
   // Largest share of the frame the object may cover. Above it there is nothing
@@ -93,7 +94,7 @@ export function planCutout(
 ): CutoutPlan {
   const total = width * height
   if (total === 0 || pixels.length < total * 4) {
-    return { ok: false, reason: 'Nie udało się odczytać pikseli zdjęcia' }
+    return { ok: false, reason: t('Nie udało się odczytać pikseli zdjęcia') }
   }
 
   const light = lightMask(pixels, total, options.threshold)
@@ -102,8 +103,9 @@ export function planCutout(
   if (border < MIN_LIGHT_BORDER) {
     return {
       ok: false,
-      reason:
+      reason: t(
         'To zdjęcie nie ma jednolitego jasnego tła — wycinanie bez AI zadziała tylko na zdjęciach katalogowych',
+      ),
     }
   }
 
@@ -120,20 +122,20 @@ export function planCutout(
 
   const { bestLabel, bestSize, labels } = largestComponent(closed, width, height)
   if (bestSize === 0) {
-    return { ok: false, reason: 'Nie znaleziono narzędzia na tym zdjęciu' }
+    return { ok: false, reason: t('Nie znaleziono narzędzia na tym zdjęciu') }
   }
 
   const coverage = bestSize / total
   if (coverage > options.maxCoverage) {
     return {
       ok: false,
-      reason: 'Narzędzie wypełnia już całe zdjęcie — nie ma czego wycinać',
+      reason: t('Narzędzie wypełnia już całe zdjęcie — nie ma czego wycinać'),
     }
   }
   if (coverage < options.minCoverage) {
     return {
       ok: false,
-      reason: 'Obiekt na zdjęciu jest za mały — sprawdź, czy to zdjęcie narzędzia',
+      reason: t('Obiekt na zdjęciu jest za mały — sprawdź, czy to zdjęcie narzędzia'),
     }
   }
 
@@ -178,7 +180,7 @@ export async function cutoutLocally(
     // A picture the decoder cannot read is a fact about the photo, not a fault
     // in the server, so it gets the same 422 as one with no plain background.
     throw new PhotoNotSuitableError(
-      error instanceof ImageConversionError ? error.message : 'Nie udało się odczytać zdjęcia',
+      error instanceof ImageConversionError ? error.message : t('Nie udało się odczytać zdjęcia'),
     )
   }
 

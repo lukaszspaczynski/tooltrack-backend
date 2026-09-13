@@ -3,6 +3,7 @@
 import { MAX_CONTENTS_PHOTOS } from '../labels/contents-label'
 import { captionSource } from '../labels/generate'
 import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
+import { t } from '../i18n'
 
 export const MAX_NAME_LENGTH = 200
 export const MAX_DESCRIPTION_LENGTH = 4000
@@ -107,7 +108,7 @@ export function parseToolIds(body: unknown): Parsed<number[]> {
   if (!isPlainObject(body)) return invalid('Expected a JSON object')
   if (!Array.isArray(body.toolIds)) return invalid('toolIds must be an array')
   if (body.toolIds.length === 0) return invalid('toolIds must not be empty')
-  if (body.toolIds.length > 200) return invalid('Maksymalnie 200 narzędzi naraz')
+  if (body.toolIds.length > 200) return invalid(t('Maksymalnie 200 narzędzi naraz'))
 
   const ids: number[] = []
   for (const raw of body.toolIds) {
@@ -124,7 +125,7 @@ export function parseToolIds(body: unknown): Parsed<number[]> {
 export function parseLabelIds(body: unknown): Parsed<number[]> {
   if (!isPlainObject(body)) return invalid('Expected a JSON object')
   if (!Array.isArray(body.labelIds)) return invalid('labelIds must be an array')
-  if (body.labelIds.length === 0) return invalid('Nie wybrano żadnej etykiety')
+  if (body.labelIds.length === 0) return invalid(t('Nie wybrano żadnej etykiety'))
   if (body.labelIds.length > 50) return invalid('Maksymalnie 50 etykiet naraz')
 
   const ids: number[] = []
@@ -182,7 +183,7 @@ export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
     // business resolving — the route checks that once it has one. Silently
     // dropping the extras is what neither of them does.
     if (body.photoIds.length > MAX_CONTENTS_PHOTOS) {
-      return invalid(`Maksymalnie ${MAX_CONTENTS_PHOTOS} zdjęcia`)
+      return invalid(t('Maksymalnie {max} zdjęcia', { max: MAX_CONTENTS_PHOTOS }))
     }
 
     for (const raw of body.photoIds) {
@@ -199,7 +200,7 @@ export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
   const titleText = trimmedString(body.titleText ?? '') ?? ''
   const namesText = trimmedString(body.namesText ?? '') ?? ''
   if (titleText.length > CAPTION_MAX || namesText.length > CAPTION_MAX) {
-    return invalid(`Własny tekst może mieć najwyżej ${CAPTION_MAX} znaków`)
+    return invalid(t('Własny tekst może mieć najwyżej {max} znaków', { max: CAPTION_MAX }))
   }
 
   return valid({
