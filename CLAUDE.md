@@ -68,6 +68,11 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
+Two scripts so far, and they have almost nothing in common beyond the
+contract: a shop publishes schema.org and a manufacturer publishes its own CMS.
+That is the argument for a script per domain rather than one parser with
+options — the shapes are not variations of each other.
+
 What mistama.ts knows about that shop:
 
 - The fields come from the **schema.org Product** in the page's JSON-LD, not
@@ -93,6 +98,31 @@ What mistama.ts knows about that shop:
 - `gtin13` becomes "Kod EAN" only when it is thirteen digits. The shop fills it
   with the catalog number on some cards, and a line repeating the one above it
   is worse than no line.
+
+`bosch-diy.ts` reads the maker's own site for the green line. There is no
+JSON-LD on it at all: the page is Next.js and everything — name, category, spec
+table, gallery, order numbers — is a field in `__NEXT_DATA__`, so nothing there
+is scraped out of markup. The component holding it sits under a key that is a
+hash of the page, which is why it is found by the models it carries rather than
+by its address in the tree.
+
+- The **maker is the site**. bosch-diy.com is one line of one manufacturer, and
+  reading it off a breadcrumb would be tea leaves about a fact the address
+  already settles.
+- The **model is the machine, not the box**: "CityMower 18V-32-300 - Bez
+  akumulatora | Bez ładowarki" is one product name and two facts. The part
+  before the first separator is the machine.
+- A product page offers several **kits** — with a battery, with two, with
+  neither — each with its own order number. The one whose number is the page's
+  own `sku` is the configuration this address is about; its EAN and its
+  contents are the ones that belong on the card, and the others describe a tool
+  nobody bought.
+- Noise and vibration sit behind "Pokaż więcej" as a row of titles and a row of
+  values rather than as pairs. Same spec sheet, continued, so they are zipped
+  back together.
+- Every picture is offered in a handful of widths **baked into the file name**;
+  the biggest is kept, because a card is looked at on a phone today and printed
+  on a label tomorrow.
 
 The page's own limits are not the card's, so `fitToCard` cuts every field to
 what the column takes rather than failing an import somebody is watching. The

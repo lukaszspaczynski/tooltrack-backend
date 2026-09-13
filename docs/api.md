@@ -152,8 +152,16 @@ later. Names that differ only in case or spacing count as one.
 
 ### `GET /api/tools/import/sources` — `catalog.read`
 
-`{ "sources": [{ "host": "mistama.com", "label": "mistama.com" }] }` — the shops
-this server can read. The import dialog lists them before asking for an address,
+```json
+{
+  "sources": [
+    { "host": "mistama.com", "label": "mistama.com" },
+    { "host": "bosch-diy.com", "label": "bosch-diy.com" }
+  ]
+}
+```
+
+The pages this server can read — a shop and a manufacturer's own site. The import dialog lists them before asking for an address,
 so it never offers a source this installation does not have.
 
 ### `POST /api/tools/import` — `catalog.write`

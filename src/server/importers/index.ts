@@ -12,12 +12,13 @@ import {
   MAX_NAME_LENGTH,
   MAX_NOTES_LENGTH,
 } from '../routes/tools-input'
+import { boschDiy } from './bosch-diy'
 import { mistama } from './mistama'
 import type { ImportedProduct, Importer } from './types'
 
 export type { ImportedAttribute, ImportedProduct, Importer } from './types'
 
-const IMPORTERS: readonly Importer[] = [mistama]
+const IMPORTERS: readonly Importer[] = [mistama, boschDiy]
 
 // What the import dialog lists, so the screen never offers a source this
 // server cannot actually read.

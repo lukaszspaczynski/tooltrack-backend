@@ -11,6 +11,7 @@
 // what this file decides can be argued with in a test rather than over the
 // network.
 
+import { decodeEntities, text } from './html'
 import type { ImportedAttribute, ImportedProduct, Importer } from './types'
 
 const ORIGIN = 'https://mistama.com'
@@ -324,24 +325,4 @@ function photosOf(product: ProductNode): string[] {
   }
 
   return urls
-}
-
-// Tags out, entities in, whitespace to single spaces — including the
-// non-breaking ones the shop's editor leaves between a parameter and its value.
-function text(html: string): string {
-  return decodeEntities(html.replace(/<[^>]*>/g, ' '))
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function decodeEntities(value: string): string {
-  return value
-    .replace(/&nbsp;| /g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&oacute;/g, 'ó')
-    .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
 }
