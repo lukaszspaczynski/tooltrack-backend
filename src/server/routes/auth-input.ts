@@ -1,7 +1,7 @@
 // Registration, login and password-change bodies. Pure; see input.ts.
 
 import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
-import { t } from '../i18n'
+import { isLang, LANGS, t, type Lang } from '../i18n'
 
 export const MIN_PASSWORD_LENGTH = 8
 export const MAX_PASSWORD_LENGTH = 200
@@ -75,6 +75,16 @@ export function parsePasswordChangeInput(body: unknown): Parsed<PasswordChangeIn
   }
 
   return valid({ currentPassword, newPassword: newPassword.value })
+}
+
+// The language the client wants this account to read in. An unknown tag is
+// refused rather than quietly turned into Polish: the screen asked for
+// something specific, and a silent answer would look like it worked.
+export function parseLanguageInput(body: unknown): Parsed<Lang> {
+  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+  if (!isLang(body.language)) return invalid(`language must be one of: ${LANGS.join(', ')}`)
+
+  return valid(body.language)
 }
 
 function parseEmail(value: unknown): Parsed<string> {

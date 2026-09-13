@@ -93,6 +93,7 @@ const ROUTES = [
   'POST /api/auth/logout',
   'GET /api/auth/me',
   'PATCH /api/auth/password',
+  'PATCH /api/auth/language',
   'GET /api/tools',
   'POST /api/tools',
   'GET /api/tools/categories',
@@ -269,6 +270,7 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   if (path === '/api/auth/logout') return methodHandler(method, { POST: auth.logout })
   if (path === '/api/auth/me') return methodHandler(method, { GET: auth.me })
   if (path === '/api/auth/password') return methodHandler(method, { PATCH: auth.changePassword })
+  if (path === '/api/auth/language') return methodHandler(method, { PATCH: auth.changeLanguage })
 
   // Above the :id route on purpose: the id pattern is digits only, so
   // "categories" could not be mistaken for one, but the reading order should

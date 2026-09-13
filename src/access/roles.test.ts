@@ -21,6 +21,7 @@ function user(overrides: Partial<User> = {}): User {
     displayName: 'Ola',
     email: 'ola@example.com',
     id: 1,
+    language: 'pl',
     role: 'viewer',
     status: 'active',
     ...overrides,

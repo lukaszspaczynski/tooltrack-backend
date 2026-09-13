@@ -16,6 +16,11 @@ handler runs. Two refusals are possible and they mean different things:
 
 ## Language
 
+A signed-in account remembers which language it reads in — `user.language` on
+every session answer, changed with `PATCH /api/auth/language`. That is what the
+web client restores on another device; `Accept-Language` is still what decides
+a given answer, because it says what the client is showing right now.
+
 `Accept-Language` decides what language the `error` of a failed call is written
 in — `pl` and `en`, Polish for anything else and Polish when the header is
 absent. It applies to the messages a person reads. The refusals a client acts
@@ -60,6 +65,15 @@ optional and defaults to the part before the `@`. `409` if the email is taken.
 `200` with `{ user, capabilities }` and a session cookie. `401` for a wrong
 password, an unknown account and a disabled account alike — one answer, so the
 form cannot be used to find out which addresses have an account.
+
+### `PATCH /api/auth/language`
+
+`{ "language": "en" }` — which language this account reads the interface in,
+`pl` or `en`. Answers `200 { user, capabilities, effectiveRole }`, the same
+shape as `/api/auth/me`, because the user being shown has just changed. `401`
+without a session, `400` for a language this API does not speak. The open
+sessions are left alone: reading in English is not a security event the way a
+password change is.
 
 ### `POST /api/auth/logout`
 

@@ -10,6 +10,7 @@ function user(role: Role, status: User['status'] = 'active'): User {
     displayName: 'Ola',
     email: 'ola@example.com',
     id: 1,
+    language: 'pl',
     role,
     status,
   }

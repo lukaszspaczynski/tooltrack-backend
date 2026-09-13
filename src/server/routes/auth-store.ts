@@ -17,7 +17,7 @@ import {
   type User,
 } from '../../access/roles'
 import { db, type PgPool } from '../db'
-import { t } from '../i18n'
+import { DEFAULT_LANG, isLang, t, type Lang } from '../i18n'
 
 export const SESSION_COOKIE = 'tooltrack_session'
 
@@ -30,7 +30,15 @@ const TOKEN_BYTES = 32
 // Every account column except the two password ones. Written once so a new
 // column cannot be added to one query and forgotten in the other four. The
 // alias is for the queries that read the account through a join.
-const USER_COLUMN_NAMES = ['id', 'email', 'display_name', 'role', 'status', 'created_at']
+const USER_COLUMN_NAMES = [
+  'id',
+  'email',
+  'display_name',
+  'role',
+  'status',
+  'language',
+  'created_at',
+]
 
 function userColumns(alias?: string): string {
   const prefix = alias ? `"${alias}".` : ''
@@ -42,6 +50,7 @@ type UserRow = {
   display_name: string
   email: string
   id: number | string
+  language: string
   role: string
   status: string
 }
@@ -270,6 +279,23 @@ export async function setPassword(
   await revokeAllSessions(id, pool)
 }
 
+// Which language this account reads the interface in. The value is checked by
+// the column as well, so a list that drifts is a 500 here rather than a row
+// nobody can make sense of later.
+export async function setLanguage(id: number, language: Lang, pool: PgPool = db()): Promise<User> {
+  const result = await pool.query<UserRow>(
+    `
+      UPDATE "account"."user_account"
+      SET "language" = $2, "updated_at" = now()
+      WHERE "id" = $1
+      RETURNING ${userColumns()}
+    `,
+    [id, language],
+  )
+
+  return toUser(result.rows[0])
+}
+
 export async function countAdmins(pool: PgPool = db()): Promise<number> {
   const result = await pool.query<{ count: string }>(
     `SELECT count(*)::text AS "count" FROM "account"."user_account"
@@ -363,6 +389,10 @@ function toUser(row: UserRow): User {
     // The CHECK constraint on the column already guarantees this, so a value
     // that fails isRole means the two lists drifted apart. Falling back to the
     // least privileged role is the safe way to be wrong.
+    // Same reasoning as the role below: the CHECK constraint already promises
+    // this, so anything else means the column and i18n/lang.ts drifted apart,
+    // and Polish is what this interface says when nobody has said otherwise.
+    language: isLang(row.language) ? row.language : DEFAULT_LANG,
     role: isRole(row.role) ? row.role : DEFAULT_ROLE,
     status: row.status === 'disabled' ? 'disabled' : 'active',
   }

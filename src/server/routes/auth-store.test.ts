@@ -11,6 +11,7 @@ import {
   readCookie,
   revokeSession,
   SESSION_COOKIE,
+  setLanguage,
   updateUser,
   verifyPassword,
 } from './auth-store'
@@ -35,6 +36,7 @@ function userRow(overrides: Record<string, unknown> = {}): Record<string, unknow
     display_name: 'Ola',
     email: 'ola@example.com',
     id: '4',
+    language: 'pl',
     role: 'viewer',
     status: 'active',
     ...overrides,
@@ -177,6 +179,7 @@ test('a resolved session answers the account behind it', async () => {
     displayName: 'Ola',
     email: 'ola@example.com',
     id: 4,
+    language: 'pl',
     role: 'editor',
     status: 'active',
   })
@@ -219,4 +222,40 @@ test('readCookie takes the named cookie and decodes it', () => {
   assert.equal(readCookie('tooltrack_session_other=abc', SESSION_COOKIE), null)
   assert.equal(readCookie(null, SESSION_COOKIE), null)
   assert.equal(readCookie('malformed', SESSION_COOKIE), null)
+})
+
+test('the language a row carries travels with the account', async () => {
+  const { pool } = fakePool([userRow({ language: 'en' })])
+
+  const request = new Request('http://localhost/api/tools', {
+    headers: { cookie: `${SESSION_COOKIE}=token-value` },
+  })
+
+  assert.equal((await authenticateRequest(request, pool))?.language, 'en')
+})
+
+test('a language the application does not know reads as Polish', async () => {
+  // The CHECK constraint on the column already refuses this, so a value that
+  // gets here means the column and i18n/lang.ts drifted apart. Answering in the
+  // language this interface was written in is the safe way to be wrong.
+  const { pool } = fakePool([userRow({ language: 'kaszubski' })])
+
+  const request = new Request('http://localhost/api/tools', {
+    headers: { cookie: `${SESSION_COOKIE}=token-value` },
+  })
+
+  assert.equal((await authenticateRequest(request, pool))?.language, 'pl')
+})
+
+test('choosing a language writes one column and leaves the sessions alone', async () => {
+  // Unlike a password change: reading the interface in English is not a
+  // security event, and being signed out for it would be a strange answer.
+  const { calls, pool } = fakePool([userRow({ language: 'en' })])
+
+  const user = await setLanguage(4, 'en', pool)
+
+  assert.equal(user.language, 'en')
+  assert.equal(calls.length, 1)
+  assert.match(calls[0].text, /SET "language" = \$2/)
+  assert.deepEqual(calls[0].params, [4, 'en'])
 })

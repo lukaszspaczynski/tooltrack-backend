@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   MIN_PASSWORD_LENGTH,
   parseLoginInput,
+  parseLanguageInput,
   parsePasswordChangeInput,
   parseRegisterInput,
 } from './auth-input'
@@ -55,4 +56,21 @@ test('a password change needs the current one and a different new one', () => {
     newPassword: 'inne-haslo-9',
   })
   assert.ok(parsed.ok)
+})
+
+test('a language has to be one this interface speaks', () => {
+  // Turning an unknown tag into Polish silently would look to the screen like
+  // the change went through, and the next reload would undo it.
+  assert.equal(parseLanguageInput({ language: 'en' }).ok, true)
+  assert.equal(parseLanguageInput({ language: 'pl' }).ok, true)
+  assert.equal(parseLanguageInput({ language: 'de' }).ok, false)
+  assert.equal(parseLanguageInput({ language: 'EN' }).ok, false)
+  assert.equal(parseLanguageInput({ language: '' }).ok, false)
+  assert.equal(parseLanguageInput({}).ok, false)
+  assert.equal(parseLanguageInput(null).ok, false)
+  assert.equal(parseLanguageInput('en').ok, false)
+
+  const parsed = parseLanguageInput({ language: 'en' })
+  assert.ok(parsed.ok)
+  assert.equal(parsed.value, 'en')
 })

@@ -401,6 +401,12 @@ And **messages that answer a broken client** rather than a person —
 `Unauthorized`, `Not found`, `Expected a JSON object` — stay English, like the
 log lines.
 
+Which language somebody reads in is stored on their account —
+`user_account.language`, `PATCH /api/auth/language` — so it follows them to
+another device rather than living in one browser. It does not decide the
+language of an answer: `Accept-Language` does, because that says what the
+client is showing at the moment it asks.
+
 What is deliberately not translated: the text drawn onto the label PDFs. Those
 are stickers cut out and stuck on boxes in one workshop, and the sheet they are
 printed on says the same thing to everybody there.

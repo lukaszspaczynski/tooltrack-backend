@@ -18,6 +18,7 @@ reading it whole is the fastest way to understand it.
 | `password_hash`, `password_salt` | `text`            | PBKDF2-SHA512, 210 000 iterations, hex             |
 | `role`                           | `text`            | `viewer` \| `editor` \| `admin`, CHECK constrained |
 | `status`                         | `text`            | `active` \| `disabled`                             |
+| `language`                       | `text`            | `pl` \| `en`, CHECK constrained, defaults `pl`     |
 | `created_at`, `updated_at`       | `timestamptz`     |                                                    |
 
 The role list is repeated in the CHECK constraint and in

@@ -54,7 +54,7 @@ const RULES: readonly Rule[] = [
     // idempotent, and register always creates a viewer.
     domain: 'auth',
     methods: { GET: ALLOW, PATCH: ALLOW, POST: ALLOW },
-    pattern: /^\/api\/auth\/(?:register|login|logout|me|password)$/,
+    pattern: /^\/api\/auth\/(?:register|login|logout|me|password|language)$/,
   },
   {
     domain: 'tools',

@@ -1,3 +1,5 @@
+import type { Lang } from '../server/i18n/lang'
+
 // Who may do what. This module is pure: no database, no Request, no Response.
 // Everything that decides access — the route guard, the user routes, the
 // scripts — reads the answer from here, so there is one table to change when
@@ -37,6 +39,9 @@ export type User = {
   displayName: string
   email: string
   id: number
+  // Which language this account reads the interface in. It travels with the
+  // user rather than with the browser, so a phone and a laptop agree.
+  language: Lang
   role: Role
   status: AccountStatus
 }

@@ -6,7 +6,12 @@
 // what it already has.
 
 import { capabilitiesFor, effectiveRole, type User } from '../../access/roles'
-import { parseLoginInput, parsePasswordChangeInput, parseRegisterInput } from './auth-input'
+import {
+  parseLoginInput,
+  parseLanguageInput,
+  parsePasswordChangeInput,
+  parseRegisterInput,
+} from './auth-input'
 import { t } from '../i18n'
 import {
   authenticateRequest,
@@ -17,6 +22,7 @@ import {
   findCredentialsById,
   issueSession,
   revokeSession,
+  setLanguage,
   setPassword,
   verifyPassword,
 } from './auth-store'
@@ -108,6 +114,27 @@ export async function changePassword(request: Request): Promise<Response> {
     { ok: true, reauthenticationRequired: true },
     { headers: { 'set-cookie': clearedSessionCookie() } },
   )
+}
+
+// PATCH /api/auth/language — which language this account reads in.
+//
+// It answers with the same shape as /api/auth/me rather than `{ ok: true }`,
+// because the client has just been handed a new version of the user it is
+// showing and would otherwise have to ask for it again.
+export async function changeLanguage(request: Request): Promise<Response> {
+  const user = await authenticateRequest(request)
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const parsed = parseLanguageInput(await readJson(request))
+  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+
+  const updated = await setLanguage(user.id, parsed.value)
+
+  return Response.json({
+    capabilities: capabilitiesFor(updated),
+    effectiveRole: effectiveRole(updated),
+    user: updated,
+  })
 }
 
 function sessionResponse(user: User, cookie: string, status: number): Response {
