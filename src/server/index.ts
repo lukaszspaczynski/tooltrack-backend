@@ -27,6 +27,7 @@ import * as media from './routes/media'
 import * as organizers from './routes/organizers'
 import * as photos from './routes/photos'
 import * as settings from './routes/settings'
+import * as toolImport from './routes/tool-import'
 import * as tools from './routes/tools'
 import * as users from './routes/users'
 import * as version from './routes/version'
@@ -100,6 +101,8 @@ const ROUTES = [
   'POST /api/tools',
   'GET /api/tools/categories',
   'GET /api/tools/attributes',
+  'GET /api/tools/import/sources',
+  'POST /api/tools/import',
   'POST /api/tools/:id/attributes',
   'PATCH /api/tools/:id/attributes/:attributeId',
   'DELETE /api/tools/:id/attributes/:attributeId',
@@ -285,6 +288,11 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
   if (path === '/api/tools/attributes') {
     return methodHandler(method, { GET: tools.attributeNamesGET })
   }
+  // Both above /api/tools/:id, which would otherwise read "import" as an id.
+  if (path === '/api/tools/import/sources') {
+    return methodHandler(method, { GET: toolImport.sourcesGET })
+  }
+  if (path === '/api/tools/import') return methodHandler(method, { POST: toolImport.POST })
   if (path === '/api/tools') return methodHandler(method, { GET: tools.GET, POST: tools.POST })
 
   // Same ordering rule as categories above: the list of systems before the

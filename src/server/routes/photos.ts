@@ -88,6 +88,10 @@ type LinkInput = {
   url?: string
 }
 
+// A link as the importers hand it over: an address that is certainly there,
+// and where it came from — a paste, a search result, or a shop's gallery.
+export type NormalisedLink = { attribution?: string; fromSearch: boolean; url: string }
+
 // What the routes need to know about whichever card this is: that it exists,
 // and — for the suggestions — what to type into a search engine on its behalf.
 type OwnerCard = {
@@ -159,6 +163,60 @@ async function uploadBytes(
   }
 }
 
+// Fetching pictures from addresses and putting them on a card. Exported
+// because the tool importer walks a shop's gallery the same way: a picture
+// arriving from a URL should be stored, converted and refused on exactly the
+// same terms whichever screen asked for it.
+export async function importPhotoLinks(
+  owner: PhotoOwner,
+  items: NormalisedLink[],
+  actorId: number,
+): Promise<{ failed: { error: string; url: string }[]; photos: CardPhoto[] }> {
+  const photos: CardPhoto[] = []
+  const failed: { error: string; url: string }[] = []
+
+  for (const item of items) {
+    try {
+      const fetched = await fetchRemoteImage(item.url, maxPhotoBytes())
+      // Search engines serve a great deal of WebP; it is converted here, once,
+      // rather than being a format every later step has to handle.
+      const converted = await toStoredPng(fetched.bytes)
+      const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
+
+      photos.push(
+        await addToCard(
+          owner,
+          {
+            attribution: item.attribution,
+            // A link someone pasted and a link someone ticked in the search
+            // results are different provenance, and the card says which.
+            source: item.fromSearch ? 'search' : 'url',
+            sourceUrl: item.url,
+            stored,
+            metadata: converted.metadata,
+          },
+          actorId,
+        ),
+      )
+    } catch (error) {
+      // One bad link out of ten must not lose the other nine. Each failure is
+      // reported next to the address that caused it.
+      if (
+        error instanceof ImageFetchError ||
+        error instanceof ImageConversionError ||
+        error instanceof PhotoAlreadyExistsError ||
+        error instanceof TypeError
+      ) {
+        failed.push({ error: (error as Error).message, url: item.url })
+        continue
+      }
+      throw error
+    }
+  }
+
+  return { failed, photos }
+}
+
 // One pasted address, or a batch picked from the suggestions. Both go through
 // the same path, because "save the three I ticked" is the same operation as
 // "save this one" repeated.
@@ -183,47 +241,7 @@ async function importLinks(
     )
   }
 
-  const photos: CardPhoto[] = []
-  const failed: { error: string; url: string }[] = []
-
-  for (const item of items) {
-    try {
-      const fetched = await fetchRemoteImage(item.url, maxPhotoBytes())
-      // Search engines serve a great deal of WebP; it is converted here, once,
-      // rather than being a format every later step has to handle.
-      const converted = await toStoredPng(fetched.bytes)
-      const stored = await savePhotoBytes(converted.bytes, converted.metadata.contentType)
-
-      photos.push(
-        await addToCard(
-          owner,
-          {
-            attribution: item.attribution,
-            metadata: converted.metadata,
-            // A link someone pasted and a link someone ticked in the search
-            // results are different provenance, and the card says which.
-            source: item.fromSearch ? 'search' : 'url',
-            sourceUrl: item.url,
-            stored,
-          },
-          actorId,
-        ),
-      )
-    } catch (error) {
-      // One bad link out of ten must not lose the other nine. Each failure is
-      // reported next to the address that caused it.
-      if (
-        error instanceof ImageFetchError ||
-        error instanceof ImageConversionError ||
-        error instanceof PhotoAlreadyExistsError ||
-        error instanceof TypeError
-      ) {
-        failed.push({ error: (error as Error).message, url: item.url })
-        continue
-      }
-      throw error
-    }
-  }
+  const { failed, photos } = await importPhotoLinks(owner, items, actorId)
 
   if (photos.length === 0) {
     return Response.json(
@@ -552,8 +570,6 @@ async function loadOwner(owner: PhotoOwner): Promise<null | OwnerCard> {
   const found = await getCase(owner.id)
   return found ? { searchQuery: defaultCaseQuery(found) } : null
 }
-
-type NormalisedLink = { attribution?: string; fromSearch: boolean; url: string }
 
 function normaliseLinks(body: null | ({ items?: LinkInput[] } & LinkInput)): NormalisedLink[] {
   if (!body) return []

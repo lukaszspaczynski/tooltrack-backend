@@ -16,6 +16,7 @@ export const MAX_NOTES_LENGTH = 4000
 // them are a list — "SDS-plus, 24 mm, 3 tryby".
 export const MAX_ATTRIBUTE_NAME_LENGTH = 80
 export const MAX_ATTRIBUTE_VALUE_LENGTH = 200
+export const MAX_URL_LENGTH = 2000
 
 export const DEFAULT_LIMIT = 50
 export const MAX_LIMIT = 200
@@ -170,6 +171,20 @@ export function parseAttributePatch(body: unknown): Parsed<AttributePatch> {
   if (Object.keys(patch).length === 0) return invalid('No editable fields in request body')
 
   return valid(patch)
+}
+
+// The address of a product page somebody pasted. Whether this server can read
+// that shop is the importer registry's business; whether this is an address at
+// all is this function's.
+export function parseImportInput(body: unknown): Parsed<{ url: string }> {
+  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+
+  const url = trimmedString(body.url)
+  if (!url) return invalid('url is required')
+  if (url.length > MAX_URL_LENGTH)
+    return invalid(`url must be at most ${MAX_URL_LENGTH} characters`)
+
+  return valid({ url })
 }
 
 // The list query. Unlike the bodies, a bad value here is not an error: a link

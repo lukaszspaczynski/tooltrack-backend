@@ -69,6 +69,20 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/attributes$/,
   },
   {
+    // Which shops this server can read. Offered to anybody who may look at the
+    // catalog, because the import dialog says it before asking for an address.
+    domain: 'tools',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/tools\/import\/sources$/,
+  },
+  {
+    // Importing writes a card, its parameters and its photographs, so it asks
+    // for what writing a card asks for.
+    domain: 'tools',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/tools\/import$/,
+  },
+  {
     // Makers. Part of the catalog like everything else: looking is read,
     // changing is write.
     domain: 'brands',

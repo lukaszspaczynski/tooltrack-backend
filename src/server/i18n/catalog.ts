@@ -51,6 +51,12 @@ export const EN: Record<string, string> = {
     'A {width} × {height} mm label holds {allowed} photos',
   'Lokalna metoda nie używa klucza': 'The local method uses no key',
 
+  // Importing a card from a shop's page
+  'Nie umiem czytać tej strony. Obsługiwane źródła: {sources}':
+    'I cannot read that page. Supported sources: {sources}',
+  'Nie udało się pobrać strony produktu': 'The product page could not be fetched',
+  'Pod tym adresem nie ma karty produktu': 'There is no product card at that address',
+
   // Fetching a picture from somewhere else
   'Adres musi zaczynać się od http:// albo https://':
     'The address has to start with http:// or https://',

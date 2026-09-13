@@ -54,6 +54,56 @@ docs/
 - **Stores take a pool argument** defaulting to `db()`, so a test hands in a
   recording fake instead of reaching Postgres.
 
+## Importing a card from a shop
+
+`src/server/importers/` reads a product page into the shape of a card. The
+address decides which script does it — the registry in `importers/index.ts` maps
+a host to an importer — and an address from a shop nobody has taught this server
+to read is refused rather than guessed at: a card of empty fields is worse than
+a refusal, because somebody has to undo it.
+
+Each importer is **pure**. `mistama.ts` takes the page as text and gives back a
+product or nothing; the fetching, the writing and the photographs live in
+`routes/tool-import.ts`. That is what lets the reading be argued with in a test
+instead of over the network — a shop redesigns its markup, and the test says
+which part stopped matching.
+
+What mistama.ts knows about that shop:
+
+- The fields come from the **schema.org Product** in the page's JSON-LD, not
+  from the markup around it: name, catalog number, EAN, the whole gallery. The
+  markup is the part a shop redesigns.
+- The **spec table is scraped**, because the graph does not carry it: a list
+  under "Parametry techniczne" where the parameter is the plain text and its
+  value is in bold. A bullet that is bold all the way through is a feature, not
+  a parameter called nothing, and a value of "-" is the shop saying the field
+  does not apply.
+- A **parameter named twice** — torque for hard materials and for soft — becomes
+  one parameter with both readings. The card cannot hold the name twice and
+  neither reading is worth losing.
+- The shop writes one maker, "BOSCH". Which line it is — Professional or Home &
+  Garden — is in the **breadcrumb**, and the catalog keeps them apart because a
+  green drill and a blue one are not the same tool to anybody holding one.
+- The **category** is the last crumb that names a kind of thing rather than a
+  battery platform or the maker's own section. The shop's own narrowest heading
+  is as often "Seria 18V" as "Podkaszarki".
+- The **model** is the shouted run in the name with the maker taken out —
+  "GSB 185-LI". Nothing shouted is nothing written: a model invented from the
+  first two words of a Polish sentence would be worse than an empty field.
+- `gtin13` becomes "Kod EAN" only when it is thirteen digits. The shop fills it
+  with the catalog number on some cards, and a line repeating the one above it
+  is worse than no line.
+
+The page's own limits are not the card's, so `fitToCard` cuts every field to
+what the column takes rather than failing an import somebody is watching. The
+serial number is deliberately left blank: it identifies one physical machine,
+and the page describes a model.
+
+The pictures go through `importPhotoLinks`, the same path a pasted address and
+a ticked search result take. Sixteen of them is around a dozen seconds of one
+request — the ceiling is twenty, which is what keeps that from becoming a
+minute.
+
 ## What a tool is
 
 `catalog.tool_attribute` holds the parameters of one tool — mains voltage,

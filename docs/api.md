@@ -150,6 +150,40 @@ themselves like the category list above — the names in use are the vocabulary,
 and one typed the same way on every card is what makes the catalog answerable
 later. Names that differ only in case or spacing count as one.
 
+### `GET /api/tools/import/sources` — `catalog.read`
+
+`{ "sources": [{ "host": "mistama.com", "label": "mistama.com" }] }` — the shops
+this server can read. The import dialog lists them before asking for an address,
+so it never offers a source this installation does not have.
+
+### `POST /api/tools/import` — `catalog.write`
+
+`{ "url": "https://mistama.com/…" }` — a product page, read into a card.
+
+`201 { tool, imported }`, where `imported` is what came with it:
+
+```json
+{
+  "imported": {
+    "photos": 16,
+    "photosFailed": 0,
+    "attributes": 12,
+    "attributesFailed": [],
+    "sourceUrl": "https://mistama.com/…"
+  }
+}
+```
+
+The card is created with `condition: "new"` and **no serial number** — that
+identifies one physical machine, and the page describes a model. Parameters and
+photographs are added after it, and neither failing loses the card: what could
+not be read is reported beside it rather than instead of it. At most 20 photos.
+
+`400` when the address is missing or belongs to a shop this server cannot read —
+the message names the ones it can. `422` when the page could not be fetched, or
+when there is no product on it. Expect the call to take around ten seconds for a
+gallery of a dozen photographs: each one is fetched, converted and stored.
+
 ### `POST /api/tools` — `catalog.write`
 
 ```json
