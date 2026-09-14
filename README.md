@@ -351,3 +351,11 @@ not a guarantee — read the URL before you run it.
 `/healthz` is the liveness probe and deliberately never touches Postgres: a
 probe that fails during a brief database blip restarts a container that was
 about to recover. Database trouble is reported per request, as a 503.
+
+`assets/` is copied into the image because it is read at runtime: the fonts a
+label is drawn with, and one CA certificate. The `start` and `dev` scripts
+point `NODE_EXTRA_CA_CERTS` at that certificate — nac.com.pl serves an
+incomplete chain, which a browser repairs by itself and Node does not, and
+without it every import from that source fails as an unreachable page. The
+reasoning is in `assets/certs/README.md`; run the server by its npm script
+rather than by calling `tsx` directly and it is handed over for you.

@@ -6,7 +6,12 @@
 
 # misc
 .DS_Store
+# A blanket rule, because a .pem here is otherwise somebody's private key.
 *.pem
+# Except this one, which is a public CA certificate and has to ship: without it
+# the container has nothing for NODE_EXTRA_CA_CERTS to point at. See the README
+# beside it.
+!/assets/certs/*.pem
 
 # debug
 npm-debug.log*

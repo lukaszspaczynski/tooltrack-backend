@@ -208,6 +208,32 @@ would sit in the catalog beside the right one for ever. And the one document
 has no title at all, only a file and a language, so the card calls it "IAN
 525250 (PL)", which is at least what somebody would search for.
 
+`nac.ts` is the seventh, and the first page built on WordPress — which means
+there is no Product anywhere: every page on the site is a post, and the SEO
+plugin duly calls a garden shredder a **BlogPosting**. What the theme gives
+instead is anchors. The page links its own sections, so `#parametry` is where
+the specification is (a list of `em`/`strong` pairs rather than a table),
+`#opis` is the prose, and `#galeria` bounds the carousel — which matters,
+because further down the page are photographs of four other machines.
+
+Three things it settles. The heading is written in two parts, the kind of tool
+and then the model in a span of its own, and that span is **how a product page
+is told from a shelf**: `/kosiarki/` is a post too, and reading it would make a
+card of empty fields. The documents are the icon boxes that link a PDF, which
+leaves out the rating plate (a JPG) and the catalogue in the navigation (every
+machine NAC makes). And "212 cm<sup>3</sup>" is a unit the page writes as
+markup: tags out, it would reach the card as "212 cm 3".
+
+One thing about this source is not in the script at all. The host **serves an
+incomplete certificate chain**, and Node — unlike every browser — will not go
+and fetch the link it is missing, so `fetch` fails the handshake and the route
+can only report a page it could not reach. The missing intermediate is in
+`assets/certs/`, and the `start` and `dev` scripts hand it to Node through
+`NODE_EXTRA_CA_CERTS`. It has to be the whole process rather than the one
+request, because the photographs and the PDFs are a dozen more fetches to the
+same host. Run the server by something other than its npm script and this
+source, alone among the seven, will look broken.
+
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
 otherwise show it as its source for ever after.
