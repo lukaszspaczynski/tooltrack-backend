@@ -5,6 +5,7 @@
 // no database, no files — which is what makes their geometry testable.
 
 import { db, type PgPool } from '../db'
+import type { ErrorCode } from '../error-codes'
 import { readPhotoBytes } from '../photo-storage'
 import { drawContentsLabel, maxContentsPhotos } from './contents-label'
 import { drawNumberLabel, type NumberLabelBrand } from './number-label'
@@ -100,9 +101,12 @@ const CAPTION_COLUMNS: Record<Exclude<CaptionSource, 'text'>, string> = {
 }
 
 export class LabelDataError extends Error {
+  readonly code: ErrorCode
+
   constructor(message: string) {
     super(message)
     this.name = 'LabelDataError'
+    this.code = 'LABEL_UNDRAWABLE'
   }
 }
 

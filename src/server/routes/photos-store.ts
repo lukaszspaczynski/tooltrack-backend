@@ -11,6 +11,7 @@
 // nothing a client sends can reach the query text.
 
 import { db, withTransaction, type PgPool } from '../db'
+import type { ErrorCode } from '../error-codes'
 import { deletePhotoFile, type StoredPhoto } from '../photo-storage'
 import type { ImageMetadata } from '../image-metadata'
 import { linkTable, ownerColumn, type PhotoOwner, type PhotoOwnerKind } from './photo-owner'
@@ -54,9 +55,12 @@ export type StoredPhotoRow = CardPhoto & {
 }
 
 export class PhotoAlreadyExistsError extends Error {
+  readonly code: ErrorCode
+
   constructor() {
     super(t('To zdjęcie jest już na tej karcie'))
     this.name = 'PhotoAlreadyExistsError'
+    this.code = 'PHOTO_ALREADY_ON_CARD'
   }
 }
 

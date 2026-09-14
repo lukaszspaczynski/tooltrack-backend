@@ -1,3 +1,5 @@
+import { errorResponse } from './error-codes'
+
 // One mapping from a thrown error to an HTTP answer, so that every route fails
 // the same way and a saturated pool never reads as a client mistake.
 
@@ -24,11 +26,11 @@ export function routeErrorResponse(scope: string, error: unknown): Response {
   if (isPgUnavailableError(error)) {
     console.error(`[${scope}] database unavailable`, error)
     // Retryable, and honest about it: the caller's request was fine.
-    return Response.json({ error: 'Database unavailable' }, { status: 503 })
+    return errorResponse(503, 'DATABASE_UNAVAILABLE', 'Database unavailable')
   }
 
   console.error(`[${scope}] unhandled error`, error)
   // The message stays out of the body. Whatever it says was written for us,
   // not for whoever is holding the phone.
-  return Response.json({ error: 'Internal server error' }, { status: 500 })
+  return errorResponse(500, 'INTERNAL', 'Internal server error')
 }

@@ -7,6 +7,7 @@
 // a token that keeps being valid until it expires.
 
 import crypto from 'node:crypto'
+import type { ErrorCode } from '../error-codes'
 
 import {
   DEFAULT_ROLE,
@@ -67,9 +68,12 @@ export type Session = {
 }
 
 export class EmailTakenError extends Error {
+  readonly code: ErrorCode
+
   constructor() {
     super(t('Konto z tym adresem już istnieje'))
     this.name = 'EmailTakenError'
+    this.code = 'EMAIL_TAKEN'
   }
 }
 

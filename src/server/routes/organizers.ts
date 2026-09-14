@@ -12,6 +12,7 @@
 // checked by the guard before any of this runs.
 
 import { generateLabel, LabelDataError, type LabelOptions } from '../labels/generate'
+import { errorResponse } from '../error-codes'
 import { maxContentsPhotos } from '../labels/contents-label'
 import { deleteLabelPdf, readLabelFile, saveLabelPdf } from '../labels/storage'
 import { redrawLabels, storeLabelPreview } from './label-redraw'
@@ -45,7 +46,7 @@ import { t } from '../i18n'
 
 export async function GET(request: Request): Promise<Response> {
   const query = parseOrganizerQuery(new URL(request.url).searchParams)
-  if (!query.ok) return Response.json({ error: query.error }, { status: 400 })
+  if (!query.ok) return errorResponse(400, 'INVALID_QUERY', query.error)
 
   return Response.json(await listOrganizers(query.value), {
     headers: { 'cache-control': 'no-store' },
@@ -58,12 +59,12 @@ export async function GET(request: Request): Promise<Response> {
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
   const body = await readJson(request)
   const parsed = parseOrganizerCreate(body)
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   let toolIds: number[] = []
   if (isObject(body) && 'toolIds' in body) {
     const tools = parseToolIds(body)
-    if (!tools.ok) return Response.json({ error: tools.error }, { status: 400 })
+    if (!tools.ok) return errorResponse(400, 'INVALID_BODY', tools.error)
     toolIds = tools.value
   }
 
@@ -91,7 +92,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   if (id === null) return notFound()
 
   const parsed = parseOrganizerPatch(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
     const organizer = await updateOrganizer(id, parsed.value, actorId(context))
@@ -120,7 +121,7 @@ export async function toolsPOST(request: Request, context: RouteContext): Promis
   if (id === null) return notFound()
 
   const parsed = parseToolIds(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
     const organizer = await addTools(id, parsed.value, actorId(context))
@@ -139,7 +140,7 @@ export async function toolDELETE(_request: Request, context: RouteContext): Prom
 
   const removed = await removeTool(id, toolId)
   if (!removed) {
-    return Response.json({ error: t('Tego narzędzia nie ma w tym organizerze') }, { status: 404 })
+    return errorResponse(404, 'TOOL_NOT_IN_ORGANIZER', t('Tego narzędzia nie ma w tym organizerze'))
   }
 
   return Response.json({ ok: true })
@@ -169,7 +170,7 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
   if (id === null) return notFound()
 
   const parsed = parseLabelRequest(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   if (!(await getOrganizer(id))) return notFound()
 
@@ -178,9 +179,10 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
   // stick anywhere.
   const slot = (await labelSlotsFor(id)).find((entry) => entry.id === parsed.value.slotId)
   if (!slot) {
-    return Response.json(
-      { error: t('Skrzynka tego organizera nie ma takiego miejsca na etykietę') },
-      { status: 400 },
+    return errorResponse(
+      400,
+      'LABEL_SLOT_NOT_FOUND',
+      t('Skrzynka tego organizera nie ma takiego miejsca na etykietę'),
     )
   }
 
@@ -230,7 +232,7 @@ export async function labelPOST(request: Request, context: RouteContext): Promis
     return Response.json({ organizer: await getOrganizer(id) }, { status: 201 })
   } catch (error) {
     if (error instanceof LabelDataError) {
-      return Response.json({ error: error.message }, { status: 400 })
+      return errorResponse(400, error.code, error.message)
     }
     throw error
   }
@@ -248,7 +250,7 @@ export async function labelRefreshPOST(request: Request, context: RouteContext):
   if (id === null) return notFound()
 
   const parsed = parseLabelIds(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   if (!(await getOrganizer(id))) return notFound()
 
@@ -321,17 +323,17 @@ export async function labelDELETE(_request: Request, context: RouteContext): Pro
 }
 
 function labelNotFound(): Response {
-  return Response.json({ error: 'Nie ma takiej etykiety' }, { status: 404 })
+  return errorResponse(404, 'ORGANIZER_NOT_FOUND', 'Nie ma takiej etykiety')
 }
 
 // A taken number and a tool that is already somewhere else are both conflicts
 // the person can act on; a case that does not exist is a 404 about the case.
 function writeError(error: unknown): Response {
   if (error instanceof NumberTakenError || error instanceof ToolAlreadyInOrganizerError) {
-    return Response.json({ error: error.message }, { status: 409 })
+    return errorResponse(409, error.code, error.message)
   }
   if (error instanceof CaseNotFoundError) {
-    return Response.json({ error: error.message }, { status: 404 })
+    return errorResponse(404, error.code, error.message)
   }
   throw error
 }
@@ -349,7 +351,7 @@ function parseId(value: string | undefined): null | number {
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'Nie ma takiego organizera' }, { status: 404 })
+  return errorResponse(404, 'ORGANIZER_NOT_FOUND', 'Nie ma takiego organizera')
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

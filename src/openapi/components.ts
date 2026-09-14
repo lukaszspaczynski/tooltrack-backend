@@ -1,6 +1,7 @@
 // What every endpoint shares: how a caller authenticates, how a failure comes
 // back, and the query parameters that mean the same thing on every list.
 
+import { ERROR_CODES } from '../server/error-codes'
 import { jsonResponse, object, queryParam, ref } from './operation'
 import type { Parameter, Response, Schema } from './types'
 
@@ -20,14 +21,29 @@ export const SECURITY_SCHEMES: Record<string, Schema> = {
 
 // The error body, which is the same object everywhere.
 //
-// The message is prose meant for a person, and it arrives in the language the
-// request asked for — so it is the one field a client must never branch on.
-// Until this API carries a stable code beside it, what a client can rely on is
-// the status.
+// Two fields with two different jobs. `error` is prose for a person and arrives
+// in the language the request asked for, so it is the one field a client must
+// never branch on. `code` is the stable name of the failure: never translated,
+// never reworded, and the same whichever route produced it — a client that
+// handles SERIAL_NUMBER_TAKEN once handles it on the create and the edit alike.
+//
+// The enum is the catalogue in src/server/error-codes.ts, read rather than
+// copied, so a code the server can return and the contract does not mention is
+// impossible: adding one changes this document, and `npm run openapi:check`
+// fails until it is rebuilt.
 export const ERROR_SCHEMA: Schema = object({
+  code: {
+    description: [
+      'The stable name of the failure. Branch on this, not on `error`.',
+      '',
+      ...Object.entries(ERROR_CODES).map(([code, what]) => `- \`${code}\` — ${what}`),
+    ].join('\n'),
+    enum: Object.keys(ERROR_CODES),
+    type: 'string',
+  },
   error: {
     description:
-      'What went wrong, written for a person and translated to the language of the Accept-Language header. Not a stable identifier: branch on the status code.',
+      'What went wrong, written for a person and translated to the language of the Accept-Language header. Not a stable identifier.',
     type: 'string',
   },
 })

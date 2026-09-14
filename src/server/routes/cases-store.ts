@@ -3,6 +3,7 @@
 // reaches the query text is a column name chosen from a fixed map.
 
 import { db, type PgPool } from '../db'
+import type { ErrorCode } from '../error-codes'
 import type { CaseFields, CasePatch, CaseQuery } from './cases-input'
 import { t } from '../i18n'
 
@@ -15,6 +16,8 @@ export type LabelSlot = {
 }
 
 export class LabelSlotTakenError extends Error {
+  readonly code: ErrorCode
+
   constructor(widthMm: number, heightMm: number) {
     super(
       t('Ta skrzynka ma już miejsce {width} x {height} mm', {
@@ -23,6 +26,7 @@ export class LabelSlotTakenError extends Error {
       }),
     )
     this.name = 'LabelSlotTakenError'
+    this.code = 'LABEL_SLOT_TAKEN'
   }
 }
 

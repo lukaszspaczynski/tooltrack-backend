@@ -650,7 +650,12 @@ the one thing that can quietly break this engine.
 3. Add it to `RULES` in `src/access/route-policy.ts`. Skipping this makes the
    route return 403 — that is the design, not a bug.
 4. Document it in `docs/api.md`.
-5. Describe it in `src/openapi/paths/`, or put it in `PENDING` in
+5. Fail through `errorResponse(status, code, message)` from
+   `src/server/error-codes.ts`, never by building `{ error }` by hand. A test
+   reads the source and fails on one built the old way, because that compiles,
+   works, and quietly leaves a client with nothing to branch on. If no existing
+   code fits the failure, add one — the name is the failure, not the route.
+6. Describe it in `src/openapi/paths/`, or put it in `PENDING` in
    `src/openapi/operations.ts`. One or the other — the coverage test fails
    until a route is in exactly one of the two lists, which is how the spec
    stays honest about its own gaps rather than quietly omitting a route. Then

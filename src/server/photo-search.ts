@@ -16,6 +16,7 @@
 // fetched when someone picks one and the server stores it.
 
 import { t } from './i18n'
+import type { ErrorCode } from './error-codes'
 
 import {
   clampResultLimit,
@@ -59,9 +60,12 @@ const SEARCH_TIMEOUT_MS = 8000
 const USER_AGENT = 'ToolTrack/0.1 (tool catalog; +https://github.com/)'
 
 export class PhotoSearchUnavailableError extends Error {
+  readonly code: ErrorCode
+
   constructor(message: string) {
     super(message)
     this.name = 'PhotoSearchUnavailableError'
+    this.code = 'SEARCH_UNAVAILABLE'
   }
 }
 

@@ -8,6 +8,7 @@
 // answer to a question the policy already answers.
 
 import type { RouteContext } from '../route-context'
+import { errorResponse } from '../error-codes'
 import { copyManualLinks, dropOrphanedManuals, manualIdsOf } from './manuals-store'
 import { placementsFor } from './organizers-store'
 import {
@@ -45,7 +46,7 @@ import {
 
 export async function GET(request: Request): Promise<Response> {
   const query = parseToolQuery(new URL(request.url).searchParams)
-  if (!query.ok) return Response.json({ error: query.error }, { status: 400 })
+  if (!query.ok) return errorResponse(400, 'INVALID_QUERY', query.error)
 
   const page = await listTools(query.value)
 
@@ -74,7 +75,7 @@ export async function GET(request: Request): Promise<Response> {
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
   const parsed = parseToolCreate(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
     const tool = await createTool(parsed.value, actorId(context))
@@ -84,7 +85,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
     return Response.json({ tool: { ...tool, attributes: [] } }, { status: 201 })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
-      return Response.json({ error: error.message }, { status: 409 })
+      return errorResponse(409, error.code, error.message)
     }
     throw error
   }
@@ -130,13 +131,13 @@ export async function attributePOST(request: Request, context: RouteContext): Pr
   if (!(await getTool(id))) return notFound()
 
   const parsed = parseAttributeCreate(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
     await addAttribute(id, parsed.value, actorId(context))
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
-      return Response.json({ error: error.message }, { status: 409 })
+      return errorResponse(409, error.code, error.message)
     }
     throw error
   }
@@ -150,7 +151,7 @@ export async function attributePATCH(request: Request, context: RouteContext): P
   if (id === null || attributeId === null) return notFound()
 
   const parsed = parseAttributePatch(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
     // Null here is a parameter that is not this tool's, which is the same
@@ -158,7 +159,7 @@ export async function attributePATCH(request: Request, context: RouteContext): P
     if (!(await updateAttribute(id, attributeId, parsed.value))) return notFound()
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
-      return Response.json({ error: error.message }, { status: 409 })
+      return errorResponse(409, error.code, error.message)
     }
     throw error
   }
@@ -181,7 +182,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   if (id === null) return notFound()
 
   const parsed = parseToolPatch(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
     const tool = await updateTool(id, parsed.value, actorId(context))
@@ -190,7 +191,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
     return Response.json({ tool: { ...tool, attributes: await listAttributes(id) } })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
-      return Response.json({ error: error.message }, { status: 409 })
+      return errorResponse(409, error.code, error.message)
     }
     throw error
   }
@@ -263,7 +264,7 @@ function parseId(value: string | undefined): null | number {
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'Tool not found' }, { status: 404 })
+  return errorResponse(404, 'TOOL_NOT_FOUND', 'Tool not found')
 }
 
 async function readJson(request: Request): Promise<unknown> {

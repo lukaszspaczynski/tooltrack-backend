@@ -6,6 +6,7 @@
 // being collected into the heap first.
 
 import type { IncomingMessage } from 'node:http'
+import { errorResponse } from './error-codes'
 
 import { maxPhotoBytes } from './image-fetch'
 
@@ -65,5 +66,5 @@ export async function readRequestBody(req: IncomingMessage, pathname: string): P
 }
 
 function tooLarge(limit: number): Response {
-  return Response.json({ error: `Request body exceeds ${limit} bytes` }, { status: 413 })
+  return errorResponse(413, 'BODY_TOO_LARGE', `Request body exceeds ${limit} bytes`)
 }

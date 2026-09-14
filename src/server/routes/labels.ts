@@ -14,6 +14,7 @@
 // media.ts: it is a form submission with a list in it.
 
 import { generateLabel, LabelDataError, type LabelOptions } from '../labels/generate'
+import { errorResponse } from '../error-codes'
 import { buildLabelSheet, type SheetLabel } from '../labels/sheet'
 import { parseLabelListQuery, parseSheetIds } from './labels-input'
 import { labelsToDraw, labelsToRedraw, listAllLabels } from './labels-store'
@@ -23,7 +24,7 @@ import { t } from '../i18n'
 
 export async function GET(request: Request): Promise<Response> {
   const query = parseLabelListQuery(new URL(request.url).searchParams)
-  if (!query.ok) return Response.json({ error: query.error }, { status: 400 })
+  if (!query.ok) return errorResponse(400, 'INVALID_QUERY', query.error)
 
   return Response.json(await listAllLabels(query.value), {
     headers: { 'cache-control': 'no-store' },
@@ -43,11 +44,11 @@ export async function GET(request: Request): Promise<Response> {
 // sheet can never show something the label no longer says.
 export async function sheetGET(request: Request): Promise<Response> {
   const ids = parseSheetIds(new URL(request.url).searchParams)
-  if (!ids.ok) return Response.json({ error: ids.error }, { status: 400 })
+  if (!ids.ok) return errorResponse(400, 'INVALID_QUERY', ids.error)
 
   const labels = await labelsToDraw(ids.value)
   if (labels.length === 0) {
-    return Response.json({ error: t('Nie ma takich etykiet') }, { status: 404 })
+    return errorResponse(404, 'LABEL_NOT_FOUND', t('Nie ma takich etykiet'))
   }
 
   const drawn: SheetLabel[] = []
@@ -73,7 +74,7 @@ export async function sheetGET(request: Request): Promise<Response> {
   }
 
   if (drawn.length === 0) {
-    return Response.json({ error: failed.join('; ') }, { status: 422 })
+    return errorResponse(422, 'LABEL_UNDRAWABLE', failed.join('; '))
   }
 
   // What could not be drawn goes onto the sheet itself. The answer to this
@@ -106,11 +107,11 @@ export async function sheetGET(request: Request): Promise<Response> {
 // photos have been deleted since is the one thing somebody has to act on.
 export async function refreshPOST(request: Request): Promise<Response> {
   const parsed = parseLabelIds(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const labels = await labelsToRedraw(parsed.value, null)
   if (labels.length === 0) {
-    return Response.json({ error: t('Nie ma takich etykiet') }, { status: 404 })
+    return errorResponse(404, 'LABEL_NOT_FOUND', t('Nie ma takich etykiet'))
   }
 
   const { failed, refreshed } = await redrawLabels(labels)

@@ -5,6 +5,7 @@
 // row, twice.
 
 import { db, withTransaction, type PgPool } from '../db'
+import type { ErrorCode } from '../error-codes'
 import type { BrandFields, BrandPatch, BrandQuery } from './brands-input'
 import { photoUrl } from './photos-store'
 import { t } from '../i18n'
@@ -34,23 +35,32 @@ export type BrandPage = {
 }
 
 export class BrandNameTakenError extends Error {
+  readonly code: ErrorCode
+
   constructor(name: string) {
     super(t('Marka „{name}” już istnieje', { name }))
     this.name = 'BrandNameTakenError'
+    this.code = 'BRAND_NAME_TAKEN'
   }
 }
 
 export class PhotoNotFoundError extends Error {
+  readonly code: ErrorCode
+
   constructor() {
     super(t('Nie ma takiego zdjęcia'))
     this.name = 'PhotoNotFoundError'
+    this.code = 'PHOTO_NOT_FOUND'
   }
 }
 
 export class LogoTakenError extends Error {
+  readonly code: ErrorCode
+
   constructor() {
     super(t('To zdjęcie jest już logo innej marki'))
     this.name = 'LogoTakenError'
+    this.code = 'LOGO_TAKEN'
   }
 }
 

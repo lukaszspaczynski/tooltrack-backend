@@ -32,8 +32,39 @@ drawn onto the label PDFs, which are printed and cut out in one workshop.
 GET /api/labels/sheet?ids=1,2,3
 Accept-Language: en
 
-400 { "error": "At most 200 labels at a time" }
+400 { "code": "INVALID_QUERY", "error": "At most 200 labels at a time" }
 ```
+
+## Failures
+
+Every failed call answers with the same two fields, and they have two different
+jobs.
+
+```json
+{ "code": "SERIAL_NUMBER_TAKEN", "error": "Serial number 3AB77 is already on another tool" }
+```
+
+`error` is prose for a person, in whatever language the request asked for. **Do
+not branch on it.** It is reworded when somebody finds a better sentence, and it
+is Polish or English depending on a header.
+
+`code` is the stable name of the failure. It is never translated and never
+reworded, and it is the same whichever route produced it — a client that handles
+`SERIAL_NUMBER_TAKEN` once handles it on the create and on the edit alike. The
+status stays the right thing to branch on for the coarse decision (retry, log
+in, give up); `code` is what tells four different 409s apart without reading
+Polish.
+
+The whole list is `src/server/error-codes.ts`, and the OpenAPI document
+enumerates it — every value, with a sentence about each, under
+`components.schemas.Error`. A code the server can return and the contract does
+not mention is impossible: the enum is read from that file rather than copied,
+so adding one changes the document and `npm run lint` fails until it is rebuilt.
+
+Some failures carry more beside the two fields. A photo or manual import that
+could not fetch anything answers with `failed`, one entry per address; a
+suggestion route answers with `providers`. Those are additions, never
+replacements — `code` and `error` are always there.
 
 ## Roles
 

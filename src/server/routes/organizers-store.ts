@@ -5,6 +5,7 @@
 // That is one query with two aggregates rather than N+1.
 
 import { db, withTransaction, type PgPool } from '../db'
+import type { ErrorCode } from '../error-codes'
 import { labelFileUrl, labelPreviewUrl } from './labels-store'
 import type { OrganizerFields, OrganizerPatch, OrganizerQuery } from './organizers-input'
 import { photoUrl } from './photos-store'
@@ -62,23 +63,32 @@ export type OrganizerPage = {
 }
 
 export class NumberTakenError extends Error {
+  readonly code: ErrorCode
+
   constructor(number: number) {
     super(t('Numer {number} jest już zajęty przez inny organizer', { number }))
     this.name = 'NumberTakenError'
+    this.code = 'ORGANIZER_NUMBER_TAKEN'
   }
 }
 
 export class ToolAlreadyInOrganizerError extends Error {
+  readonly code: ErrorCode
+
   constructor() {
     super(t('To narzędzie jest już w innym organizerze'))
     this.name = 'ToolAlreadyInOrganizerError'
+    this.code = 'TOOL_ALREADY_IN_ORGANIZER'
   }
 }
 
 export class CaseNotFoundError extends Error {
+  readonly code: ErrorCode
+
   constructor() {
     super('Nie ma takiej skrzynki')
     this.name = 'CaseNotFoundError'
+    this.code = 'CASE_NOT_FOUND'
   }
 }
 

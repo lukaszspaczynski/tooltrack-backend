@@ -6,6 +6,7 @@
 // what it already has.
 
 import { capabilitiesFor, effectiveRole, type User } from '../../access/roles'
+import { errorResponse } from '../error-codes'
 import {
   parseLoginInput,
   parseLanguageInput,
@@ -29,7 +30,7 @@ import {
 
 export async function register(request: Request): Promise<Response> {
   const parsed = parseRegisterInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
     // Always a viewer. Registration is self-service, so it must not be able to
@@ -40,7 +41,7 @@ export async function register(request: Request): Promise<Response> {
     return sessionResponse(session.user, session.cookie, 201)
   } catch (error) {
     if (error instanceof EmailTakenError) {
-      return Response.json({ error: error.message }, { status: 409 })
+      return errorResponse(409, error.code, error.message)
     }
     throw error
   }
@@ -48,7 +49,7 @@ export async function register(request: Request): Promise<Response> {
 
 export async function login(request: Request): Promise<Response> {
   const parsed = parseLoginInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const credentials = await findCredentialsByEmail(parsed.value.email)
 
@@ -60,7 +61,7 @@ export async function login(request: Request): Promise<Response> {
     credentials.status === 'disabled' ||
     !(await verifyPassword(parsed.value.password, credentials))
   ) {
-    return Response.json({ error: t('Nieprawidłowy e-mail lub hasło') }, { status: 401 })
+    return errorResponse(401, 'INVALID_CREDENTIALS', t('Nieprawidłowy e-mail lub hasło'))
   }
 
   // A database failure is deliberately not caught and turned into a 401. A
@@ -96,14 +97,14 @@ export async function me(request: Request): Promise<Response> {
 
 export async function changePassword(request: Request): Promise<Response> {
   const user = await authenticateRequest(request)
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const parsed = parsePasswordChangeInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const credentials = await findCredentialsById(user.id)
   if (!credentials || !(await verifyPassword(parsed.value.currentPassword, credentials))) {
-    return Response.json({ error: t('Obecne hasło jest nieprawidłowe') }, { status: 403 })
+    return errorResponse(403, 'INVALID_CREDENTIALS', t('Obecne hasło jest nieprawidłowe'))
   }
 
   // setPassword revokes every session, this one included, so the answer clears
@@ -123,10 +124,10 @@ export async function changePassword(request: Request): Promise<Response> {
 // showing and would otherwise have to ask for it again.
 export async function changeLanguage(request: Request): Promise<Response> {
   const user = await authenticateRequest(request)
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const parsed = parseLanguageInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const updated = await setLanguage(user.id, parsed.value)
 

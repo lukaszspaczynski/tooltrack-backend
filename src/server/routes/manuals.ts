@@ -16,6 +16,7 @@
 // trusted from a header or a file extension.
 
 import { fetchRemoteFile, ImageFetchError } from '../image-fetch'
+import { errorResponse, type ErrorCode } from '../error-codes'
 import { fitToCard, importerFor, MANUAL_SOURCES } from '../importers'
 import { t } from '../i18n'
 import {
@@ -84,7 +85,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   }
 
   const parsed = parseManualUrl(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   return answering(() =>
     saveManualFromUrl(toolId, parsed.value.url, parsed.value.title, 'url', actorId),
@@ -103,7 +104,7 @@ export async function fromPagePOST(request: Request, context: RouteContext): Pro
   if (!(await getTool(toolId))) return notFound()
 
   const parsed = parseManualUrl(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const importer = importerFor(parsed.value.url)
   // Only the pages that publish documents are offered, so only those are
@@ -133,19 +134,20 @@ export async function fromPagePOST(request: Request, context: RouteContext): Pro
     })
     html = new TextDecoder('utf-8').decode(page.bytes)
   } catch {
-    return Response.json({ error: t('Nie udało się pobrać strony produktu') }, { status: 422 })
+    return errorResponse(422, 'PAGE_UNREACHABLE', t('Nie udało się pobrać strony produktu'))
   }
 
   const product = importer.parse(html, parsed.value.url)
   if (!product) {
-    return Response.json({ error: t('Pod tym adresem nie ma karty produktu') }, { status: 422 })
+    return errorResponse(422, 'NOT_A_PRODUCT_PAGE', t('Pod tym adresem nie ma karty produktu'))
   }
 
   const offered = fitToCard(product).manuals.slice(0, MAX_IMPORT_MANUALS)
   if (offered.length === 0) {
-    return Response.json(
-      { error: t('Ta strona nie udostępnia żadnych instrukcji') },
-      { status: 422 },
+    return errorResponse(
+      422,
+      'SOURCE_HAS_NO_MANUALS',
+      t('Ta strona nie udostępnia żadnych instrukcji'),
     )
   }
 
@@ -168,9 +170,13 @@ export async function fromPagePOST(request: Request, context: RouteContext): Pro
   }
 
   if (manuals.length === 0) {
-    return Response.json(
-      { error: failed[0]?.error ?? t('Nie udało się pobrać instrukcji'), failed },
-      { status: 422 },
+    return errorResponse(
+      422,
+      'DOWNLOAD_FAILED',
+      failed[0]?.error ?? t('Nie udało się pobrać instrukcji'),
+      {
+        extra: { failed },
+      },
     )
   }
 
@@ -198,7 +204,7 @@ export async function libraryPATCH(request: Request, context: RouteContext): Pro
   if (manualId === null) return notFound()
 
   const parsed = parseManualTitle(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const manual = await retitleManual(manualId, parsed.value)
   if (!manual) return notFound()
@@ -213,7 +219,7 @@ export async function libraryPATCH(request: Request, context: RouteContext): Pro
 // different decision from taking one off a card.
 export async function libraryDeletePOST(request: Request): Promise<Response> {
   const parsed = parseManualIds(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const kept = await listKeptBy(parsed.value)
   await deleteManualsByIds(parsed.value)
@@ -230,7 +236,7 @@ export async function attachPOST(request: Request, context: RouteContext): Promi
   if (!(await getTool(toolId))) return notFound()
 
   const parsed = parseManualIds(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const attached = await attachManualsTo(toolId, parsed.value, context.user?.id ?? 0)
 
@@ -243,7 +249,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   if (toolId === null || manualId === null) return notFound()
 
   const parsed = parseManualTitle(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const manual = await renameManual(toolId, manualId, parsed.value)
   if (!manual) return notFound()
@@ -289,12 +295,14 @@ export async function fileGET(_request: Request, context: RouteContext): Promise
 // that reason deserves. One class rather than four, because the mapping from
 // "what was wrong" to "what to answer" belongs in one place.
 export class ManualRejectedError extends Error {
+  readonly code: ErrorCode
   readonly status: number
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code: ErrorCode) {
     super(message)
     this.name = 'ManualRejectedError'
     this.status = status
+    this.code = code
   }
 }
 
@@ -315,7 +323,8 @@ export async function saveManualFromUrl(
   } catch (error) {
     // The other side did not answer. The request itself was fine, which is why
     // this is not a 400.
-    if (error instanceof ImageFetchError) throw new ManualRejectedError(error.message, 422)
+    if (error instanceof ImageFetchError)
+      throw new ManualRejectedError(error.message, 422, 'DOWNLOAD_FAILED')
     throw error
   }
 
@@ -333,16 +342,17 @@ export async function saveManualBytesFor(
   about: { source: ManualSource; sourceUrl?: string; title: string },
   actorId: number,
 ): Promise<Manual> {
-  if (bytes.byteLength === 0) throw new ManualRejectedError(t('Pusty plik'), 400)
+  if (bytes.byteLength === 0) throw new ManualRejectedError(t('Pusty plik'), 400, 'INVALID_BODY')
   if (bytes.byteLength > MAX_MANUAL_BYTES) {
     throw new ManualRejectedError(
       t('Plik jest większy niż {mb} MB', { mb: Math.round(MAX_MANUAL_BYTES / 1024 / 1024) }),
       413,
+      'BODY_TOO_LARGE',
     )
   }
   // The header said PDF; the bytes decide. A page answering with an error page
   // under a `.pdf` address is the common one this catches.
-  if (!isPdf(bytes)) throw new ManualRejectedError(t('Ten plik nie jest PDF-em'), 415)
+  if (!isPdf(bytes)) throw new ManualRejectedError(t('Ten plik nie jest PDF-em'), 415, 'NOT_A_PDF')
 
   const stored = await saveManualBytes(bytes)
   const manual = await insertManual(
@@ -359,7 +369,7 @@ export async function saveManualBytesFor(
     await linkManual(toolId, manual.id, actorId)
   } catch (error) {
     if (error instanceof ManualAlreadyOnCardError) {
-      throw new ManualRejectedError(error.message, 409)
+      throw new ManualRejectedError(error.message, 409, 'MANUAL_ALREADY_ON_CARD')
     }
     throw error
   }
@@ -387,7 +397,7 @@ async function answering(work: () => Promise<Manual>): Promise<Response> {
     return Response.json({ manual: await work() }, { status: 201 })
   } catch (error) {
     if (error instanceof ManualRejectedError) {
-      return Response.json({ error: error.message }, { status: error.status })
+      return errorResponse(error.status, error.code, error.message)
     }
     throw error
   }
@@ -421,7 +431,7 @@ function parseId(value: string | undefined): null | number {
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'Not found' }, { status: 404 })
+  return errorResponse(404, 'MANUAL_NOT_FOUND', 'Not found')
 }
 
 async function readJson(request: Request): Promise<unknown> {

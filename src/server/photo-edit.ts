@@ -12,6 +12,7 @@
 // rest of the app to work — without one the route answers 503 and says so.
 
 import { cutoutLocally, PhotoNotSuitableError } from './cutout-local'
+import type { ErrorCode } from './error-codes'
 import { readImageMetadata, type ImageMetadata } from './image-metadata'
 import { t } from './i18n'
 
@@ -62,9 +63,12 @@ const CUTOUT_PROMPT = [
 ].join(' ')
 
 export class PhotoEditUnavailableError extends Error {
+  readonly code: ErrorCode
+
   constructor(message: string) {
     super(message)
     this.name = 'PhotoEditUnavailableError'
+    this.code = 'CUTOUT_UNAVAILABLE'
   }
 }
 

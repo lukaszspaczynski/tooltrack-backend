@@ -10,6 +10,7 @@
 // writes the card and hangs the pictures on it.
 
 import { fitToCard, IMPORT_SOURCES, importerFor, type ImportedProduct } from '../importers'
+import { errorResponse } from '../error-codes'
 import { t } from '../i18n'
 import type { RouteContext } from '../route-context'
 import { ManualRejectedError, saveManualFromUrl } from './manuals'
@@ -46,7 +47,7 @@ export async function sourcesGET(): Promise<Response> {
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
   const parsed = parseImportInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const importer = importerFor(parsed.value.url)
   if (!importer) {
@@ -66,12 +67,12 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   } catch {
     // The shop did not answer, or answered with something that is not a page.
     // The request itself was fine, which is why this is not a 400.
-    return Response.json({ error: t('Nie udało się pobrać strony produktu') }, { status: 422 })
+    return errorResponse(422, 'PAGE_UNREACHABLE', t('Nie udało się pobrać strony produktu'))
   }
 
   const product = importer.parse(html, parsed.value.url)
   if (!product) {
-    return Response.json({ error: t('Pod tym adresem nie ma karty produktu') }, { status: 422 })
+    return errorResponse(422, 'NOT_A_PRODUCT_PAGE', t('Pod tym adresem nie ma karty produktu'))
   }
 
   return createCard(fitToCard(product), context.user?.id ?? 0)
@@ -97,7 +98,7 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
   if (!existing) return notFound()
 
   const parsed = parseImportInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const importer = importerFor(parsed.value.url)
   if (!importer) {
@@ -115,12 +116,12 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
   try {
     html = await fetchPage(parsed.value.url)
   } catch {
-    return Response.json({ error: t('Nie udało się pobrać strony produktu') }, { status: 422 })
+    return errorResponse(422, 'PAGE_UNREACHABLE', t('Nie udało się pobrać strony produktu'))
   }
 
   const read = importer.parse(html, parsed.value.url)
   if (!read) {
-    return Response.json({ error: t('Pod tym adresem nie ma karty produktu') }, { status: 422 })
+    return errorResponse(422, 'NOT_A_PRODUCT_PAGE', t('Pod tym adresem nie ma karty produktu'))
   }
 
   const product = fitToCard(read)
@@ -284,7 +285,7 @@ function parseId(value: string | undefined): null | number {
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'Tool not found' }, { status: 404 })
+  return errorResponse(404, 'TOOL_NOT_FOUND', 'Tool not found')
 }
 
 async function readJson(request: Request): Promise<unknown> {

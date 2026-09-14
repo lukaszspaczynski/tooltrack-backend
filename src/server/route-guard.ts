@@ -6,6 +6,7 @@
 // who is calling.
 
 import { routeRequirement, satisfiesRequirement } from '../access/route-policy'
+import { errorResponse } from './error-codes'
 import type { User } from '../access/roles'
 import { authenticateRequest } from './routes/auth-store'
 
@@ -20,7 +21,7 @@ export async function enforceRoutePolicy(request: Request): Promise<GuardResult>
     // every environment, including development: a rule that only exists in
     // production is a rule nobody tests.
     console.warn(`[route-guard] unclassified route ${request.method} ${pathname}`)
-    return { ok: false, response: Response.json({ error: 'Forbidden' }, { status: 403 }) }
+    return { ok: false, response: errorResponse(403, 'FORBIDDEN', 'Forbidden') }
   }
 
   const user = await authenticateRequest(request)
@@ -30,15 +31,14 @@ export async function enforceRoutePolicy(request: Request): Promise<GuardResult>
   // 401 and 403 are different answers to different questions, and the client
   // acts on them differently: one sends you to the login screen, the other
   // tells you this account will never be allowed and asks an admin.
-  if (!user)
-    return { ok: false, response: Response.json({ error: 'Unauthorized' }, { status: 401 }) }
+  if (!user) return { ok: false, response: errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized') }
 
   if (user.status === 'disabled') {
     return {
       ok: false,
-      response: Response.json({ error: 'This account is disabled' }, { status: 403 }),
+      response: errorResponse(403, 'ACCOUNT_DISABLED', 'This account is disabled'),
     }
   }
 
-  return { ok: false, response: Response.json({ error: 'Forbidden' }, { status: 403 }) }
+  return { ok: false, response: errorResponse(403, 'FORBIDDEN', 'Forbidden') }
 }

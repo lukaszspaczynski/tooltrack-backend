@@ -18,6 +18,7 @@
 // background to flood, and half a cut-out bench is worse than no cutout.
 
 import { ImageConversionError, pngFromRgba, toRgba } from './image-convert'
+import type { ErrorCode } from './error-codes'
 import { t } from './i18n'
 
 export type CutoutOptions = {
@@ -58,9 +59,12 @@ export type CutoutPlan =
 // The route answers 422 for it, which is a different thing from the 503 an
 // unconfigured or failing AI service gets.
 export class PhotoNotSuitableError extends Error {
+  readonly code: ErrorCode
+
   constructor(message: string) {
     super(message)
     this.name = 'PhotoNotSuitableError'
+    this.code = 'CUTOUT_UNSUITABLE'
   }
 }
 

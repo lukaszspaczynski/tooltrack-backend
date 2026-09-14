@@ -10,6 +10,7 @@
 // /api/cases/:id/photos, served by routes/photos.ts.
 
 import { parseCaseCreate, parseCasePatch, parseCaseQuery, parseLabelSlot } from './cases-input'
+import { errorResponse } from '../error-codes'
 import {
   addLabelSlot,
   createCase,
@@ -28,7 +29,7 @@ import type { RouteContext } from '../route-context'
 
 export async function GET(request: Request): Promise<Response> {
   const query = parseCaseQuery(new URL(request.url).searchParams)
-  if (!query.ok) return Response.json({ error: query.error }, { status: 400 })
+  if (!query.ok) return errorResponse(400, 'INVALID_QUERY', query.error)
 
   const page = await listCases(query.value)
 
@@ -55,7 +56,7 @@ export async function GET(request: Request): Promise<Response> {
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
   const parsed = parseCaseCreate(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const created = await createCase(parsed.value, actorId(context))
 
@@ -84,7 +85,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   if (id === null) return notFound()
 
   const parsed = parseCasePatch(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const updated = await updateCase(id, parsed.value, actorId(context))
   if (!updated) return notFound()
@@ -116,7 +117,7 @@ export async function labelSlotPOST(request: Request, context: RouteContext): Pr
   if (id === null) return notFound()
 
   const parsed = parseLabelSlot(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   // Checked before the insert so a missing case is a 404 about the case rather
   // than a foreign key violation about a column nobody asked about.
@@ -126,7 +127,7 @@ export async function labelSlotPOST(request: Request, context: RouteContext): Pr
     await addLabelSlot(id, parsed.value.widthMm, parsed.value.heightMm, actorId(context))
   } catch (error) {
     if (error instanceof LabelSlotTakenError) {
-      return Response.json({ error: error.message }, { status: 409 })
+      return errorResponse(409, error.code, error.message)
     }
     throw error
   }
@@ -143,7 +144,7 @@ export async function labelSlotDELETE(_request: Request, context: RouteContext):
 
   const removed = await removeLabelSlot(id, slotId)
   if (!removed) {
-    return Response.json({ error: 'Ta skrzynka nie ma takiego miejsca' }, { status: 404 })
+    return errorResponse(404, 'LABEL_SLOT_NOT_FOUND', 'Ta skrzynka nie ma takiego miejsca')
   }
 
   return Response.json({ case: await getCase(id) })
@@ -158,7 +159,7 @@ function actorId(context: RouteContext): number {
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'Nie ma takiej skrzynki' }, { status: 404 })
+  return errorResponse(404, 'CASE_NOT_FOUND', 'Nie ma takiej skrzynki')
 }
 
 async function readJson(request: Request): Promise<unknown> {

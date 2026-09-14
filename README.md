@@ -340,6 +340,19 @@ A `DATABASE_URL` that does not point at localhost needs
 on `127.0.0.1` can front a production instance, so that check is a speed bump,
 not a guarantee — read the URL before you run it.
 
+## How a failure comes back
+
+Every failed call answers `{ code, error }`. `error` is prose for a person and
+follows `Accept-Language`; `code` is the stable name of the failure, never
+translated and the same whichever route produced it. A client branches on the
+code, never on the message.
+
+The catalogue is `src/server/error-codes.ts` and the OpenAPI document enumerates
+it, read from that file rather than copied — so a code the server can return and
+the contract does not mention cannot exist. Failures are built through
+`errorResponse()`, and a test reads the source to make sure none is built any
+other way.
+
 ## The OpenAPI description
 
 `docs/openapi.json` is the machine-readable contract, served by the running

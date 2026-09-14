@@ -21,6 +21,7 @@
 // notices.
 
 import { ImageConversionError, toStoredPng } from '../image-convert'
+import { errorResponse } from '../error-codes'
 import { fetchRemoteFile, fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
 import {
   importerFor,
@@ -133,7 +134,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   if (!(await loadOwner(owner))) return ownerNotFound(context)
 
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const contentType = request.headers.get('content-type') ?? ''
 
@@ -148,7 +149,7 @@ async function uploadBytes(
   actorId: number,
 ): Promise<Response> {
   const bytes = new Uint8Array(await request.arrayBuffer())
-  if (bytes.byteLength === 0) return Response.json({ error: 'Pusty plik' }, { status: 400 })
+  if (bytes.byteLength === 0) return errorResponse(400, 'INVALID_BODY', 'Pusty plik')
 
   let converted: Awaited<ReturnType<typeof toStoredPng>>
   try {
@@ -157,7 +158,7 @@ async function uploadBytes(
     converted = await toStoredPng(bytes)
   } catch (error) {
     if (error instanceof ImageConversionError) {
-      return Response.json({ error: error.message }, { status: 415 })
+      return errorResponse(415, error.code, error.message)
     }
     throw error
   }
@@ -173,7 +174,7 @@ async function uploadBytes(
     return Response.json({ photo }, { status: 201 })
   } catch (error) {
     if (error instanceof PhotoAlreadyExistsError) {
-      return Response.json({ error: error.message }, { status: 409 })
+      return errorResponse(409, error.code, error.message)
     }
     throw error
   }
@@ -245,24 +246,26 @@ async function importLinks(
   const items = normaliseLinks(body)
 
   if (items.length === 0) {
-    return Response.json(
-      { error: t('Podaj adres zdjęcia (url) albo listę (items)') },
-      { status: 400 },
-    )
+    return errorResponse(400, 'INVALID_BODY', t('Podaj adres zdjęcia (url) albo listę (items)'))
   }
   if (items.length > MAX_IMPORT_ITEMS) {
-    return Response.json(
-      { error: t('Maksymalnie {max} zdjęć naraz', { max: MAX_IMPORT_ITEMS }) },
-      { status: 400 },
+    return errorResponse(
+      400,
+      'INVALID_BODY',
+      t('Maksymalnie {max} zdjęć naraz', { max: MAX_IMPORT_ITEMS }),
     )
   }
 
   const { failed, photos } = await importPhotoLinks(owner, items, actorId)
 
   if (photos.length === 0) {
-    return Response.json(
-      { error: failed[0]?.error ?? t('Nie udało się pobrać zdjęć'), failed },
-      { status: 422 },
+    return errorResponse(
+      422,
+      'DOWNLOAD_FAILED',
+      failed[0]?.error ?? t('Nie udało się pobrać zdjęć'),
+      {
+        extra: { failed },
+      },
     )
   }
 
@@ -285,7 +288,7 @@ export async function cutoutPreviewPOST(
   if (!target) return photoNotFound()
 
   const parsed = parseCutoutRunInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
@@ -352,10 +355,10 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   if (!target) return photoNotFound()
 
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const parsed = parseCutoutCommitInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
@@ -364,11 +367,11 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   // Expired, or from a tab left open since yesterday. Asked for again rather
   // than half-saved.
   if (!preview) {
-    return Response.json({ error: t('Podgląd wygasł — wygeneruj go ponownie') }, { status: 409 })
+    return errorResponse(409, 'PREVIEW_EXPIRED', t('Podgląd wygasł — wygeneruj go ponownie'))
   }
 
   const metadata = readImageMetadata(preview.bytes)
-  if (!metadata) return Response.json({ error: t('Podgląd jest uszkodzony') }, { status: 409 })
+  if (!metadata) return errorResponse(409, 'PREVIEW_EXPIRED', t('Podgląd jest uszkodzony'))
 
   try {
     // Keeping it means copying it out of the cache into the photo store, where
@@ -392,7 +395,7 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
     return Response.json({ photo }, { status: 201 })
   } catch (error) {
     if (error instanceof PhotoAlreadyExistsError) {
-      return Response.json({ error: t('Takie wycięcie już jest na tej karcie') }, { status: 409 })
+      return errorResponse(409, 'PHOTO_ALREADY_ON_CARD', t('Takie wycięcie już jest na tej karcie'))
     }
     throw error
   }
@@ -410,7 +413,7 @@ export async function cutoutPOST(_request: Request, context: RouteContext): Prom
   if (!target) return photoNotFound()
 
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
@@ -454,12 +457,12 @@ export async function attachPOST(request: Request, context: RouteContext): Promi
   if (!owner) return ownerNotFound(context)
 
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   if (!(await loadOwner(owner))) return ownerNotFound(context)
 
   const parsed = parseAttachIds(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const result = await attachPhotosTo(owner, parsed.value, actorId)
 
@@ -510,7 +513,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   // Promoting is the only edit a photo has. Everything else about it — its
   // size, its type, where it came from — is a fact about the file.
   if (body?.isPrimary !== true) {
-    return Response.json({ error: 'Jedyna zmiana to { "isPrimary": true }' }, { status: 400 })
+    return errorResponse(400, 'INVALID_BODY', 'Jedyna zmiana to { "isPrimary": true }')
   }
 
   const photo = await setPrimaryPhoto(target.owner, target.photoId)
@@ -546,10 +549,9 @@ async function suggestFromPage(toolId: number): Promise<Response> {
   )?.value
 
   if (!reference) {
-    return Response.json(
-      { error: t('Ta karta nie ma adresu karty produktu'), providers: [] },
-      { status: 422 },
-    )
+    return errorResponse(422, 'NO_SOURCE_PAGE', t('Ta karta nie ma adresu karty produktu'), {
+      extra: { providers: [] },
+    })
   }
 
   const importer = importerFor(reference)
@@ -573,17 +575,15 @@ async function suggestFromPage(toolId: number): Promise<Response> {
     })
     product = importer.parse(new TextDecoder('utf-8').decode(page.bytes), reference)
   } catch {
-    return Response.json(
-      { error: t('Nie udało się pobrać strony produktu'), providers: [] },
-      { status: 422 },
-    )
+    return errorResponse(422, 'PAGE_UNREACHABLE', t('Nie udało się pobrać strony produktu'), {
+      extra: { providers: [] },
+    })
   }
 
   if (!product) {
-    return Response.json(
-      { error: t('Pod tym adresem nie ma karty produktu'), providers: [] },
-      { status: 422 },
-    )
+    return errorResponse(422, 'NOT_A_PRODUCT_PAGE', t('Pod tym adresem nie ma karty produktu'), {
+      extra: { providers: [] },
+    })
   }
 
   return Response.json(
@@ -618,7 +618,7 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
   if (!owner) return ownerNotFound(context)
 
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const card = await loadOwner(owner)
   if (!card) return ownerNotFound(context)
@@ -629,10 +629,9 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
   // one: a case is not imported from anywhere.
   if (url.searchParams.get('source') === 'page') {
     if (owner.kind !== 'tool') {
-      return Response.json(
-        { error: t('Ta karta nie ma adresu karty produktu'), providers: [] },
-        { status: 422 },
-      )
+      return errorResponse(422, 'NO_SOURCE_PAGE', t('Ta karta nie ma adresu karty produktu'), {
+        extra: { providers: [] },
+      })
     }
 
     return suggestFromPage(owner.id)
@@ -662,7 +661,7 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
     if (error instanceof PhotoSearchUnavailableError) {
       // 503, not 500: the catalog is fine, this one integration is not, and
       // the client should say so rather than look broken.
-      return Response.json({ error: error.message, providers: [] }, { status: 503 })
+      return errorResponse(503, error.code, error.message, { extra: { providers: [] } })
     }
     throw error
   }
@@ -719,13 +718,13 @@ function parsePhotoTarget(context: RouteContext): null | { owner: PhotoOwner; ph
 // the card (409). Only the middle one is the server's problem.
 function cutoutError(error: unknown): Response {
   if (error instanceof PhotoNotSuitableError) {
-    return Response.json({ error: error.message }, { status: 422 })
+    return errorResponse(422, error.code, error.message)
   }
   if (error instanceof PhotoEditUnavailableError) {
-    return Response.json({ error: error.message }, { status: 503 })
+    return errorResponse(503, error.code, error.message)
   }
   if (error instanceof PhotoAlreadyExistsError) {
-    return Response.json({ error: t('Takie wycięcie już jest na tej karcie') }, { status: 409 })
+    return errorResponse(409, 'PHOTO_ALREADY_ON_CARD', t('Takie wycięcie już jest na tej karcie'))
   }
   throw error
 }
@@ -736,11 +735,11 @@ function ownerNotFound(context: RouteContext): Response {
   const owner = parsePhotoOwner(context.params)
   const label = owner ? OWNER_LABELS[owner.kind] : OWNER_LABELS.tool
 
-  return Response.json({ error: t(label) }, { status: 404 })
+  return errorResponse(404, 'NOT_FOUND', t(label))
 }
 
 function photoNotFound(): Response {
-  return Response.json({ error: t('Nie ma takiego zdjęcia') }, { status: 404 })
+  return errorResponse(404, 'PHOTO_NOT_FOUND', t('Nie ma takiego zdjęcia'))
 }
 
 async function readJson(request: Request): Promise<unknown> {

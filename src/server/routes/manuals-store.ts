@@ -6,6 +6,7 @@
 // its title and its provenance written down a single time.
 
 import { db, withTransaction, type PgPool } from '../db'
+import type { ErrorCode } from '../error-codes'
 import { t } from '../i18n'
 import { deleteManualFile, type StoredManual } from '../manual-storage'
 
@@ -32,9 +33,12 @@ export type StoredManualRow = Manual & {
 }
 
 export class ManualAlreadyOnCardError extends Error {
+  readonly code: ErrorCode
+
   constructor() {
     super(t('Ta instrukcja jest już na tej karcie'))
     this.name = 'ManualAlreadyOnCardError'
+    this.code = 'MANUAL_ALREADY_ON_CARD'
   }
 }
 

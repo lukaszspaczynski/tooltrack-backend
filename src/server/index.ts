@@ -13,6 +13,7 @@ import type { IncomingMessage } from 'node:http'
 import 'dotenv/config'
 
 import { preflightResponse, withCorsHeaders } from './cors'
+import { errorResponse } from './error-codes'
 import { routeErrorResponse } from './pg-error-response'
 import { startPreviewSweeping } from './photo-storage'
 import { readRequestBody, requestUrl } from './request-body-limit'
@@ -136,7 +137,7 @@ async function answer(req: IncomingMessage, res: ServerResponse): Promise<void> 
       await writeResponse(
         res,
         withCorsHeaders(
-          Response.json({ error: 'Not found', routes: ROUTES }, { status: 404 }),
+          errorResponse(404, 'NOT_FOUND', 'Not found', { extra: { routes: ROUTES } }),
           request,
         ),
       )
@@ -151,10 +152,9 @@ async function answer(req: IncomingMessage, res: ServerResponse): Promise<void> 
       await writeResponse(
         res,
         withCorsHeaders(
-          Response.json(
-            { error: 'Method not allowed' },
-            { headers: { allow: match.allow.join(', ') }, status: 405 },
-          ),
+          errorResponse(405, 'METHOD_NOT_ALLOWED', 'Method not allowed', {
+            headers: { allow: match.allow.join(', ') },
+          }),
           request,
         ),
       )

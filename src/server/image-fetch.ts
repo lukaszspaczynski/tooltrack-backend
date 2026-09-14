@@ -9,6 +9,7 @@
 // "image".
 
 import { lookup } from 'node:dns/promises'
+import type { ErrorCode } from './error-codes'
 
 import { readImageMetadata, type ImageMetadata } from './image-metadata'
 import { t } from './i18n'
@@ -23,9 +24,12 @@ const FETCH_TIMEOUT_MS = 10_000
 const USER_AGENT = 'ToolTrack/0.1 (tool catalog; +https://github.com/)'
 
 export class ImageFetchError extends Error {
+  readonly code: ErrorCode
+
   constructor(message: string) {
     super(message)
     this.name = 'ImageFetchError'
+    this.code = 'DOWNLOAD_FAILED'
   }
 }
 

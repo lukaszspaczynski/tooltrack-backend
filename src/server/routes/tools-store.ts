@@ -3,6 +3,7 @@
 // reaches the query text is a column name chosen from a fixed map.
 
 import { db, withTransaction, type PgPool } from '../db'
+import type { ErrorCode } from '../error-codes'
 import { brandIdForName } from './brands-store'
 import { t } from '../i18n'
 import type { ToolPlacement } from './organizers-store'
@@ -81,16 +82,22 @@ export type AttributeNameCount = {
 }
 
 export class AttributeNameTakenError extends Error {
+  readonly code: ErrorCode
+
   constructor(name: string) {
     super(t('Ten parametr jest już na tej karcie: {name}', { name }))
     this.name = 'AttributeNameTakenError'
+    this.code = 'ATTRIBUTE_NAME_TAKEN'
   }
 }
 
 export class SerialNumberTakenError extends Error {
+  readonly code: ErrorCode
+
   constructor(serialNumber: string) {
     super(`Serial number ${serialNumber} is already on another tool`)
     this.name = 'SerialNumberTakenError'
+    this.code = 'SERIAL_NUMBER_TAKEN'
   }
 }
 

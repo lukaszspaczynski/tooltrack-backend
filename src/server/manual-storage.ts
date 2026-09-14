@@ -6,6 +6,7 @@
 // far less often, which changes none of that.
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import type { ErrorCode } from './error-codes'
 import { dirname, join, resolve } from 'node:path'
 
 import { checksumOf, mediaDir } from './photo-storage'
@@ -22,9 +23,12 @@ export type StoredManual = {
 export const MAX_MANUAL_BYTES = 40 * 1024 * 1024
 
 export class NotAPdfError extends Error {
+  readonly code: ErrorCode
+
   constructor(message: string) {
     super(message)
     this.name = 'NotAPdfError'
+    this.code = 'NOT_A_PDF'
   }
 }
 

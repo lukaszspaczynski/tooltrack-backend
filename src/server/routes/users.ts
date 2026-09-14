@@ -10,6 +10,7 @@
 //      back, and the only way in is TOOLTRACK_BOOTSTRAP_ADMIN_EMAILS or SQL.
 
 import { capabilitiesFor, type UserWithCapabilities } from '../../access/roles'
+import { errorResponse } from '../error-codes'
 import type { RouteContext } from '../route-context'
 import { countAdmins, deleteUser, findUserById, listUsers, updateUser } from './auth-store'
 import { parseUserPatch } from './users-input'
@@ -32,16 +33,17 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   if (id === null) return notFound()
 
   const parsed = parseUserPatch(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const target = await findUserById(id)
   if (!target) return notFound()
 
   const self = context.user?.id === id
   if (self && (parsed.value.role !== undefined || parsed.value.status !== undefined)) {
-    return Response.json(
-      { error: 'You cannot change your own role or status. Ask another admin.' },
-      { status: 403 },
+    return errorResponse(
+      403,
+      'SELF_ROLE_CHANGE',
+      'You cannot change your own role or status. Ask another admin.',
     )
   }
 
@@ -52,7 +54,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
       parsed.value.status === 'disabled')
 
   if (losesAdmin && (await countAdmins()) <= 1) {
-    return Response.json({ error: 'This is the last active admin' }, { status: 409 })
+    return errorResponse(409, 'LAST_ACTIVE_ADMIN', 'This is the last active admin')
   }
 
   const user = await updateUser(id, parsed.value)
@@ -68,14 +70,14 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   if (id === null) return notFound()
 
   if (context.user?.id === id) {
-    return Response.json({ error: 'You cannot delete your own account' }, { status: 403 })
+    return errorResponse(403, 'SELF_ROLE_CHANGE', 'You cannot delete your own account')
   }
 
   const target = await findUserById(id)
   if (!target) return notFound()
 
   if (target.role === 'admin' && target.status === 'active' && (await countAdmins()) <= 1) {
-    return Response.json({ error: 'This is the last active admin' }, { status: 409 })
+    return errorResponse(409, 'LAST_ACTIVE_ADMIN', 'This is the last active admin')
   }
 
   // The tool cards they created stay, with created_by set to null (see
@@ -94,7 +96,7 @@ function parseId(value: string | undefined): null | number {
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'User not found' }, { status: 404 })
+  return errorResponse(404, 'USER_NOT_FOUND', 'User not found')
 }
 
 async function readJson(request: Request): Promise<unknown> {

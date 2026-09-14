@@ -14,6 +14,7 @@
 // carries a key — only whether one is set, and its last four characters.
 
 import { isSearchProvider } from '../search-engines'
+import { errorResponse } from '../error-codes'
 import type { RouteContext } from '../route-context'
 import { readCutoutSettings, saveCutoutMethod, saveCutoutThreshold } from './cutout-settings-store'
 import { isCutoutMethod } from '../cutout-methods'
@@ -28,7 +29,7 @@ import { t } from '../i18n'
 
 export async function enginesGET(_request: Request, context: RouteContext): Promise<Response> {
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   return Response.json(await enginesResponse(actorId), {
     headers: { 'cache-control': 'no-store' },
@@ -40,13 +41,13 @@ export async function engineGlobalPATCH(
   context: RouteContext,
 ): Promise<Response> {
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const provider = context.params.provider
   if (!isSearchProvider(provider)) return notFound()
 
   const parsed = parseGlobalEngineInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   await saveGlobalEngine(provider, parsed.value, actorId)
 
@@ -57,13 +58,13 @@ export async function engineGlobalPATCH(
 
 export async function engineMinePATCH(request: Request, context: RouteContext): Promise<Response> {
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const provider = context.params.provider
   if (!isSearchProvider(provider)) return notFound()
 
   const parsed = parseUserEngineInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   await saveUserEngine(actorId, provider, parsed.value.enabled)
 
@@ -104,18 +105,18 @@ export async function cutoutMethodPATCH(
   context: RouteContext,
 ): Promise<Response> {
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const method = context.params.method
   if (!isCutoutMethod(method)) return notFound()
 
   const parsed = parseCutoutMethodInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   // The local method has no key to set; accepting one would store a value
   // nothing reads.
   if (parsed.value.apiKey !== undefined && method === 'local') {
-    return Response.json({ error: t('Lokalna metoda nie używa klucza') }, { status: 400 })
+    return errorResponse(400, 'INVALID_BODY', t('Lokalna metoda nie używa klucza'))
   }
 
   await saveCutoutMethod(method, parsed.value, actorId)
@@ -128,10 +129,10 @@ export async function cutoutMethodPATCH(
 // starting point.
 export async function cutoutPATCH(request: Request, context: RouteContext): Promise<Response> {
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const parsed = parseCutoutThresholdInput(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   await saveCutoutThreshold(parsed.value.threshold, actorId)
 
@@ -139,7 +140,7 @@ export async function cutoutPATCH(request: Request, context: RouteContext): Prom
 }
 
 function notFound(): Response {
-  return Response.json({ error: 'Nie ma takiej wyszukiwarki' }, { status: 404 })
+  return errorResponse(404, 'SEARCH_ENGINE_NOT_FOUND', 'Nie ma takiej wyszukiwarki')
 }
 
 async function readJson(request: Request): Promise<unknown> {

@@ -13,6 +13,7 @@
 // pictures that is an acceptable trade for never failing to read one.
 
 import sharp from 'sharp'
+import type { ErrorCode } from './error-codes'
 
 import { readImageMetadata, type ImageMetadata } from './image-metadata'
 import { t } from './i18n'
@@ -20,9 +21,12 @@ import { t } from './i18n'
 export const STORED_CONTENT_TYPE = 'image/png'
 
 export class ImageConversionError extends Error {
+  readonly code: ErrorCode
+
   constructor(message: string) {
     super(message)
     this.name = 'ImageConversionError'
+    this.code = 'IMAGE_UNREADABLE'
   }
 }
 

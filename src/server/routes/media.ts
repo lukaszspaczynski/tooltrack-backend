@@ -13,6 +13,7 @@
 // list in it.
 
 import { ImageConversionError, toStoredPng } from '../image-convert'
+import { errorResponse } from '../error-codes'
 import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
 import { readPhotoBytes, savePhotoBytes } from '../photo-storage'
 import type { RouteContext } from '../route-context'
@@ -29,7 +30,7 @@ import {
 
 export async function GET(request: Request): Promise<Response> {
   const query = parseMediaQuery(new URL(request.url).searchParams)
-  if (!query.ok) return Response.json({ error: query.error }, { status: 400 })
+  if (!query.ok) return errorResponse(400, 'INVALID_QUERY', query.error)
 
   const page = await listAllPhotos(query.value)
 
@@ -50,20 +51,20 @@ export async function GET(request: Request): Promise<Response> {
 // the library is where both wait.
 export async function uploadPOST(request: Request, context: RouteContext): Promise<Response> {
   const actorId = context.user?.id
-  if (!actorId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
 
   const contentType = request.headers.get('content-type') ?? ''
   if (!contentType.startsWith('image/')) return importFromUrl(request, actorId)
 
   const bytes = new Uint8Array(await request.arrayBuffer())
-  if (bytes.byteLength === 0) return Response.json({ error: 'Pusty plik' }, { status: 400 })
+  if (bytes.byteLength === 0) return errorResponse(400, 'INVALID_BODY', 'Pusty plik')
 
   let converted: Awaited<ReturnType<typeof toStoredPng>>
   try {
     converted = await toStoredPng(bytes)
   } catch (error) {
     if (error instanceof ImageConversionError) {
-      return Response.json({ error: error.message }, { status: 415 })
+      return errorResponse(415, error.code, error.message)
     }
     throw error
   }
@@ -89,7 +90,7 @@ export async function uploadPOST(request: Request, context: RouteContext): Promi
 async function importFromUrl(request: Request, actorId: number): Promise<Response> {
   const body = (await readJson(request)) as null | { attribution?: unknown; url?: unknown }
   const url = typeof body?.url === 'string' ? body.url.trim() : ''
-  if (!url) return Response.json({ error: t('Podaj adres zdjęcia (url)') }, { status: 400 })
+  if (!url) return errorResponse(400, 'INVALID_BODY', t('Podaj adres zdjęcia (url)'))
 
   try {
     const fetched = await fetchRemoteImage(url, maxPhotoBytes())
@@ -120,10 +121,10 @@ async function importFromUrl(request: Request, actorId: number): Promise<Respons
     // A bad address, a page that is not an image, or something too large: all
     // of them are about what was asked for, not about this server.
     if (error instanceof ImageFetchError || error instanceof ImageConversionError) {
-      return Response.json({ error: error.message }, { status: 422 })
+      return errorResponse(422, error.code, error.message)
     }
     if (error instanceof TypeError) {
-      return Response.json({ error: t('Nie udało się pobrać zdjęcia') }, { status: 422 })
+      return errorResponse(422, 'DOWNLOAD_FAILED', t('Nie udało się pobrać zdjęcia'))
     }
     throw error
   }
@@ -154,12 +155,12 @@ export async function fileGET(_request: Request, context: RouteContext): Promise
 }
 
 function notFound(): Response {
-  return Response.json({ error: t('Nie ma takiego zdjęcia') }, { status: 404 })
+  return errorResponse(404, 'PHOTO_NOT_FOUND', t('Nie ma takiego zdjęcia'))
 }
 
 export async function deletePOST(request: Request, _context: RouteContext): Promise<Response> {
   const parsed = parseDeleteIds(await readJson(request))
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 })
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   const result = await deletePhotosByIds(parsed.value)
 
