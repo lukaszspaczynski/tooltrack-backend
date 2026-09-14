@@ -110,3 +110,16 @@ export const ROUTES = [
   'DELETE /api/users/:id',
   'GET /api/openapi.json',
 ] as const
+
+// A concrete path the router and the policy will both accept.
+//
+// Their patterns are stricter than "any value": an id is digits, a preview
+// checksum is sixty-four hex characters, and a provider or a cutout method is a
+// word. A sample that merely looks plausible is classified as unreachable, and
+// anything comparing the two tables would then be comparing nothing — which is
+// how this function came to exist, twice, before it was moved here.
+export function sampleOf(path: string): string {
+  return path
+    .replace(/:checksum/g, 'a'.repeat(64))
+    .replace(/:([A-Za-z]\w*)/g, (_, name: string) => (/^id$|Id$/.test(name) ? '1' : 'x'))
+}

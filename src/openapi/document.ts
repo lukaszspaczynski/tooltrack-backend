@@ -12,6 +12,7 @@
 // for, which failures it can actually produce, and what the request body means.
 
 import { routeRequirement } from '../access/route-policy'
+import { sampleOf } from '../server/route-list'
 import { APP_VERSION } from '../version'
 import {
   ACCEPT_LANGUAGE_PARAM,
@@ -132,15 +133,6 @@ function securityFor(path: string, method: Method): Operation['security'] {
         `${method.toUpperCase()} ${path} is in the operation table but the route policy denies it`,
       )
   }
-}
-
-// A route with its parameters filled in by something the policy patterns
-// accept. They are stricter than "any value": an id has to be digits and a
-// preview checksum has to be sixty-four hex characters, so a sample that only
-// looks plausible is classified as `deny` and the build stops — which is how
-// this function came to exist.
-export function sampleOf(path: string): string {
-  return path.replace(/:checksum/g, 'a'.repeat(64)).replace(/:([A-Za-z]\w*)/g, '1')
 }
 
 export function splitRoute(route: string): { method: Method; path: string } {

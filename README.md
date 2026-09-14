@@ -380,6 +380,11 @@ with `?limit=banana` still shows the catalog, clamped — and a schema that
 forgives accepts anything, which says less than the parameter list already
 does.
 
+A route lives in four places — `route-list.ts`, `router.ts`, the access policy
+and `src/openapi/paths/` — and three tests tie them together, so forgetting one
+fails immediately and names which. They are `router.test.ts`,
+`src/openapi/coverage.test.ts` and `docs/api-coverage.test.ts`.
+
 Coverage is partial on purpose and says so out loud. `src/openapi/operations.ts`
 holds a `PENDING` list beside the described ones, and `coverage.test.ts` asserts
 that the two together are exactly the routing table — so a route added tomorrow

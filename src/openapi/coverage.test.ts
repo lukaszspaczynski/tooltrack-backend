@@ -3,7 +3,8 @@ import test from 'node:test'
 
 import { routeRequirement } from '../access/route-policy'
 import { ROUTES } from '../server/route-list'
-import { buildDocument, sampleOf, splitRoute } from './document'
+import { buildDocument, splitRoute } from './document'
+import { sampleOf } from '../server/route-list'
 import { DESCRIBED, OPERATIONS, PENDING } from './operations'
 
 // The document is built here with empty entity schemas: what these tests are

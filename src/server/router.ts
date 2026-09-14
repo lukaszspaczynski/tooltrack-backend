@@ -1,0 +1,503 @@
+// Which path reaches which handler.
+//
+// One readable list, and a module of its own rather than part of index.ts for
+// the same reason the route list is: a test that had to import index.ts to ask
+// what a path resolves to would start a server listening on a port to find out.
+// That test exists now (router.test.ts) and is what keeps this table and
+// route-list.ts from describing different servers.
+//
+// Order matters where two patterns could both match. An id is digits, so
+// "categories" cannot be read as one — but the reading order matches the
+// routing order anyway, because somebody scanning this file should not have to
+// work that out.
+
+// to a web Request, matches it against the table in matchRoute, runs it past
+// the access guard, and writes the handler's Response back out.
+//
+// There is no framework. Route modules export functions from Request to
+// Response, which means every handler can be called directly from a test with
+// a Request built by hand, and the whole routing surface is one readable list
+// rather than an assembly of middleware whose order decides the behaviour.
+
+type Method = 'DELETE' | 'GET' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT'
+import type { RouteHandler } from './route-context'
+import * as auth from './routes/auth'
+import * as brands from './routes/brands'
+import * as cases from './routes/cases'
+import * as labels from './routes/labels'
+import * as manuals from './routes/manuals'
+import * as media from './routes/media'
+import * as openapi from './routes/openapi'
+import * as organizers from './routes/organizers'
+import * as photos from './routes/photos'
+import * as settings from './routes/settings'
+import * as toolImport from './routes/tool-import'
+import * as tools from './routes/tools'
+import * as users from './routes/users'
+import * as version from './routes/version'
+
+export type RouteMatch = {
+  // The methods this path implements, for the Allow header of a 405.
+  allow: string[]
+  // null when the path exists but not with this method.
+  handler: null | RouteHandler
+  params: Record<string, string>
+}
+
+const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/
+const TOOL_DUPLICATE_PATTERN = /^\/api\/tools\/(\d+)\/duplicate$/
+const TOOL_MANUALS_PATTERN = /^\/api\/tools\/(\d+)\/manuals$/
+const TOOL_MANUALS_FROM_PAGE_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/from-page$/
+const TOOL_MANUAL_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/(\d+)$/
+const MANUAL_FILE_PATTERN = /^\/api\/manuals\/(\d+)\/file$/
+const MANUAL_DETAIL_PATTERN = /^\/api\/manuals\/(\d+)$/
+const TOOL_MANUALS_ATTACH_PATTERN = /^\/api\/tools\/(\d+)\/manuals\/attach$/
+const TOOL_REFRESH_PATTERN = /^\/api\/tools\/(\d+)\/import$/
+const TOOL_ATTRIBUTES_PATTERN = /^\/api\/tools\/(\d+)\/attributes$/
+const TOOL_ATTRIBUTE_PATTERN = /^\/api\/tools\/(\d+)\/attributes\/(\d+)$/
+const BRAND_DETAIL_PATTERN = /^\/api\/brands\/(\d+)$/
+const BRAND_LOGO_PATTERN = /^\/api\/brands\/(\d+)\/logo$/
+const ORGANIZER_DETAIL_PATTERN = /^\/api\/organizers\/(\d+)$/
+const ORGANIZER_LABEL_SLOTS_PATTERN = /^\/api\/organizers\/(\d+)\/label-slots$/
+const ORGANIZER_LABELS_PATTERN = /^\/api\/organizers\/(\d+)\/labels$/
+const ORGANIZER_LABEL_REFRESH_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/refresh$/
+const ORGANIZER_LABEL_FILE_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)\/file$/
+const ORGANIZER_LABEL_PREVIEW_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)\/preview$/
+const ORGANIZER_LABEL_PATTERN = /^\/api\/organizers\/(\d+)\/labels\/(\d+)$/
+const ORGANIZER_TOOLS_PATTERN = /^\/api\/organizers\/(\d+)\/tools$/
+const ORGANIZER_TOOL_PATTERN = /^\/api\/organizers\/(\d+)\/tools\/(\d+)$/
+const CASE_DETAIL_PATTERN = /^\/api\/cases\/(\d+)$/
+const CASE_LABEL_SLOTS_PATTERN = /^\/api\/cases\/(\d+)\/label-slots$/
+const CASE_LABEL_SLOT_PATTERN = /^\/api\/cases\/(\d+)\/label-slots\/(\d+)$/
+
+// Photos belong to a tool or to a case on identical terms, so one set of
+// patterns serves both. Group 1 is the segment — "tools" or "cases" — which
+// routes/photo-owner.ts reads back into an owner; nothing downstream branches
+// on it again.
+const OWNER = '(tools|cases)'
+const PHOTOS_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos$`)
+const PHOTO_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)$`)
+const PHOTO_FILE_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/file$`)
+const PHOTO_ATTACH_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/attach$`)
+const PHOTO_CUTOUT_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout$`)
+const CUTOUT_PREVIEW_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout/preview$`)
+const CUTOUT_PREVIEW_FILE_PATTERN = new RegExp(
+  `^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout/preview/([0-9a-f]{64})$`,
+)
+const CUTOUT_COMMIT_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photos/(\\d+)/cutout/commit$`)
+const SUGGESTIONS_PATTERN = new RegExp(`^/api/${OWNER}/(\\d+)/photo-suggestions$`)
+// A photo by its own id, which is the only way to reach one with no owner.
+const LIBRARY_FILE_PATTERN = /^\/api\/photos\/(\d+)\/file$/
+const GLOBAL_ENGINE_PATTERN = /^\/api\/settings\/search-engines\/([a-z]+)$/
+const MY_ENGINE_PATTERN = /^\/api\/me\/search-engines\/([a-z]+)$/
+const USER_DETAIL_PATTERN = /^\/api\/users\/(\d+)$/
+
+// Every path the router answers. Also the body of the 404, because the most
+// common reason to see one is a client calling a path that moved.
+
+export function matchRoute(pathname: string, method: string): null | RouteMatch {
+  const path = pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+
+  if (path === '/healthz') return methodHandler(method, { GET: healthz })
+  if (path === '/api/version') return methodHandler(method, { GET: version.GET })
+  if (path === '/api/openapi.json') return methodHandler(method, { GET: openapi.GET })
+
+  if (path === '/api/auth/register') return methodHandler(method, { POST: auth.register })
+  if (path === '/api/auth/login') return methodHandler(method, { POST: auth.login })
+  if (path === '/api/auth/logout') return methodHandler(method, { POST: auth.logout })
+  if (path === '/api/auth/me') return methodHandler(method, { GET: auth.me })
+  if (path === '/api/auth/password') return methodHandler(method, { PATCH: auth.changePassword })
+  if (path === '/api/auth/language') return methodHandler(method, { PATCH: auth.changeLanguage })
+
+  // Above the :id route on purpose: the id pattern is digits only, so
+  // "categories" could not be mistaken for one, but the reading order should
+  // match the routing order anyway.
+  if (path === '/api/tools/categories') return methodHandler(method, { GET: tools.categoriesGET })
+  if (path === '/api/tools/attributes') {
+    return methodHandler(method, { GET: tools.attributeNamesGET })
+  }
+  // Both above /api/tools/:id, which would otherwise read "import" as an id.
+  if (path === '/api/tools/import/sources') {
+    return methodHandler(method, { GET: toolImport.sourcesGET })
+  }
+  if (path === '/api/tools/import') return methodHandler(method, { POST: toolImport.POST })
+  if (path === '/api/tools') return methodHandler(method, { GET: tools.GET, POST: tools.POST })
+
+  // Same ordering rule as categories above: the list of systems before the
+  // pattern that would read "systems" as the name of a case.
+  if (path === '/api/brands') {
+    return methodHandler(method, { GET: brands.GET, POST: brands.POST })
+  }
+
+  // Longest first, as everywhere in this table.
+  const brandLogo = BRAND_LOGO_PATTERN.exec(path)
+  if (brandLogo) {
+    return methodHandler(
+      method,
+      { DELETE: brands.logoDELETE, PUT: brands.logoPUT },
+      { id: brandLogo[1] },
+    )
+  }
+
+  const brandDetail = BRAND_DETAIL_PATTERN.exec(path)
+  if (brandDetail) {
+    return methodHandler(
+      method,
+      { DELETE: brands.detailDELETE, GET: brands.detailGET, PATCH: brands.detailPATCH },
+      { id: brandDetail[1] },
+    )
+  }
+
+  if (path === '/api/organizers') {
+    return methodHandler(method, { GET: organizers.GET, POST: organizers.POST })
+  }
+
+  // Every label there is, whichever organizer made it. Above the per-organizer
+  // label paths only for readability: neither can match the other's path.
+  if (path === '/api/labels/refresh') {
+    return methodHandler(method, { POST: labels.refreshPOST })
+  }
+
+  if (path === '/api/labels/sheet') return methodHandler(method, { GET: labels.sheetGET })
+
+  if (path === '/api/labels') return methodHandler(method, { GET: labels.GET })
+
+  // Longest first, as everywhere in this table. `refresh` sits above the
+  // :labelId patterns, though those only match digits, so it could not be
+  // mistaken for a label anyway.
+  const labelRefresh = ORGANIZER_LABEL_REFRESH_PATTERN.exec(path)
+  if (labelRefresh) {
+    return methodHandler(method, { POST: organizers.labelRefreshPOST }, { id: labelRefresh[1] })
+  }
+
+  const labelFile = ORGANIZER_LABEL_FILE_PATTERN.exec(path)
+  if (labelFile) {
+    return methodHandler(
+      method,
+      { GET: organizers.labelFileGET },
+      { id: labelFile[1], labelId: labelFile[2] },
+    )
+  }
+
+  const labelPreview = ORGANIZER_LABEL_PREVIEW_PATTERN.exec(path)
+  if (labelPreview) {
+    return methodHandler(
+      method,
+      { GET: organizers.labelPreviewGET },
+      { id: labelPreview[1], labelId: labelPreview[2] },
+    )
+  }
+
+  const organizerLabel = ORGANIZER_LABEL_PATTERN.exec(path)
+  if (organizerLabel) {
+    return methodHandler(
+      method,
+      { DELETE: organizers.labelDELETE },
+      { id: organizerLabel[1], labelId: organizerLabel[2] },
+    )
+  }
+
+  const organizerLabels = ORGANIZER_LABELS_PATTERN.exec(path)
+  if (organizerLabels) {
+    return methodHandler(method, { POST: organizers.labelPOST }, { id: organizerLabels[1] })
+  }
+
+  const organizerLabelSlots = ORGANIZER_LABEL_SLOTS_PATTERN.exec(path)
+  if (organizerLabelSlots) {
+    return methodHandler(method, { GET: organizers.labelSlotsGET }, { id: organizerLabelSlots[1] })
+  }
+
+  const organizerTool = ORGANIZER_TOOL_PATTERN.exec(path)
+  if (organizerTool) {
+    return methodHandler(
+      method,
+      { DELETE: organizers.toolDELETE },
+      { id: organizerTool[1], toolId: organizerTool[2] },
+    )
+  }
+
+  const organizerTools = ORGANIZER_TOOLS_PATTERN.exec(path)
+  if (organizerTools) {
+    return methodHandler(method, { POST: organizers.toolsPOST }, { id: organizerTools[1] })
+  }
+
+  const organizerDetail = ORGANIZER_DETAIL_PATTERN.exec(path)
+  if (organizerDetail) {
+    return methodHandler(
+      method,
+      {
+        DELETE: organizers.detailDELETE,
+        GET: organizers.detailGET,
+        PATCH: organizers.detailPATCH,
+      },
+      { id: organizerDetail[1] },
+    )
+  }
+
+  if (path === '/api/cases/systems') return methodHandler(method, { GET: cases.systemsGET })
+  if (path === '/api/cases') return methodHandler(method, { GET: cases.GET, POST: cases.POST })
+
+  // Longest first: /photos/7/file must not be read as the photo detail route.
+  const photoFile = PHOTO_FILE_PATTERN.exec(path)
+  if (photoFile) {
+    return methodHandler(
+      method,
+      { GET: photos.fileGET },
+      { id: photoFile[2], owner: photoFile[1], photoId: photoFile[3] },
+    )
+  }
+
+  // Longest first, as everywhere in this table.
+  const previewFile = CUTOUT_PREVIEW_FILE_PATTERN.exec(path)
+  if (previewFile) {
+    return methodHandler(
+      method,
+      { GET: photos.cutoutPreviewGET },
+      {
+        checksum: previewFile[4],
+        id: previewFile[2],
+        owner: previewFile[1],
+        photoId: previewFile[3],
+      },
+    )
+  }
+
+  const preview = CUTOUT_PREVIEW_PATTERN.exec(path)
+  if (preview) {
+    return methodHandler(
+      method,
+      { POST: photos.cutoutPreviewPOST },
+      { id: preview[2], owner: preview[1], photoId: preview[3] },
+    )
+  }
+
+  const commit = CUTOUT_COMMIT_PATTERN.exec(path)
+  if (commit) {
+    return methodHandler(
+      method,
+      { POST: photos.cutoutCommitPOST },
+      { id: commit[2], owner: commit[1], photoId: commit[3] },
+    )
+  }
+
+  const cutout = PHOTO_CUTOUT_PATTERN.exec(path)
+  if (cutout) {
+    return methodHandler(
+      method,
+      { POST: photos.cutoutPOST },
+      { id: cutout[2], owner: cutout[1], photoId: cutout[3] },
+    )
+  }
+
+  const photoDetail = PHOTO_PATTERN.exec(path)
+  if (photoDetail) {
+    return methodHandler(
+      method,
+      { DELETE: photos.detailDELETE, PATCH: photos.detailPATCH },
+      { id: photoDetail[2], owner: photoDetail[1], photoId: photoDetail[3] },
+    )
+  }
+
+  const attach = PHOTO_ATTACH_PATTERN.exec(path)
+  if (attach) {
+    return methodHandler(method, { POST: photos.attachPOST }, { id: attach[2], owner: attach[1] })
+  }
+
+  const cardPhotos = PHOTOS_PATTERN.exec(path)
+  if (cardPhotos) {
+    return methodHandler(
+      method,
+      { GET: photos.listGET, POST: photos.POST },
+      { id: cardPhotos[2], owner: cardPhotos[1] },
+    )
+  }
+
+  const suggestions = SUGGESTIONS_PATTERN.exec(path)
+  if (suggestions) {
+    return methodHandler(
+      method,
+      { GET: photos.suggestionsGET },
+      { id: suggestions[2], owner: suggestions[1] },
+    )
+  }
+
+  if (path === '/api/manuals') return methodHandler(method, { GET: manuals.libraryGET })
+  if (path === '/api/manuals/delete') {
+    return methodHandler(method, { POST: manuals.libraryDeletePOST })
+  }
+
+  const manualFile = MANUAL_FILE_PATTERN.exec(path)
+  if (manualFile) {
+    return methodHandler(method, { GET: manuals.fileGET }, { id: manualFile[1] })
+  }
+
+  const manualDetail = MANUAL_DETAIL_PATTERN.exec(path)
+  if (manualDetail) {
+    return methodHandler(method, { PATCH: manuals.libraryPATCH }, { id: manualDetail[1] })
+  }
+
+  const manualsAttach = TOOL_MANUALS_ATTACH_PATTERN.exec(path)
+  if (manualsAttach) {
+    return methodHandler(method, { POST: manuals.attachPOST }, { id: manualsAttach[1] })
+  }
+
+  // Longest first here too: "from-page" is a word, not a manual's id, and the
+  // id pattern would not match it — but the reading order should say so.
+  const manualsFromPage = TOOL_MANUALS_FROM_PAGE_PATTERN.exec(path)
+  if (manualsFromPage) {
+    return methodHandler(method, { POST: manuals.fromPagePOST }, { id: manualsFromPage[1] })
+  }
+
+  const manual = TOOL_MANUAL_PATTERN.exec(path)
+  if (manual) {
+    return methodHandler(
+      method,
+      { DELETE: manuals.detailDELETE, PATCH: manuals.detailPATCH },
+      { id: manual[1], manualId: manual[2] },
+    )
+  }
+
+  const toolManuals = TOOL_MANUALS_PATTERN.exec(path)
+  if (toolManuals) {
+    return methodHandler(
+      method,
+      { GET: manuals.listGET, POST: manuals.POST },
+      { id: toolManuals[1] },
+    )
+  }
+
+  // Longest first: the parameter's own path would otherwise be read as the
+  // list's with a stray segment.
+  const attribute = TOOL_ATTRIBUTE_PATTERN.exec(path)
+  if (attribute) {
+    return methodHandler(
+      method,
+      { DELETE: tools.attributeDELETE, PATCH: tools.attributePATCH },
+      { attributeId: attribute[2], id: attribute[1] },
+    )
+  }
+
+  const attributes = TOOL_ATTRIBUTES_PATTERN.exec(path)
+  if (attributes) {
+    return methodHandler(method, { POST: tools.attributePOST }, { id: attributes[1] })
+  }
+
+  const refresh = TOOL_REFRESH_PATTERN.exec(path)
+  if (refresh) {
+    return methodHandler(method, { POST: toolImport.refreshPOST }, { id: refresh[1] })
+  }
+
+  const duplicate = TOOL_DUPLICATE_PATTERN.exec(path)
+  if (duplicate) {
+    return methodHandler(method, { POST: tools.duplicatePOST }, { id: duplicate[1] })
+  }
+
+  const toolDetail = TOOL_DETAIL_PATTERN.exec(path)
+  if (toolDetail) {
+    return methodHandler(
+      method,
+      { DELETE: tools.detailDELETE, GET: tools.detailGET, PATCH: tools.detailPATCH },
+      { id: toolDetail[1] },
+    )
+  }
+
+  // Longest first, as everywhere in this table.
+  const labelSlot = CASE_LABEL_SLOT_PATTERN.exec(path)
+  if (labelSlot) {
+    return methodHandler(
+      method,
+      { DELETE: cases.labelSlotDELETE },
+      { id: labelSlot[1], slotId: labelSlot[2] },
+    )
+  }
+
+  const labelSlots = CASE_LABEL_SLOTS_PATTERN.exec(path)
+  if (labelSlots) {
+    return methodHandler(method, { POST: cases.labelSlotPOST }, { id: labelSlots[1] })
+  }
+
+  const caseDetail = CASE_DETAIL_PATTERN.exec(path)
+  if (caseDetail) {
+    return methodHandler(
+      method,
+      { DELETE: cases.detailDELETE, GET: cases.detailGET, PATCH: cases.detailPATCH },
+      { id: caseDetail[1] },
+    )
+  }
+
+  if (path === '/api/settings/search-engines') {
+    return methodHandler(method, { GET: settings.enginesGET })
+  }
+
+  if (path === '/api/settings/cutout') {
+    return methodHandler(method, { GET: settings.cutoutGET, PATCH: settings.cutoutPATCH })
+  }
+
+  const cutoutMethodPath = /^\/api\/settings\/cutout\/([a-z]+)$/.exec(path)
+  if (cutoutMethodPath) {
+    return methodHandler(
+      method,
+      { PATCH: settings.cutoutMethodPATCH },
+      { method: cutoutMethodPath[1] },
+    )
+  }
+
+  const globalEngine = GLOBAL_ENGINE_PATTERN.exec(path)
+  if (globalEngine) {
+    return methodHandler(
+      method,
+      { PATCH: settings.engineGlobalPATCH },
+      { provider: globalEngine[1] },
+    )
+  }
+
+  const myEngine = MY_ENGINE_PATTERN.exec(path)
+  if (myEngine) {
+    return methodHandler(method, { PATCH: settings.engineMinePATCH }, { provider: myEngine[1] })
+  }
+
+  // The library sits above /api/tools/… in the file only because it reads as
+  // its own surface; the paths cannot collide.
+  if (path === '/api/photos') {
+    return methodHandler(method, { GET: media.GET, POST: media.uploadPOST })
+  }
+
+  const libraryFile = LIBRARY_FILE_PATTERN.exec(path)
+  if (libraryFile) {
+    return methodHandler(method, { GET: media.fileGET }, { id: libraryFile[1] })
+  }
+  if (path === '/api/photos/delete') return methodHandler(method, { POST: media.deletePOST })
+
+  if (path === '/api/users') return methodHandler(method, { GET: users.GET })
+
+  const userDetail = USER_DETAIL_PATTERN.exec(path)
+  if (userDetail) {
+    return methodHandler(
+      method,
+      { DELETE: users.detailDELETE, PATCH: users.detailPATCH },
+      { id: userDetail[1] },
+    )
+  }
+
+  return null
+}
+
+function methodHandler(
+  method: string,
+  handlers: Partial<Record<Method, RouteHandler>>,
+  params: Record<string, string> = {},
+): RouteMatch {
+  return {
+    allow: Object.keys(handlers).sort(),
+    handler: handlers[method.toUpperCase() as Method] ?? null,
+    params,
+  }
+}
+
+// Liveness only. It answers without touching Postgres, because a probe that
+// fails when the database is briefly unreachable restarts a container that was
+// about to recover on its own. Database trouble is reported per request, as a
+// 503 from pg-error-response.ts.
+function healthz(): Response {
+  return Response.json({ ok: true })
+}
