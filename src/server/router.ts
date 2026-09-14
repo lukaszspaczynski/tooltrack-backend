@@ -15,6 +15,7 @@ import * as auth from './routes/auth'
 import * as brands from './routes/brands'
 import * as cases from './routes/cases'
 import * as labels from './routes/labels'
+import * as docs from './routes/docs'
 import * as manuals from './routes/manuals'
 import * as media from './routes/media'
 import * as openapi from './routes/openapi'
@@ -197,6 +198,8 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
   'PATCH /api/users/:id': users.detailPATCH,
   'DELETE /api/users/:id': users.detailDELETE,
   'GET /api/openapi.json': openapi.GET,
+  'GET /api/docs': docs.GET,
+  'GET /api/docs/:asset': docs.assetGET,
 }
 
 // Compiled once at load, in the order ROUTES lists them. Order decides only

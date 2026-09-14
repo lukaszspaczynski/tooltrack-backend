@@ -6206,6 +6206,106 @@
         ]
       }
     },
+    "/api/docs": {
+      "get": {
+        "description": "Swagger UI pointed at this API’s own document, vendored rather than loaded from a CDN — an authenticated screen pulling a megabyte of JavaScript from somebody else’s host is a supply chain nobody chose.\n\n**Try it out works.** The page is served from the API’s own origin, so the session cookie is first-party and the browser attaches it: log in through the app in another tab and the calls on this page are that session’s.",
+        "operationId": "getDocs",
+        "parameters": [
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The documentation page."
+          }
+        },
+        "security": [],
+        "summary": "Browse this API",
+        "tags": [
+          "public"
+        ]
+      }
+    },
+    "/api/docs/{asset}": {
+      "get": {
+        "description": "The Swagger UI stylesheet and bundle, from an allowlist of two.",
+        "operationId": "getDocsAsset",
+        "parameters": [
+          {
+            "description": "A file name, never a path.",
+            "in": "path",
+            "name": "asset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/javascript": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/css": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The asset."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "No asset by that name."
+          }
+        },
+        "security": [],
+        "summary": "A file the documentation page needs",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/labels": {
       "get": {
         "description": "Every label there is, whichever arrangement made it, newest first — the screen is opened to find what was printed last, and a label made a year ago is the one nobody is looking for.\n\nEach row carries both the arrangement and the box it is stuck on, because a sticker is found by the box far more often than by the arrangement. A label has no name of its own, so `q` matches those two.",

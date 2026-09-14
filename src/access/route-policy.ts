@@ -45,7 +45,7 @@ const RULES: readonly Rule[] = [
   {
     domain: 'public',
     methods: { GET: ALLOW },
-    pattern: /^\/(?:healthz|api\/version|api\/openapi\.json)$/,
+    pattern: /^\/(?:healthz|api\/version|api\/openapi\.json|api\/docs(?:\/[^/]+)?)$/,
   },
   {
     // Registration, login, logout and "who am I" cannot require a capability:

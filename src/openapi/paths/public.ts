@@ -43,6 +43,40 @@ export const PUBLIC_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
+      'Swagger UI pointed at this API’s own document, vendored rather than loaded from a CDN — an authenticated screen pulling a megabyte of JavaScript from somebody else’s host is a supply chain nobody chose.\n\n**Try it out works.** The page is served from the API’s own origin, so the session cookie is first-party and the browser attaches it: log in through the app in another tab and the calls on this page are that session’s.',
+    operationId: 'getDocs',
+    responses: {
+      200: {
+        content: { 'text/html': { schema: { type: 'string' } } },
+        description: 'The documentation page.',
+      },
+    },
+    route: 'GET /api/docs',
+    summary: 'Browse this API',
+    tag: 'public',
+  },
+  {
+    description: 'The Swagger UI stylesheet and bundle, from an allowlist of two.',
+    operationId: 'getDocsAsset',
+    pathParams: {
+      asset: { description: 'A file name, never a path.', schema: { type: 'string' } },
+    },
+    responses: {
+      200: {
+        content: {
+          'application/javascript': { schema: { type: 'string' } },
+          'text/css': { schema: { type: 'string' } },
+        },
+        description: 'The asset.',
+      },
+      404: jsonResponse('No asset by that name.', ref('Error')),
+    },
+    route: 'GET /api/docs/:asset',
+    summary: 'A file the documentation page needs',
+    tag: 'public',
+  },
+  {
+    description:
       'This document, served by the API it describes, so a client always reads the contract of the instance it is talking to rather than one checked in beside it.',
     operationId: 'getOpenapiDocument',
     responses: {

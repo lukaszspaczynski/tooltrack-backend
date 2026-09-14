@@ -181,6 +181,27 @@ themselves like the category list above — the names in use are the vocabulary,
 and one typed the same way on every card is what makes the catalog answerable
 later. Names that differ only in case or spacing count as one.
 
+### `GET /api/docs` — public
+
+Swagger UI, pointed at the document below. Vendored rather than loaded from a
+CDN, for the same reason the label fonts and the one CA certificate are: a page
+that needs the public internet to render does not render on a site that has
+none, and an authenticated screen pulling a megabyte of JavaScript off
+somebody else's host is a supply chain nobody chose. Two files come with it,
+under `GET /api/docs/:asset`, from an allowlist of two names.
+
+**"Try it out" works.** The page is served from this API's own origin, so the
+session cookie is first-party and the browser attaches it — log in through the
+app in another tab and the calls on this page run as that account. That is why
+it is a route here rather than a static site somewhere else: on its own origin
+it would be a CORS and cookie problem for the one feature worth having.
+
+- `GET /api/docs/:asset` — the two files the page loads, by name.
+
+`docs/api.http` is still the better tool for a sequence of calls, because it
+keeps the session and the variables between them. This is the better one for
+reading.
+
 ### `GET /api/openapi.json` — public
 
 The OpenAPI 3.1 description of everything below, served by the API it

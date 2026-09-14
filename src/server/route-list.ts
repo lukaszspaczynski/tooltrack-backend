@@ -109,6 +109,8 @@ export const ROUTES = [
   'PATCH /api/users/:id',
   'DELETE /api/users/:id',
   'GET /api/openapi.json',
+  'GET /api/docs',
+  'GET /api/docs/:asset',
 ] as const
 
 // A concrete path the router and the policy will both accept.
@@ -135,6 +137,9 @@ export function sampleOf(path: string): string {
 // narrow: an id that admits anything is an id that lets `/api/tools/../..`
 // reach a handler.
 const SEGMENT: Record<string, string> = {
+  // A file name, never a path: no slash, so nothing here can walk out of the
+  // directory it is served from.
+  asset: '[A-Za-z0-9._-]+',
   checksum: '[0-9a-f]{64}',
   method: '[a-z]+',
   provider: '[a-z]+',
