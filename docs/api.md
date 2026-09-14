@@ -266,9 +266,12 @@ so it never offers a source this installation does not have.
 }
 ```
 
-Every imported card gets a **`Referencja`** parameter holding the address it
-was read from, so what the import said can be checked against what the page
-says today.
+Every imported card gets a **`referenceUrl`** holding the address it was read
+from, so what the import said can be checked against what the page says today.
+It is a field on the card rather than a line on its spec sheet: every imported
+card has exactly one and no card has two, which is the shape of a column — and
+on the sheet it sorted among the voltages, where anybody editing a row could
+rename the thing three screens read.
 
 The manuals come too, at most 8 of them, where the page publishes any — most
 shops publish none. They go through the same path as
@@ -524,9 +527,9 @@ stored: a number nobody can have measured looks like a fact.
 
 The rows that are **not** a measurement the catalog has a column for become
 **parameters** on the case, the same way a tool's spec sheet does — the weight,
-and how many fit on a pallet. Beside them goes `Referencja`, the address the
-page was read from, which is what the "update from the page" button on a case
-looks for. The **note** is the maker's own description and nothing else: it
+and how many fit on a pallet. The address the page was read from is the case's
+own `referenceUrl`, which is what the "update from the page" button looks for.
+The **note** is the maker's own description and nothing else: it
 used to carry the weight and the address, which left cases whose entire note
 was a bare link.
 
@@ -869,8 +872,8 @@ exact cutout is already on the card.
 ### `GET /api/{tools,cases}/:id/photo-suggestions` — `catalog.write`
 
 `?source=page` answers from the **product page this card was imported from**
-instead of from the engines: the address is the card's `Referencja` parameter,
-so it is the one source that cannot come back with somebody else's machine.
+instead of from the engines: the address is the card's `referenceUrl`, so it is
+the one source that cannot come back with somebody else's machine.
 `providers: ["page"]`, and each suggestion is attributed to the page's host.
 
 `422` when the card has no such address, when this server cannot read that

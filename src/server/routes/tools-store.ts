@@ -27,6 +27,10 @@ export type Tool = {
   model: string
   name: string
   notes: string
+  // Where an import read this card from, empty when nobody imported it. It was
+  // a parameter called Referencja until it became a field: every card has at
+  // most one, which is a column rather than a row on a spec sheet.
+  referenceUrl: string
   serialNumber: string
   updatedAt: string
   updatedBy: null | number
@@ -89,6 +93,7 @@ type ToolRow = {
   model: string
   name: string
   notes: string
+  reference_url: string
   serial_number: string
   total_count?: number | string
   updated_at: Date | string
@@ -97,7 +102,7 @@ type ToolRow = {
 
 const TOOL_COLUMNS = `
   "id", "name", "category", "brand", "model", "serial_number", "condition", "notes",
-  "created_by", "updated_by", "created_at", "updated_at"
+  "reference_url", "created_by", "updated_by", "created_at", "updated_at"
 `
 
 // The only place a sort key becomes SQL. A value that is not in this map
@@ -181,8 +186,8 @@ export async function createTool(
       `
         INSERT INTO "catalog"."tool"
           ("name", "category", "brand", "model", "serial_number", "condition", "notes",
-           "created_by", "updated_by", "brand_id")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, $9)
+           "reference_url", "created_by", "updated_by", "brand_id")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10)
         RETURNING ${TOOL_COLUMNS}
       `,
       [
@@ -193,6 +198,7 @@ export async function createTool(
         fields.serialNumber,
         fields.condition,
         fields.notes,
+        fields.referenceUrl,
         actorId,
         // The maker is typed as text on the card. When it names a brand we
         // know, the row points at it too; when it does not, it points at
@@ -220,6 +226,7 @@ export async function updateTool(
     model: 'model',
     name: 'name',
     notes: 'notes',
+    referenceUrl: 'reference_url',
     serialNumber: 'serial_number',
   }
 
@@ -279,8 +286,9 @@ export async function duplicateTool(
     `
       INSERT INTO "catalog"."tool"
         ("name", "category", "brand", "model", "serial_number", "condition", "notes",
-         "created_by", "updated_by")
-      SELECT "name", "category", "brand", "model", '', "condition", "notes", $2, $2
+         "reference_url", "created_by", "updated_by")
+      SELECT "name", "category", "brand", "model", '', "condition", "notes",
+             "reference_url", $2, $2
       FROM "catalog"."tool"
       WHERE "id" = $1
       RETURNING ${TOOL_COLUMNS}
@@ -358,6 +366,7 @@ function toTool(row: ToolRow): Tool {
     model: row.model,
     name: row.name,
     notes: row.notes,
+    referenceUrl: row.reference_url,
     serialNumber: row.serial_number,
     updatedAt: toIsoString(row.updated_at),
     updatedBy: row.updated_by === null ? null : Number(row.updated_by),

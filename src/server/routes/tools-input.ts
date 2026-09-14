@@ -52,6 +52,7 @@ export const TOOL_PATCH_SCHEMA = z
       model: trimmed(MAX_FIELD_LENGTH, 'model').optional(),
       name: required(MAX_NAME_LENGTH, 'name').optional(),
       notes: trimmed(MAX_NOTES_LENGTH, 'notes').optional(),
+      referenceUrl: trimmed(MAX_URL_LENGTH, 'referenceUrl').optional(),
       serialNumber: trimmed(MAX_FIELD_LENGTH, 'serialNumber').optional(),
     },
     NOT_AN_OBJECT,
@@ -73,6 +74,7 @@ export type ToolFields = {
   model: string
   name: string
   notes: string
+  referenceUrl: string
   serialNumber: string
 }
 
@@ -121,6 +123,7 @@ export function parseToolCreate(body: unknown): Parsed<ToolFields> {
     model: parsed.value.model ?? '',
     name: parsed.value.name,
     notes: parsed.value.notes ?? '',
+    referenceUrl: parsed.value.referenceUrl ?? '',
     serialNumber: parsed.value.serialNumber ?? '',
   })
 }

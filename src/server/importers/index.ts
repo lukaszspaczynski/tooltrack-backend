@@ -100,21 +100,13 @@ function hostOf(rawUrl: string): null | string {
   return url.hostname.toLocaleLowerCase('en-US')
 }
 
-// Where the card came from, as a parameter of the tool.
-//
-// A card that arrived by import is a card somebody will want to check against
-// its source: the shop corrects a spec, a photograph is added, somebody asks
-// where "9,400 kg" came from. The address answers all three, and a parameter
-// is where the card already keeps facts of that kind.
-export const REFERENCE_ATTRIBUTE = 'Referencja'
-
 // A page has no idea what a card can hold. Everything is cut to the length the
 // column takes rather than refused: a description two characters over the
 // limit is not a reason to fail an import somebody is watching.
 //
-// The reference is added here rather than by each importer, so a script added
-// later cannot forget it — and after the clamping rather than before, because
-// an address cut in the middle is not an address.
+// `sourceUrl` comes back cleaned rather than clamped: it is a field on the
+// card now, with room for any address a shop writes, and an address cut in the
+// middle is not an address.
 // What a link picks up on its way to somebody: the analytics tail a shop adds
 // when the address is shared or clicked through from a campaign. It says
 // nothing about the product and it is what the card would show as its source
@@ -142,17 +134,12 @@ export function fitToCard(product: ImportedProduct): ImportedProduct {
   return {
     ...product,
     sourceUrl,
-    attributes: [
-      ...product.attributes
-        .map((attribute) => ({
-          name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
-          value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
-        }))
-        .filter((attribute) => attribute.name && attribute.value)
-        // Whatever a page calls it, the reference is the one this adds.
-        .filter((attribute) => attribute.name !== REFERENCE_ATTRIBUTE),
-      { name: REFERENCE_ATTRIBUTE, value: sourceUrl },
-    ],
+    attributes: product.attributes
+      .map((attribute) => ({
+        name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
+        value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
+      }))
+      .filter((attribute) => attribute.name && attribute.value),
     brand: clamp(product.brand, MAX_FIELD_LENGTH),
     category: clamp(product.category, MAX_FIELD_LENGTH),
     model: clamp(product.model, MAX_FIELD_LENGTH),
@@ -184,21 +171,12 @@ export function fitCaseToCard(imported: ImportedCase): ImportedCase {
   return {
     ...imported,
     sourceUrl,
-    // The same ending fitToCard gives a tool card, and for the same reason: a
-    // case that arrived by import is one somebody will want to check against
-    // its page later. Added here rather than in the importer, so a script
-    // written for the next maker cannot forget it, and after the clamping,
-    // because an address cut in the middle is not an address.
-    attributes: [
-      ...imported.attributes
-        .map((attribute) => ({
-          name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
-          value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
-        }))
-        .filter((attribute) => attribute.name && attribute.value)
-        .filter((attribute) => attribute.name !== REFERENCE_ATTRIBUTE),
-      { name: REFERENCE_ATTRIBUTE, value: sourceUrl },
-    ],
+    attributes: imported.attributes
+      .map((attribute) => ({
+        name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
+        value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
+      }))
+      .filter((attribute) => attribute.name && attribute.value),
     capacityL: withinRange(imported.capacityL, MAX_CAPACITY_L, 2),
     diagonalMm: withinRange(imported.diagonalMm, MAX_DIMENSION_MM, 0),
     ean: clamp(imported.ean, MAX_CASE_FIELD_LENGTH),

@@ -127,6 +127,10 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
       category: product.category,
       model: product.model,
       notes: product.notes,
+      // Rewritten rather than left: this run is what the card was read from
+      // now, and a redirect or a moved page means the old address answers
+      // nothing.
+      referenceUrl: product.sourceUrl,
     },
     actorId,
   )
@@ -180,6 +184,9 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
       model: product.model,
       name: product.name,
       notes: product.notes,
+      // What somebody will want when the shop corrects a spec, a photograph is
+      // added, or somebody asks where "9,400 kg" came from.
+      referenceUrl: product.sourceUrl,
       // Deliberately blank. A serial number is one physical machine, and the
       // page describes a model somebody is about to own.
       serialNumber: '',

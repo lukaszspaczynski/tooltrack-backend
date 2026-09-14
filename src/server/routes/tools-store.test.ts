@@ -45,6 +45,7 @@ function toolRow(overrides: Record<string, unknown> = {}): Record<string, unknow
     model: 'HR2470',
     name: 'Młotowiertarka',
     notes: '',
+    reference_url: '',
     serial_number: '12345-AB',
     total_count: '1',
     updated_at: '2026-01-02T00:00:00.000Z',
@@ -69,6 +70,7 @@ test('a listed row is mapped to camelCase with numeric ids', async () => {
     model: 'HR2470',
     name: 'Młotowiertarka',
     notes: '',
+    referenceUrl: '',
     serialNumber: '12345-AB',
     updatedAt: '2026-01-02T00:00:00.000Z',
     updatedBy: 3,
@@ -147,6 +149,7 @@ test('a new card records its author as both creator and last editor', async () =
       model: 'HR2470',
       name: 'Młotowiertarka',
       notes: '',
+      referenceUrl: '',
       serialNumber: '12345-AB',
     },
     3,
@@ -156,8 +159,8 @@ test('a new card records its author as both creator and last editor', async () =
   // The brand lookup runs first: the typed maker decides which row the card
   // points at, and an unknown one points at nothing.
   assert.match(calls[0].text, /FROM "catalog"\."brand"/)
-  assert.match(calls[1].text, /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$8, \$9\)/)
-  assert.equal(calls[1].params[7], 3)
+  assert.match(calls[1].text, /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$9, \$10\)/)
+  assert.equal(calls[1].params[8], 3)
 })
 
 test('a typed maker points the card at that brand, and an unknown one at none', async () => {
@@ -174,6 +177,7 @@ test('a typed maker points the card at that brand, and an unknown one at none', 
       model: '',
       name: 'Wiertarka',
       notes: '',
+      referenceUrl: '',
       serialNumber: '',
     },
     3,
@@ -199,6 +203,7 @@ test('a duplicate serial number is a named error, not a raw pg failure', async (
           model: '',
           name: 'Druga karta',
           notes: '',
+          referenceUrl: '',
           serialNumber: '12345-AB',
         },
         3,

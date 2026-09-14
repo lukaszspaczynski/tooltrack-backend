@@ -301,6 +301,9 @@
           "notes": {
             "type": "string"
           },
+          "referenceUrl": {
+            "type": "string"
+          },
           "serialNumber": {
             "type": "string"
           },
@@ -325,6 +328,7 @@
           "model",
           "name",
           "notes",
+          "referenceUrl",
           "serialNumber",
           "updatedAt",
           "updatedBy"
@@ -410,6 +414,9 @@
           "notes": {
             "type": "string"
           },
+          "referenceUrl": {
+            "type": "string"
+          },
           "serialNumber": {
             "type": "string"
           },
@@ -435,6 +442,7 @@
           "notes",
           "organizer",
           "primaryPhotoUrl",
+          "referenceUrl",
           "serialNumber",
           "updatedAt",
           "updatedBy"
@@ -1154,6 +1162,9 @@
           "notes": {
             "type": "string"
           },
+          "referenceUrl": {
+            "type": "string"
+          },
           "outerHeightMm": {
             "type": [
               "null",
@@ -1209,6 +1220,7 @@
           "manufacturer",
           "name",
           "notes",
+          "referenceUrl",
           "outerHeightMm",
           "outerLengthMm",
           "outerWidthMm",
@@ -1316,6 +1328,9 @@
           "notes": {
             "type": "string"
           },
+          "referenceUrl": {
+            "type": "string"
+          },
           "outerHeightMm": {
             "type": [
               "null",
@@ -1376,6 +1391,7 @@
           "outerLengthMm",
           "outerWidthMm",
           "primaryPhotoUrl",
+          "referenceUrl",
           "sku",
           "system",
           "updatedAt",
@@ -2603,6 +2619,10 @@
             "type": "string",
             "maxLength": 4000
           },
+          "referenceUrl": {
+            "type": "string",
+            "maxLength": 2000
+          },
           "outerHeightMm": {
             "type": [
               "number",
@@ -2723,6 +2743,10 @@
           "notes": {
             "type": "string",
             "maxLength": 4000
+          },
+          "referenceUrl": {
+            "type": "string",
+            "maxLength": 2000
           },
           "outerHeightMm": {
             "type": [
@@ -3169,6 +3193,10 @@
             "type": "string",
             "maxLength": 4000
           },
+          "referenceUrl": {
+            "type": "string",
+            "maxLength": 2000
+          },
           "serialNumber": {
             "type": "string",
             "maxLength": 120
@@ -3225,6 +3253,10 @@
           "notes": {
             "type": "string",
             "maxLength": 4000
+          },
+          "referenceUrl": {
+            "type": "string",
+            "maxLength": 2000
           },
           "serialNumber": {
             "type": "string",
@@ -12601,7 +12633,7 @@
     },
     "/api/tools/import": {
       "post": {
-        "description": "The address decides which script reads the page, and an address from a host this server has never been taught to read is refused rather than guessed at — a page nobody has written a reader for would produce a card full of empty fields.\n\nThe card is the thing being asked for, so a parameter or a photograph that fails does not fail the import: what could not be read is reported beside the card in `imported` rather than instead of it. The serial number is deliberately left blank, because the page describes a model and a serial number is one physical machine.\n\nEvery imported card carries a `Referencja` parameter holding the address it was read from, with any analytics tail removed.",
+        "description": "The address decides which script reads the page, and an address from a host this server has never been taught to read is refused rather than guessed at — a page nobody has written a reader for would produce a card full of empty fields.\n\nThe card is the thing being asked for, so a parameter or a photograph that fails does not fail the import: what could not be read is reported beside the card in `imported` rather than instead of it. The serial number is deliberately left blank, because the page describes a model and a serial number is one physical machine.\n\nEvery imported card carries a `referenceUrl` holding the address it was read from, with any analytics tail removed. A field on the card rather than a parameter on its sheet: a card has exactly one, and the analytics tail a shop adds to a shared link is not part of it.",
         "operationId": "importTool",
         "parameters": [
           {

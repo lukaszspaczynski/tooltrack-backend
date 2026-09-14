@@ -97,6 +97,9 @@ async function main(): Promise<void> {
           model: entry.model,
           name: entry.name,
           notes: entry.notes,
+          // The tool manifest is a stocktake rather than a set of pages: these
+          // cards were counted in a van, not read from anywhere.
+          referenceUrl: '',
           serialNumber: entry.serialNumber,
         },
         actorId,

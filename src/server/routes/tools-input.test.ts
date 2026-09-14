@@ -34,6 +34,7 @@ test('a card needs a name and nothing else', () => {
     model: '',
     name: 'Wiertarka udarowa',
     notes: '',
+    referenceUrl: '',
     serialNumber: '',
   })
 })

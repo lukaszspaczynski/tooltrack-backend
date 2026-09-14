@@ -50,6 +50,9 @@ export type ToolCase = {
   manufacturer: string
   name: string
   notes: string
+  // Where an import read this box from, empty when nobody imported it. The
+  // same field a tool card has, and it was the same parameter before that.
+  referenceUrl: string
   outerHeightMm: null | number
   outerLengthMm: null | number
   outerWidthMm: null | number
@@ -108,6 +111,7 @@ type CaseRow = {
   outer_height_mm: null | number | string
   outer_length_mm: null | number | string
   outer_width_mm: null | number | string
+  reference_url: string
   sku: string
   system: string
   total_count?: number | string
@@ -119,7 +123,7 @@ const CASE_COLUMNS = `
   "id", "name", "manufacturer", "system",
   "outer_length_mm", "outer_width_mm", "outer_height_mm",
   "inner_length_mm", "inner_width_mm", "inner_height_mm",
-  "diagonal_mm", "capacity_l", "load_kg", "ean", "sku", "notes",
+  "diagonal_mm", "capacity_l", "load_kg", "ean", "sku", "notes", "reference_url",
   "created_by", "updated_by", "created_at", "updated_at"
 `
 
@@ -137,6 +141,7 @@ const WRITABLE_COLUMNS: Record<keyof CaseFields, string> = {
   manufacturer: 'manufacturer',
   name: 'name',
   notes: 'notes',
+  referenceUrl: 'reference_url',
   outerHeightMm: 'outer_height_mm',
   outerLengthMm: 'outer_length_mm',
   outerWidthMm: 'outer_width_mm',
@@ -380,6 +385,7 @@ function toCase(row: CaseRow): ToolCase {
     manufacturer: row.manufacturer,
     name: row.name,
     notes: row.notes,
+    referenceUrl: row.reference_url,
     outerHeightMm: toNumber(row.outer_height_mm),
     outerLengthMm: toNumber(row.outer_length_mm),
     outerWidthMm: toNumber(row.outer_width_mm),

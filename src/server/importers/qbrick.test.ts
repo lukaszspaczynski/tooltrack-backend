@@ -161,14 +161,17 @@ test('the two rows that are not columns go on the sheet', () => {
 })
 
 test('an imported case carries the address it was read from', () => {
-  // The same Referencja a tool card gets, and the thing the "update from the
-  // page" button looks for.
+  // The same field a tool card gets, and what the "update from the page"
+  // button on a case looks for. The analytics tail is not part of it: it says
+  // nothing about the box, and the card would show it as its source for ever.
   const fitted = fitCaseToCard(parseQbrickCase(page(), `${PAGE_URL}?utm_source=nl`)!)
 
-  const reference = fitted.attributes.find((one) => one.name === 'Referencja')
-  assert.equal(reference?.value, PAGE_URL)
-  // Once, whatever the page itself happens to call a row.
-  assert.equal(fitted.attributes.filter((one) => one.name === 'Referencja').length, 1)
+  assert.equal(fitted.sourceUrl, PAGE_URL)
+  // The sheet stays the two rows the page states and no column holds.
+  assert.deepEqual(
+    fitted.attributes.map((one) => one.name),
+    ['Ilość na palecie', 'Waga'],
+  )
 })
 
 test('a photograph comes at the size it was uploaded', () => {

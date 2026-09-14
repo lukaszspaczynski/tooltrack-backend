@@ -20,7 +20,6 @@ import 'dotenv/config'
 import pg from 'pg'
 
 import { parseCaseCreate } from '../src/server/routes/cases-input'
-import { REFERENCE_ATTRIBUTE } from '../src/server/importers'
 import { addAttribute, listAttributes } from '../src/server/routes/attributes-store'
 import { createCase, updateCase } from '../src/server/routes/cases-store'
 import type { PgPool } from '../src/server/db'
@@ -83,6 +82,7 @@ async function main(): Promise<void> {
     let skipped = 0
     let written = 0
     let rewritten = 0
+    let linked = 0
 
     for (const entry of manifest.cases) {
       // Two identical cases on the shelf are a legitimate pair of rows, so the
@@ -100,6 +100,7 @@ async function main(): Promise<void> {
         // deciding that a page knows better.
         written += await topUpAttributes(pool, already, entry, actorId, apply)
         rewritten += await refreshNotes(client, pool, already, entry, actorId, apply)
+        linked += await refreshReference(client, pool, already, entry, actorId, apply)
         skipped += 1
         continue
       }
@@ -112,7 +113,11 @@ async function main(): Promise<void> {
 
       // Through the same parser the API uses, so an import cannot write a case
       // that a PATCH would then refuse to edit.
-      const parsed = parseCaseCreate(entry)
+      // `sourceUrl` is what the manifest calls it and `referenceUrl` is what a
+      // case calls it. One name for the page a row was read from would be
+      // nicer, but the manifest is frozen data and renaming a key in it is a
+      // rewrite of the file rather than of the code.
+      const parsed = parseCaseCreate({ ...entry, referenceUrl: entry.sourceUrl ?? '' })
       if (!parsed.ok) throw new Error(`${entry.name}: ${parsed.error}`)
 
       const created = await createCase(parsed.value, actorId, pool)
@@ -124,8 +129,8 @@ async function main(): Promise<void> {
 
     console.log(
       apply
-        ? `[qbrick] gotowe: dodano ${inserted}, pominięto ${skipped} (już w katalogu), parametrów zapisano ${written}, opisów poprawiono ${rewritten}`
-        : `[qbrick] próba: dodałoby ${inserted}, pominęłoby ${skipped}, zapisałoby ${written} parametrów i ${rewritten} opisów. Uruchom z --apply, żeby zapisać.`,
+        ? `[qbrick] gotowe: dodano ${inserted}, pominięto ${skipped} (już w katalogu), parametrów zapisano ${written}, opisów poprawiono ${rewritten}, adresów uzupełniono ${linked}`
+        : `[qbrick] próba: dodałoby ${inserted}, pominęłoby ${skipped}, zapisałoby ${written} parametrów, ${rewritten} opisów i ${linked} adresów. Uruchom z --apply, żeby zapisać.`,
     )
   } finally {
     await client.end()
@@ -239,13 +244,7 @@ async function topUpAttributes(
   actorId: number,
   apply: boolean,
 ): Promise<number> {
-  // The address the numbers were read from, as a parameter rather than a line
-  // in the note — the same name an imported tool carries, so a person checking
-  // "where did 11 L come from" looks in the same place on both.
-  const wanted = [
-    ...(entry.attributes ?? []),
-    ...(entry.sourceUrl ? [{ name: REFERENCE_ATTRIBUTE, value: entry.sourceUrl }] : []),
-  ]
+  const wanted = entry.attributes ?? []
   if (wanted.length === 0) return 0
 
   const present = new Set(
@@ -304,6 +303,42 @@ async function refreshNotes(
 
   await updateCase(caseId, { notes: wanted }, actorId, pool)
   console.log(`[qbrick] ${entry.name}: poprawiono opis`)
+
+  return 1
+}
+
+// The address the manifest read the numbers from, as the case's own field.
+//
+// It was a parameter called Referencja until it became a column, and this is
+// the same kind of write refreshNotes is rather than the kind topUpAttributes
+// is: the manifest owns it, so a case pointing somewhere else is corrected. A
+// case already pointing there is left alone, which is what keeps a second run
+// silent.
+async function refreshReference(
+  client: pg.Client,
+  pool: PgPool,
+  caseId: number,
+  entry: ManifestCase,
+  actorId: number,
+  apply: boolean,
+): Promise<number> {
+  const wanted = (entry.sourceUrl ?? '').trim()
+  if (!wanted) return 0
+
+  const current = await client.query<{ reference_url: string }>(
+    `SELECT "reference_url" FROM "catalog"."tool_case" WHERE "id" = $1`,
+    [caseId],
+  )
+
+  if ((current.rows[0]?.reference_url ?? '').trim() === wanted) return 0
+
+  if (!apply) {
+    console.log(`[qbrick]   ~ ${entry.name}: adres → ${wanted}`)
+    return 1
+  }
+
+  await updateCase(caseId, { referenceUrl: wanted }, actorId, pool)
+  console.log(`[qbrick] ${entry.name}: zapisano adres`)
 
   return 1
 }

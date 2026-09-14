@@ -32,6 +32,7 @@ const fields = {
   manufacturer: 'Qbrick',
   name: 'Qbrick System PRO Toolbox 2.0',
   notes: '',
+  referenceUrl: 'https://qbricksystem.com/product/qbrick-system-pro-toolbox-2-0/',
   outerHeightMm: 240,
   outerLengthMm: 450,
   outerWidthMm: 331,
@@ -68,6 +69,18 @@ test('a patch writes only what was sent, and null really clears', async () => {
   // change somebody else made between the load and the save.
   assert.doesNotMatch(assignments, /"capacity_l"/)
   assert.deepEqual(calls[0].params, [1, 7, null, 'ONE'])
+})
+
+test('the address a case was read from is a column, not a parameter', async () => {
+  // It was a Referencja row on the sheet. A card has exactly one and never
+  // two, which is the shape of a field — and on the sheet it sorted among the
+  // measurements, where renaming it broke the button that reads it.
+  const { calls, pool } = fakePool([[{ ...toRow(fields), id: '1' }]])
+
+  await updateCase(1, { referenceUrl: 'https://qbricksystem.com/product/x/' }, 7, pool)
+
+  assert.match(calls[0].text, /"reference_url" = \$3/)
+  assert.equal(calls[0].params[2], 'https://qbricksystem.com/product/x/')
 })
 
 test('sorting by capacity puts the unmeasured cases last', async () => {
@@ -147,6 +160,7 @@ function toRow(input: typeof fields) {
     name: input.name,
     notes: input.notes,
     outer_height_mm: input.outerHeightMm,
+    reference_url: input.referenceUrl,
     outer_length_mm: input.outerLengthMm,
     outer_width_mm: input.outerWidthMm,
     sku: input.sku,

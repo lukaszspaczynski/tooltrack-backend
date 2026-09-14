@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool" (
   "condition" text NOT NULL DEFAULT 'good'
     CHECK ("condition" IN ('new', 'good', 'worn', 'needs_repair', 'retired')),
   "notes" text NOT NULL DEFAULT '',
+  -- Where the card was read from, when it was read from anywhere. A column
+  -- rather than a parameter: every imported card has exactly one and no card
+  -- has two, which is the shape of a field and not of a spec sheet. It used to
+  -- live on the sheet as "Referencja", where it sorted among the voltages and
+  -- could be renamed by anybody editing a row the screens depend on.
+  "reference_url" text NOT NULL DEFAULT '',
   -- Who last touched the card. ON DELETE SET NULL: removing an account must
   -- not remove the history of the tools it catalogued.
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
@@ -67,6 +73,8 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool_case" (
   "ean" text NOT NULL DEFAULT '',
   "sku" text NOT NULL DEFAULT '',
   "notes" text NOT NULL DEFAULT '',
+  -- The same field a tool has, for the same reason.
+  "reference_url" text NOT NULL DEFAULT '',
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "updated_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
@@ -194,6 +202,44 @@ CREATE UNIQUE INDEX IF NOT EXISTS "catalog_attribute_name_idx"
 -- whole catalog rather than one card.
 CREATE INDEX IF NOT EXISTS "catalog_attribute_lookup_idx"
   ON "catalog"."attribute" (lower(btrim("name")));
+
+-- The address an import read a card from was a parameter called "Referencja"
+-- until it became a column on the card itself. Moved rather than copied: two
+-- places holding one fact is two places to disagree, and the sheet is for what
+-- the maker states about the thing rather than for how the catalog found it.
+--
+-- Below the CREATE, because it reads the table. Guarded by the rows themselves
+-- rather than by a flag: once they are gone there is nothing to move, which is
+-- what makes running the schema twice the same as running it once.
+ALTER TABLE "catalog"."tool" ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
+ALTER TABLE "catalog"."tool_case"
+  ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM "catalog"."attribute" WHERE lower(btrim("name")) = 'referencja') THEN
+    UPDATE "catalog"."tool" AS "t"
+       SET "reference_url" = "a"."value"
+      FROM "catalog"."attribute" AS "a"
+     WHERE "a"."reference" = 'tool'
+       AND "a"."reference_id" = "t"."id"
+       AND lower(btrim("a"."name")) = 'referencja'
+       -- An address typed on the card wins over one a parameter remembers: the
+       -- column is the newer statement about the same fact.
+       AND "t"."reference_url" = '';
+
+    UPDATE "catalog"."tool_case" AS "c"
+       SET "reference_url" = "a"."value"
+      FROM "catalog"."attribute" AS "a"
+     WHERE "a"."reference" = 'tool_case'
+       AND "a"."reference_id" = "c"."id"
+       AND lower(btrim("a"."name")) = 'referencja'
+       AND "c"."reference_url" = '';
+
+    DELETE FROM "catalog"."attribute" WHERE lower(btrim("name")) = 'referencja';
+  END IF;
+END
+$$;
 
 -- Where a label goes on a case. A slot is a size and nothing else: 30 x 40 mm
 -- on the front, 200 x 60 mm on the lid. What gets printed on it is a different

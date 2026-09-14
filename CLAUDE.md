@@ -129,14 +129,22 @@ by its address in the tree.
   the biggest is kept, because a card is looked at on a phone today and printed
   on a label tomorrow.
 
-Every imported card carries a **Referencja** parameter: the address it was read
+Every imported card carries a **`reference_url`**: the address it was read
 from. A card that arrived by import is one somebody will want to check against
 its source later — the shop corrects a spec, a photograph is added, somebody
-asks where "9,400 kg" came from — and a parameter is where the card already
-keeps facts of that kind. It is added by `fitToCard` rather than by each
-importer, so a script written next year cannot forget it, and after the
-clamping rather than before, because an address cut in the middle is not an
-address.
+asks where "9,400 kg" came from — and three screens read it: the update dialog,
+the manuals panel, and the photo suggestions that come from the page rather
+than from an engine.
+
+It was a parameter called `Referencja` and it is a column now. A card has
+exactly one address and never two, which is what a column says and what a spec
+sheet does not; on the sheet it sorted among the voltages and could be renamed
+by anybody editing a row. The move is in `catalog-schema.ts`, guarded by the
+rows themselves — once they are gone there is nothing left to move.
+
+The importers still only report it, as `sourceUrl`, and the routes write it.
+`withoutTracking` cuts the analytics tail before it is stored, and unlike every
+other field it is not clamped: half an address is not an address.
 
 `POST /api/tools/:id/import` reads a page into a card that already exists. The
 split is what the page can know and what it cannot: the maker, the model, the

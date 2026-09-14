@@ -23,12 +23,7 @@
 import { ImageConversionError, toStoredPng } from '../image-convert'
 import { errorResponse } from '../error-codes'
 import { fetchRemoteFile, fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
-import {
-  importerFor,
-  IMPORT_SOURCES,
-  REFERENCE_ATTRIBUTE,
-  type ImportedProduct,
-} from '../importers'
+import { importerFor, IMPORT_SOURCES, type ImportedProduct } from '../importers'
 import { PhotoNotSuitableError } from '../cutout-local'
 import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
 import { getCase } from './cases-store'
@@ -69,7 +64,6 @@ import {
   unlinkPhoto,
   type CardPhoto,
 } from './photos-store'
-import { listAttributes } from './attributes-store'
 import { getTool } from './tools-store'
 import { t } from '../i18n'
 
@@ -545,9 +539,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
 // because it is the same errand — pick the pictures worth keeping — and
 // answered in the same shape, so the screen needs no second way to show them.
 async function suggestFromPage(toolId: number): Promise<Response> {
-  const reference = (await listAttributes('tool', toolId)).find(
-    (attribute) => attribute.name === REFERENCE_ATTRIBUTE,
-  )?.value
+  const reference = (await getTool(toolId))?.referenceUrl
 
   if (!reference) {
     return errorResponse(422, 'NO_SOURCE_PAGE', t('Ta karta nie ma adresu karty produktu'), {

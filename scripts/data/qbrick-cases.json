@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-09-11",
   "source": "https://qbricksystem.com/product/ — product pages, attribute tables",
-  "note": "Frozen from the pages listed in each entry's sourceUrl. Dimensions and capacities are the manufacturer's, converted to the single-value columns the catalog keeps: where a page lists a value per drawer, the capacity and load are the sum and the internal dimensions are the largest compartment, with the breakdown kept in notes. Attributes are the rows the pages state that no column holds — the weight and the pallet count — plus the Referencja the script derives from sourceUrl, the way an imported tool carries one. Everything else in the table is a field above.",
+  "note": "Frozen from the pages listed in each entry's sourceUrl. Dimensions and capacities are the manufacturer's, converted to the single-value columns the catalog keeps: where a page lists a value per drawer, the capacity and load are the sum and the internal dimensions are the largest compartment, with the breakdown kept in notes. Attributes are the rows the pages state that no column holds — the weight and the pallet count. The page each entry was read from is sourceUrl, which the script writes into the case's own referenceUrl, the way an imported tool carries one. Everything else in the table is a field above.",
   "cases": [
     {
       "name": "Qbrick System PRO Technician Case 2.0",

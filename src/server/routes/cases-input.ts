@@ -8,6 +8,9 @@ import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 export const MAX_NAME_LENGTH = 200
 export const MAX_FIELD_LENGTH = 120
 export const MAX_NOTES_LENGTH = 4000
+// The same ceiling a tool's reference takes: an address is not a field
+// somebody types, it is one a page hands over.
+export const MAX_URL_LENGTH = 2000
 
 // Millimetres. A metre and a half of toolbox is already absurd; the cap is
 // there to catch a number typed in micrometres, not to judge anyone's case.
@@ -47,6 +50,7 @@ export type CaseFields = {
   manufacturer: string
   name: string
   notes: string
+  referenceUrl: string
   outerHeightMm: null | number
   outerLengthMm: null | number
   outerWidthMm: null | number
@@ -123,6 +127,7 @@ export const CASE_PATCH_SCHEMA = z
       manufacturer: required(MAX_NAME_LENGTH, 'manufacturer').optional(),
       name: required(MAX_NAME_LENGTH, 'name').optional(),
       notes: text(MAX_NOTES_LENGTH, 'notes').optional(),
+      referenceUrl: text(MAX_URL_LENGTH, 'referenceUrl').optional(),
       outerHeightMm: mm('outerHeightMm'),
       outerLengthMm: mm('outerLengthMm'),
       outerWidthMm: mm('outerWidthMm'),
@@ -176,6 +181,7 @@ export function parseCaseCreate(body: unknown): Parsed<CaseFields> {
     manufacturer: patch.manufacturer,
     name: patch.name,
     notes: patch.notes ?? '',
+    referenceUrl: patch.referenceUrl ?? '',
     outerHeightMm: patch.outerHeightMm ?? null,
     outerLengthMm: patch.outerLengthMm ?? null,
     outerWidthMm: patch.outerWidthMm ?? null,

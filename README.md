@@ -226,21 +226,23 @@ npm run qbrick:cases              # validate and report, writes nothing
 npm run qbrick:cases -- --apply   # insert what is missing, and top up the sheets
 ```
 
-It writes **parameters** and the **note** as well as cases. The pages state nine
-rows and seven of them are columns; the weight and the pallet count are not, so
-those two are frozen into the manifest as attributes. Beside them goes
-`Referencja`, derived from `sourceUrl` — the same name an imported tool carries,
-so "where did 11 L come from" is answered in the same place on both.
+It writes **parameters**, the **note** and the **address** as well as cases. The
+pages state nine rows and seven of them are columns; the weight and the pallet
+count are not, so those two are frozen into the manifest as attributes. The page
+each entry was read from lands in the case's own `referenceUrl`, the same field
+an imported tool has.
 
 A case already in the catalog gets all of it, which is what makes a second run
 worth anything.
 
-The two are updated differently, on purpose. **Parameters are added, never
+The three are updated differently, on purpose. **Parameters are added, never
 replaced**: this is a seeder run again months later, and it has no business
 deleting a line somebody typed themselves. **The note is overwritten**, because
 it is a sentence the manifest owns rather than a list people add to — and it has
 to be, now that the address and the weight have left it for parameters of their
-own. A note that already matches is left alone, so a second run is silent.
+own. **The address is written when it is missing or points elsewhere**, for the
+note's reason: the manifest is what says where a row came from. Anything that
+already matches is left alone, so a second run is silent.
 
 That is the one place this differs from `POST /api/cases/:id/import`, where the
 page is the source of truth and a parameter the maker dropped should leave the
