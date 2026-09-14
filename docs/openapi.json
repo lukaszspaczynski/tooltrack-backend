@@ -1855,7 +1855,7 @@
             "$ref": "#/components/schemas/CutoutPreview"
           },
           "provider": {
-            "type": "string"
+            "$ref": "#/components/schemas/CutoutMethod"
           }
         },
         "required": [
@@ -1902,6 +1902,14 @@
         ],
         "additionalProperties": false
       },
+      "CutoutMethod": {
+        "type": "string",
+        "enum": [
+          "local",
+          "removebg",
+          "gemini"
+        ]
+      },
       "CutoutResponse": {
         "type": "object",
         "properties": {
@@ -1909,7 +1917,7 @@
             "$ref": "#/components/schemas/CardPhoto"
           },
           "provider": {
-            "type": "string"
+            "$ref": "#/components/schemas/CutoutMethod"
           }
         },
         "required": [
@@ -2403,14 +2411,6 @@
           "requiresKey"
         ],
         "additionalProperties": false
-      },
-      "CutoutMethod": {
-        "type": "string",
-        "enum": [
-          "local",
-          "removebg",
-          "gemini"
-        ]
       },
       "ImportSource": {
         "additionalProperties": false,

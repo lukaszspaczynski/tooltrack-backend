@@ -15,6 +15,7 @@
 // than `{ key: <already-named-thing> }`, the shape gets a name here.
 
 import type { Capability, Role, User, UserWithCapabilities } from '../../access/roles'
+import type { CutoutMethod } from '../cutout-methods'
 import type { CardPhoto } from './photos-store'
 import type { Manual } from './manuals-store'
 import type { Organizer } from './organizers-store'
@@ -73,12 +74,14 @@ export type CutoutPreview = {
 
 export type CutoutPreviewResponse = {
   preview: CutoutPreview
-  provider: string
+  // Which method drew it. One of the three, not any string — the screen offers
+  // them by name, and a client generated from this should be able to say so.
+  provider: CutoutMethod
 }
 
 export type CutoutResponse = {
   photo: CardPhoto
-  provider: string
+  provider: CutoutMethod
 }
 
 // Photographs fetched from addresses: what was stored, and what was not.
