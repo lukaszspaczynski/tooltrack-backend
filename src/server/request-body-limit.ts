@@ -9,13 +9,28 @@ import type { IncomingMessage } from 'node:http'
 import { errorResponse } from './error-codes'
 
 import { maxPhotoBytes } from './image-fetch'
+import { MAX_MANUAL_BYTES } from './manual-storage'
 
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024
 
-// Photo uploads arrive as the raw file in the body, so they cannot live under
-// the JSON cap. Which paths those are is decided here rather than in the route,
-// because the cap has to be applied while the bytes are still arriving.
-const PHOTO_UPLOAD_PATTERN = /^\/api\/(?:tools\/\d+\/)?photos\/?$/
+// A file arrives as the raw bytes in the body, so these paths cannot live under
+// the JSON cap. Which ones they are is decided here rather than in the route,
+// because the cap has to be applied while the bytes are still arriving — the
+// point of a cap is to stop reading, and by the time a handler runs the whole
+// body is already in memory.
+//
+// Every path that takes bytes belongs in one of these. A route added to one
+// family and not to its pattern is refused at a megabyte, which looks like a
+// broken upload rather than a missing line here — so `upload-paths.test.ts`
+// reads the routing table and fails when a photos or manuals route is not
+// matched by either.
+const PHOTO_UPLOAD_PATTERN = /^\/api\/(?:(?:cases|tools)\/\d+\/)?photos\/?$/
+
+// Its own ceiling rather than the photo one: a scanned parts list is an order
+// of magnitude bigger than a photograph, and `saveManualBytes` already refuses
+// anything over MAX_MANUAL_BYTES. Without this the two disagreed, and the
+// stricter one won silently — a 40 MB constant with a 1 MB cap in front of it.
+const MANUAL_UPLOAD_PATTERN = /^\/api\/tools\/\d+\/manuals\/?$/
 
 export type BodyResult =
   { body: undefined | Uint8Array; ok: true } | { ok: false; response: Response }
@@ -36,7 +51,10 @@ export function requestUrl(req: IncomingMessage, fallbackHost: string): URL {
 }
 
 export function bodyLimitFor(pathname: string): number {
-  return PHOTO_UPLOAD_PATTERN.test(pathname) ? maxPhotoBytes() : maxRequestBodyBytes()
+  if (PHOTO_UPLOAD_PATTERN.test(pathname)) return maxPhotoBytes()
+  if (MANUAL_UPLOAD_PATTERN.test(pathname)) return MAX_MANUAL_BYTES
+
+  return maxRequestBodyBytes()
 }
 
 export async function readRequestBody(req: IncomingMessage, pathname: string): Promise<BodyResult> {
