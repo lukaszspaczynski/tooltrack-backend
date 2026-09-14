@@ -32,6 +32,35 @@
       "problemMatcher": []
     },
     {
+      // The one step in this repo that nothing runs for you. Adding a route or
+      // changing a Zod schema does not rewrite docs/openapi.json, and the
+      // watcher will not notice: the build touches no TypeScript. Run this,
+      // then commit the document with the change it describes.
+      "label": "openapi: build",
+      "type": "npm",
+      "script": "openapi:build",
+      "problemMatcher": []
+    },
+    {
+      // What `npm run lint` asks before a commit: does the committed document
+      // still match the code. Same answer, on its own, when the question is
+      // whether anything drifted.
+      "label": "openapi: check",
+      "type": "npm",
+      "script": "openapi:check",
+      "problemMatcher": []
+    },
+    {
+      // Swagger UI, served by the API it describes. Reads the document afresh
+      // on every request outside production, so a rebuild shows on a refresh
+      // rather than needing the server restarted.
+      "label": "open: swagger in browser",
+      "type": "shell",
+      "command": "open http://localhost:37411/api/docs",
+      "presentation": { "reveal": "never" },
+      "problemMatcher": []
+    },
+    {
       "label": "db: up",
       "type": "npm",
       "script": "db:up",

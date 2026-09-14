@@ -788,9 +788,12 @@ it parses.
 `tools` compose profile; the SQLTools connection to the same database is in
 `.vscode/settings.json`. Both use the throwaway local credentials.
 
-`.vscode/` carries tasks (`typecheck`, `test`, `format`, `dev`, the `db:` ones
-and a `start local stack` chain) and launch configurations for the server, a
-single test file, the whole suite and a schema dry run. Editor behaviour
+`.vscode/` carries tasks (`typecheck`, `test`, `format`, `dev`, the `openapi:`
+and `db:` ones, and a `start local stack` chain) and launch configurations for
+the server, a single test file, the whole suite and a schema dry run.
+`openapi: build` is there because it is the one step nothing runs for you:
+adding a route or editing a Zod schema does not rewrite `docs/openapi.json`,
+and the watcher cannot notice, since the build touches no TypeScript. Editor behaviour
 mirrors the RN-App repo deliberately; the ESLint actions are left out because
 this project has none. `docs/api.http` is the endpoint list as runnable
 requests — keep it in step with `docs/api.md` when a route changes.
