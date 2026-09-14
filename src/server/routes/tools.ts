@@ -38,6 +38,7 @@ import {
   listCategories,
   listTools,
   SerialNumberTakenError,
+  type ToolListPage,
   updateAttribute,
   updateTool,
 } from './tools-store'
@@ -56,17 +57,19 @@ export async function GET(request: Request): Promise<Response> {
   // Where each one lies. Two queries for a whole page rather than two per card.
   const placements = await placementsFor(ids)
 
-  return Response.json(
-    {
-      ...page,
-      items: page.items.map((tool) => ({
-        ...tool,
-        organizer: placements.get(tool.id) ?? null,
-        primaryPhotoUrl: primary.has(tool.id) ? photoUrl(primary.get(tool.id)!) : null,
-      })),
-    },
-    { headers: { 'cache-control': 'no-store' } },
-  )
+  // Annotated rather than inferred: this is the shape the contract promises,
+  // and the compiler is what keeps the promise once the schema is generated
+  // from the type rather than from what this happens to return today.
+  const body: ToolListPage = {
+    ...page,
+    items: page.items.map((tool) => ({
+      ...tool,
+      organizer: placements.get(tool.id) ?? null,
+      primaryPhotoUrl: primary.has(tool.id) ? photoUrl(primary.get(tool.id)!) : null,
+    })),
+  }
+
+  return Response.json(body, { headers: { 'cache-control': 'no-store' } })
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {

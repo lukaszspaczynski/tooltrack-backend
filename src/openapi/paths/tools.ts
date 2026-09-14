@@ -1,0 +1,249 @@
+// The tool cards themselves, and the parameters under one.
+//
+// Two conventions run through the whole domain and are worth reading once
+// rather than in eleven descriptions.
+//
+// Every write answers with the **whole card**, not the row that changed. A
+// screen showing the spec sheet does not then have to merge one parameter into
+// a list it already holds, and cannot end up displaying a card assembled from
+// two different moments.
+//
+// An id that is not digits is a **404 rather than a 400**. The client was given
+// that URL by a link; telling it to fix a request it did not compose is no help,
+// and "no such tool" is what actually happened.
+
+import {
+  arrayOf,
+  errors,
+  jsonBody,
+  jsonResponse,
+  object,
+  type OperationSpec,
+  queryParam,
+  ref,
+} from '../operation'
+import { LIMIT_PARAM, OFFSET_PARAM } from '../components'
+import type { Schema } from '../types'
+
+const CONDITIONS = ['new', 'good', 'worn', 'needs_repair', 'retired']
+
+// The card's own fields, as a body carries them. Only the name is required: a
+// card with no name is not findable by the person standing in front of the
+// tool, which is the only reason the card exists. Everything else can be filled
+// in later, and every string is trimmed before it is stored.
+const WRITABLE_FIELDS: Record<string, Schema> = {
+  brand: { maxLength: 120, type: 'string' },
+  category: { maxLength: 120, type: 'string' },
+  condition: { default: 'good', enum: CONDITIONS, type: 'string' },
+  model: { maxLength: 120, type: 'string' },
+  name: { maxLength: 200, minLength: 1, type: 'string' },
+  notes: { maxLength: 4000, type: 'string' },
+  serialNumber: {
+    description: 'Identifies one physical machine. Unique across the catalog when not blank.',
+    maxLength: 120,
+    type: 'string',
+  },
+}
+
+const CARD = jsonResponse('The card, with its parameters.', object({ tool: ref('ToolDetail') }))
+
+export const TOOL_OPERATIONS: OperationSpec[] = [
+  {
+    description:
+      'A page of cards for the grid. Every item carries two things the card itself does not: `primaryPhotoUrl` for the thumbnail, and `organizer` saying where the tool lies — both fetched for the whole page in one query rather than per row, because this list is read on a phone.\n\nA bad value in the query string is clamped or dropped rather than refused: a link somebody pasted with `?limit=banana` should still show the catalog. The one exception is `condition`, where a value naming no condition is a 400 — silently listing every tool would look like an answer rather than a typo.',
+    operationId: 'listTools',
+    query: [
+      queryParam('q', 'Free-text search over the card.', { type: 'string' }, 'młot'),
+      queryParam('category', 'Exact category, as the cards spell it.', { type: 'string' }),
+      queryParam('condition', 'Only cards in this condition.', {
+        enum: CONDITIONS,
+        type: 'string',
+      }),
+      queryParam(
+        'inOrganizer',
+        'Absent lists everything. `false` lists only tools that are in no organizer, which is what the organizer wizard offers.',
+        { type: 'boolean' },
+      ),
+      queryParam(
+        'sort',
+        'Newest edit first by default: the catalog is used most right after somebody changed something in it.',
+        { default: 'updatedAt', enum: ['updatedAt', 'createdAt', 'name'], type: 'string' },
+      ),
+      queryParam('order', 'Direction.', { default: 'desc', enum: ['desc', 'asc'], type: 'string' }),
+      LIMIT_PARAM,
+      OFFSET_PARAM,
+    ],
+    responses: {
+      200: jsonResponse('A page of cards.', ref('ToolListPage')),
+      400: jsonResponse('`condition` names no condition this catalog has.', ref('Error')),
+      ...errors(401, 403, 503),
+    },
+    route: 'GET /api/tools',
+    summary: 'List tool cards',
+    tag: 'tools',
+  },
+  {
+    description:
+      'A new card arrives with no parameters, and `attributes` comes back as an empty array rather than absent — saying so beats leaving the client to work out whether the field is missing or empty.',
+    operationId: 'createTool',
+    requestBody: jsonBody(
+      object(WRITABLE_FIELDS, ['name']),
+      'Only `name` is required; the rest default to blank.',
+    ),
+    responses: {
+      201: jsonResponse('The new card.', object({ tool: ref('ToolDetail') })),
+      409: jsonResponse('Another card already carries that serial number.', ref('Error')),
+      ...errors(400, 401, 403, 503),
+    },
+    route: 'POST /api/tools',
+    summary: 'Create a tool card',
+    tag: 'tools',
+  },
+  {
+    description:
+      'Read from the cards themselves rather than from a table of categories, so the list is what is actually in use. That is the list to offer in a filter.',
+    operationId: 'listToolCategories',
+    responses: {
+      200: jsonResponse(
+        'Every category in use, with how many cards carry it.',
+        object({ categories: arrayOf(ref('CategoryCount')) }),
+      ),
+      ...errors(401, 403, 503),
+    },
+    route: 'GET /api/tools/categories',
+    summary: 'The categories in use',
+    tag: 'tools',
+  },
+  {
+    description:
+      'What the form offers while somebody types a parameter name, most used first. Read from the cards for the same reason the category list is: the names in use are the vocabulary, and "napięcie sieciowe" typed the same way on every card is what makes the catalog answerable later. Names differing only in case or spacing count as one.',
+    operationId: 'listToolAttributeNames',
+    responses: {
+      200: jsonResponse(
+        'Every parameter name in use, with how many cards carry it.',
+        object({ names: arrayOf(ref('AttributeNameCount')) }),
+      ),
+      ...errors(401, 403, 503),
+    },
+    route: 'GET /api/tools/attributes',
+    summary: 'The parameter names in use',
+    tag: 'tools',
+  },
+  {
+    description:
+      'The card with its whole spec sheet. The list answers with the card alone: a grid shows a name, a maker and a condition, and sending every card’s parameters to draw that would be paying for what nobody reads.',
+    operationId: 'getTool',
+    pathParams: { id: 'The card.' },
+    responses: { 200: CARD, ...errors(401, 403, 404, 503) },
+    route: 'GET /api/tools/:id',
+    summary: 'One tool card',
+    tag: 'tools',
+  },
+  {
+    description:
+      'Only the fields present in the body are touched. `""` and absent are different on purpose: clearing the brand is a real edit, and a PATCH that could not express it would force the client to resend the whole card. A body with no editable field at all is a 400 rather than a no-op that looks to the screen like it saved something.',
+    operationId: 'updateTool',
+    pathParams: { id: 'The card to edit.' },
+    requestBody: jsonBody(
+      { ...object(WRITABLE_FIELDS, []), minProperties: 1 },
+      'The fields to change, and only those.',
+    ),
+    responses: {
+      200: CARD,
+      409: jsonResponse('Another card already carries that serial number.', ref('Error')),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'PATCH /api/tools/:id',
+    summary: 'Edit a tool card',
+    tag: 'tools',
+  },
+  {
+    description:
+      'The pictures and documents no other card uses go with it; one that another card still shows stays, which is the whole point of storing them as links.\n\nDeleting a card that is already gone answers 404 rather than 200. It is the outcome the caller wanted either way, but two people clearing the same row from two phones should not both be told they did it.',
+    operationId: 'deleteTool',
+    pathParams: { id: 'The card to delete.' },
+    responses: {
+      200: jsonResponse('Deleted.', object({ ok: { const: true, type: 'boolean' } })),
+      ...errors(401, 403, 404, 503),
+    },
+    route: 'DELETE /api/tools/:id',
+    summary: 'Delete a tool card',
+    tag: 'tools',
+  },
+  {
+    description:
+      'Everything is copied except the serial number, which identifies one physical machine: the copy starts blank there, so the person filling it in is the one who read the plate.\n\nThe photographs and the documents come along as links to the same files — two of the same model look alike and read the same manual, and a link costs a row rather than a second 7 MB PDF.',
+    operationId: 'duplicateTool',
+    pathParams: { id: 'The card to copy.' },
+    responses: {
+      201: jsonResponse('The copy.', object({ tool: ref('ToolDetail') })),
+      ...errors(401, 403, 404, 503),
+    },
+    route: 'POST /api/tools/:id/duplicate',
+    summary: 'Duplicate a tool card',
+    tag: 'tools',
+  },
+  {
+    description:
+      'One line off a rating plate: mains voltage, speed, chuck, weight. Both halves are required and neither may be blank — a parameter with no name says nothing, and one with no value is a question rather than an answer.\n\nRuns of whitespace inside either half collapse to a single space, because the index that keeps names unique folds case and trims the ends; without it "napięcie  sieciowe" would sit on the card beside "napięcie sieciowe".',
+    operationId: 'addToolAttribute',
+    pathParams: { id: 'The card to add the parameter to.' },
+    requestBody: jsonBody(
+      object({
+        name: { maxLength: 80, minLength: 1, type: 'string' },
+        value: {
+          description: 'Carries its unit — "230 V" rather than 230.',
+          maxLength: 200,
+          minLength: 1,
+          type: 'string',
+        },
+      }),
+    ),
+    responses: {
+      201: CARD,
+      409: jsonResponse('This card already carries a parameter with that name.', ref('Error')),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'POST /api/tools/:id/attributes',
+    summary: 'Add a parameter to a card',
+    tag: 'tools',
+  },
+  {
+    description:
+      'A typo in the name, or a value read off the plate again. Sending neither is refused rather than answered with the row unchanged. A parameter that is not this card’s reads the same as one that never existed.',
+    operationId: 'updateToolAttribute',
+    pathParams: {
+      attributeId: 'The parameter, which must belong to this card.',
+      id: 'The card the parameter is on.',
+    },
+    requestBody: jsonBody({
+      additionalProperties: false,
+      minProperties: 1,
+      properties: {
+        name: { maxLength: 80, minLength: 1, type: 'string' },
+        value: { maxLength: 200, minLength: 1, type: 'string' },
+      },
+      type: 'object',
+    }),
+    responses: {
+      200: CARD,
+      409: jsonResponse('This card already carries a parameter with that name.', ref('Error')),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'PATCH /api/tools/:id/attributes/:attributeId',
+    summary: 'Edit a parameter',
+    tag: 'tools',
+  },
+  {
+    description: 'Answers with the card, so the screen holding the spec sheet can redraw it whole.',
+    operationId: 'deleteToolAttribute',
+    pathParams: {
+      attributeId: 'The parameter, which must belong to this card.',
+      id: 'The card the parameter is on.',
+    },
+    responses: { 200: CARD, ...errors(401, 403, 404, 503) },
+    route: 'DELETE /api/tools/:id/attributes/:attributeId',
+    summary: 'Delete a parameter',
+    tag: 'tools',
+  },
+]

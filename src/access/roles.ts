@@ -46,6 +46,17 @@ export type User = {
   status: AccountStatus
 }
 
+// A user as the admin screen reads them: the account, plus what its role
+// actually allows. The capability list travels with each row so the screen can
+// show what a role means without repeating this table client side.
+//
+// Named rather than assembled inline in the handler because the OpenAPI
+// schemas are generated from these types, and a shape the API returns and no
+// type describes is a shape the contract would get wrong.
+export type UserWithCapabilities = User & {
+  capabilities: Capability[]
+}
+
 export function isRole(value: unknown): value is Role {
   // hasOwn, not `in`: `in` walks the prototype, so 'toString' would pass as a
   // role and reach a CHECK constraint that refuses it as a 500.

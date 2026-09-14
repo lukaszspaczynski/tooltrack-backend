@@ -19,6 +19,7 @@ import {
   listCases,
   listSystems,
   removeLabelSlot,
+  type CaseListPage,
   updateCase,
 } from './cases-store'
 import { parseOwnerId } from './photo-owner'
@@ -38,16 +39,18 @@ export async function GET(request: Request): Promise<Response> {
     page.items.map((item) => item.id),
   )
 
-  return Response.json(
-    {
-      ...page,
-      items: page.items.map((item) => ({
-        ...item,
-        primaryPhotoUrl: primary.has(item.id) ? photoUrl(primary.get(item.id)!) : null,
-      })),
-    },
-    { headers: { 'cache-control': 'no-store' } },
-  )
+  // Annotated rather than inferred: this is the shape the contract promises,
+  // and the compiler is what keeps the promise once the schema is generated
+  // from the type rather than from what this happens to return today.
+  const body: CaseListPage = {
+    ...page,
+    items: page.items.map((item) => ({
+      ...item,
+      primaryPhotoUrl: primary.has(item.id) ? photoUrl(primary.get(item.id)!) : null,
+    })),
+  }
+
+  return Response.json(body, { headers: { 'cache-control': 'no-store' } })
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {

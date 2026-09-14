@@ -50,6 +50,22 @@ export type ToolCase = {
   updatedBy: null | number
 }
 
+// What `GET /api/cases` actually answers with, which is not `CasePage`.
+//
+// The grid needs a thumbnail, fetched for the whole page in one query rather
+// than per row, and the route hangs it on every item — so the list item is a
+// wider thing than the case. Named here rather than left as a literal in the
+// handler for the same reason `ToolListItem` is: the OpenAPI schemas are
+// generated from these types, and a shape the API returns and no type
+// describes is a shape the contract would get wrong.
+export type CaseListItem = ToolCase & {
+  primaryPhotoUrl: null | string
+}
+
+export type CaseListPage = Omit<CasePage, 'items'> & {
+  items: CaseListItem[]
+}
+
 export type CasePage = {
   items: ToolCase[]
   limit: number

@@ -5,6 +5,7 @@
 import { db, withTransaction, type PgPool } from '../db'
 import { brandIdForName } from './brands-store'
 import { t } from '../i18n'
+import type { ToolPlacement } from './organizers-store'
 import {
   DEFAULT_CONDITION,
   isToolCondition,
@@ -49,6 +50,24 @@ export type ToolPage = {
   limit: number
   offset: number
   total: number
+}
+
+// What `GET /api/tools` actually answers with, which is not `ToolPage`.
+//
+// The grid needs two things a card does not carry: the thumbnail to draw and
+// where the tool lies. Both are fetched for the whole page in one query each
+// rather than per row, and the route hangs them on every item — so the list
+// item is a wider thing than the card, and the type says so. It is named here
+// rather than left as a literal in the handler because the OpenAPI schemas are
+// generated from these types: a shape the API returns and no type describes is
+// a shape the contract would get wrong.
+export type ToolListItem = Tool & {
+  organizer: null | ToolPlacement
+  primaryPhotoUrl: null | string
+}
+
+export type ToolListPage = Omit<ToolPage, 'items'> & {
+  items: ToolListItem[]
 }
 
 export type CategoryCount = {

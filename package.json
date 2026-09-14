@@ -9,19 +9,21 @@
     "db:adminer": "docker compose --profile tools up -d adminer",
     "db:adminer:down": "docker compose --profile tools stop adminer",
     "db:down": "docker compose --profile tools down",
-    "db:up": "docker compose up -d postgres",
     "db:schema:apply": "tsx scripts/apply-db-schema.ts",
+    "db:up": "docker compose up -d postgres",
     "dev": "NODE_EXTRA_CA_CERTS=assets/certs/home-pl-dv-tls-g2-r35-ca.pem tsx watch src/server/index.ts",
     "dev:debug": "NODE_EXTRA_CA_CERTS=assets/certs/home-pl-dv-tls-g2-r35-ca.pem tsx watch --inspect src/server/index.ts",
     "format": "prettier --write .",
-    "lint": "npm run typecheck",
+    "lint": "npm run typecheck && npm run openapi:check",
+    "openapi:build": "tsx scripts/build-openapi.ts",
+    "openapi:check": "tsx scripts/build-openapi.ts --check",
     "photos:png": "tsx scripts/convert-photos-to-png.ts",
+    "qbrick:cases": "tsx scripts/import-qbrick-cases.ts",
     "qbrick:import": "tsx scripts/import-qbrick-tools.ts",
     "start": "NODE_EXTRA_CA_CERTS=assets/certs/home-pl-dv-tls-g2-r35-ca.pem tsx src/server/index.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit --pretty false",
-    "user:admin": "tsx scripts/ensure-admin-user.ts",
-    "qbrick:cases": "tsx scripts/import-qbrick-cases.ts"
+    "user:admin": "tsx scripts/ensure-admin-user.ts"
   },
   "dependencies": {
     "@hyzyla/pdfium": "^2.1.13",
@@ -35,6 +37,7 @@
     "@types/node": "22.19.9",
     "@types/pg": "8.20.0",
     "prettier": "^3.4.2",
+    "ts-json-schema-generator": "^2.9.0",
     "tsx": "4.21.0",
     "typescript": "5.7.3"
   },

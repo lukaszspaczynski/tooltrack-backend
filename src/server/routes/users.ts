@@ -9,7 +9,7 @@
 //   2. Removing the last active admin. After that nobody can grant the role
 //      back, and the only way in is TOOLTRACK_BOOTSTRAP_ADMIN_EMAILS or SQL.
 
-import { capabilitiesFor } from '../../access/roles'
+import { capabilitiesFor, type UserWithCapabilities } from '../../access/roles'
 import type { RouteContext } from '../route-context'
 import { countAdmins, deleteUser, findUserById, listUsers, updateUser } from './auth-store'
 import { parseUserPatch } from './users-input'
@@ -17,14 +17,14 @@ import { parseUserPatch } from './users-input'
 export async function GET(): Promise<Response> {
   const users = await listUsers()
 
-  return Response.json(
-    {
-      // The capability list travels with each row so the admin screen can show
-      // what a role actually means without repeating the table client side.
-      users: users.map((user) => ({ ...user, capabilities: capabilitiesFor(user) })),
-    },
-    { headers: { 'cache-control': 'no-store' } },
-  )
+  // The capability list travels with each row so the admin screen can show
+  // what a role actually means without repeating the table client side.
+  const rows: UserWithCapabilities[] = users.map((user) => ({
+    ...user,
+    capabilities: capabilitiesFor(user),
+  }))
+
+  return Response.json({ users: rows }, { headers: { 'cache-control': 'no-store' } })
 }
 
 export async function detailPATCH(request: Request, context: RouteContext): Promise<Response> {
@@ -58,7 +58,9 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   const user = await updateUser(id, parsed.value)
   if (!user) return notFound()
 
-  return Response.json({ user: { ...user, capabilities: capabilitiesFor(user) } })
+  const row: UserWithCapabilities = { ...user, capabilities: capabilitiesFor(user) }
+
+  return Response.json({ user: row })
 }
 
 export async function detailDELETE(_request: Request, context: RouteContext): Promise<Response> {

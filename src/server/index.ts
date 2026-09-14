@@ -25,6 +25,7 @@ import * as cases from './routes/cases'
 import * as labels from './routes/labels'
 import * as manuals from './routes/manuals'
 import * as media from './routes/media'
+import * as openapi from './routes/openapi'
 import * as organizers from './routes/organizers'
 import * as photos from './routes/photos'
 import * as settings from './routes/settings'
@@ -32,6 +33,7 @@ import * as toolImport from './routes/tool-import'
 import * as tools from './routes/tools'
 import * as users from './routes/users'
 import * as version from './routes/version'
+import { ROUTES } from './route-list'
 import { writeResponse } from './write-response'
 
 type Method = 'DELETE' | 'GET' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT'
@@ -96,106 +98,6 @@ const USER_DETAIL_PATTERN = /^\/api\/users\/(\d+)$/
 
 // Every path the router answers. Also the body of the 404, because the most
 // common reason to see one is a client calling a path that moved.
-const ROUTES = [
-  'GET /healthz',
-  'GET /api/version',
-  'POST /api/auth/register',
-  'POST /api/auth/login',
-  'POST /api/auth/logout',
-  'GET /api/auth/me',
-  'PATCH /api/auth/password',
-  'PATCH /api/auth/language',
-  'GET /api/tools',
-  'POST /api/tools',
-  'GET /api/tools/categories',
-  'GET /api/tools/attributes',
-  'GET /api/tools/import/sources',
-  'POST /api/tools/import',
-  'POST /api/tools/:id/import',
-  'GET /api/tools/:id/manuals',
-  'POST /api/tools/:id/manuals',
-  'POST /api/tools/:id/manuals/from-page',
-  'PATCH /api/tools/:id/manuals/:manualId',
-  'DELETE /api/tools/:id/manuals/:manualId',
-  'GET /api/manuals/:id/file',
-  'GET /api/manuals',
-  'PATCH /api/manuals/:id',
-  'POST /api/manuals/delete',
-  'POST /api/tools/:id/manuals/attach',
-  'POST /api/tools/:id/attributes',
-  'PATCH /api/tools/:id/attributes/:attributeId',
-  'DELETE /api/tools/:id/attributes/:attributeId',
-  'GET /api/tools/:id',
-  'PATCH /api/tools/:id',
-  'DELETE /api/tools/:id',
-  'POST /api/tools/:id/duplicate',
-  'GET /api/tools/:id/photos',
-  'POST /api/tools/:id/photos',
-  'POST /api/tools/:id/photos/attach',
-  'GET /api/tools/:id/photos/:photoId/file',
-  'PATCH /api/tools/:id/photos/:photoId',
-  'DELETE /api/tools/:id/photos/:photoId',
-  'POST /api/tools/:id/photos/:photoId/cutout',
-  'POST /api/tools/:id/photos/:photoId/cutout/preview',
-  'GET /api/tools/:id/photos/:photoId/cutout/preview/:checksum',
-  'POST /api/tools/:id/photos/:photoId/cutout/commit',
-  'GET /api/tools/:id/photo-suggestions',
-  'GET /api/cases',
-  'POST /api/cases',
-  'GET /api/cases/systems',
-  'GET /api/cases/:id',
-  'PATCH /api/cases/:id',
-  'DELETE /api/cases/:id',
-  'POST /api/cases/:id/label-slots',
-  'DELETE /api/cases/:id/label-slots/:slotId',
-  'GET /api/cases/:id/photos',
-  'POST /api/cases/:id/photos',
-  'POST /api/cases/:id/photos/attach',
-  'GET /api/cases/:id/photos/:photoId/file',
-  'PATCH /api/cases/:id/photos/:photoId',
-  'DELETE /api/cases/:id/photos/:photoId',
-  'POST /api/cases/:id/photos/:photoId/cutout',
-  'POST /api/cases/:id/photos/:photoId/cutout/preview',
-  'GET /api/cases/:id/photos/:photoId/cutout/preview/:checksum',
-  'POST /api/cases/:id/photos/:photoId/cutout/commit',
-  'GET /api/cases/:id/photo-suggestions',
-  'GET /api/brands',
-  'POST /api/brands',
-  'GET /api/brands/:id',
-  'PATCH /api/brands/:id',
-  'DELETE /api/brands/:id',
-  'PUT /api/brands/:id/logo',
-  'DELETE /api/brands/:id/logo',
-  'GET /api/organizers',
-  'POST /api/organizers',
-  'GET /api/organizers/:id',
-  'PATCH /api/organizers/:id',
-  'DELETE /api/organizers/:id',
-  'POST /api/organizers/:id/tools',
-  'DELETE /api/organizers/:id/tools/:toolId',
-  'GET /api/organizers/:id/label-slots',
-  'POST /api/organizers/:id/labels',
-  'POST /api/organizers/:id/labels/refresh',
-  'GET /api/organizers/:id/labels/:labelId/file',
-  'GET /api/organizers/:id/labels/:labelId/preview',
-  'DELETE /api/organizers/:id/labels/:labelId',
-  'GET /api/labels',
-  'GET /api/labels/sheet',
-  'POST /api/labels/refresh',
-  'GET /api/settings/search-engines',
-  'PATCH /api/settings/search-engines/:provider',
-  'PATCH /api/me/search-engines/:provider',
-  'GET /api/settings/cutout',
-  'PATCH /api/settings/cutout',
-  'PATCH /api/settings/cutout/:method',
-  'GET /api/photos',
-  'POST /api/photos',
-  'GET /api/photos/:id/file',
-  'POST /api/photos/delete',
-  'GET /api/users',
-  'PATCH /api/users/:id',
-  'DELETE /api/users/:id',
-] as const
 
 const server = createServer(async (req, res) => {
   // Everything this request does happens inside the language it asked for, so
@@ -292,6 +194,7 @@ function matchRoute(pathname: string, method: string): null | RouteMatch {
 
   if (path === '/healthz') return methodHandler(method, { GET: healthz })
   if (path === '/api/version') return methodHandler(method, { GET: version.GET })
+  if (path === '/api/openapi.json') return methodHandler(method, { GET: openapi.GET })
 
   if (path === '/api/auth/register') return methodHandler(method, { POST: auth.register })
   if (path === '/api/auth/login') return methodHandler(method, { POST: auth.login })

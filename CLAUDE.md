@@ -645,10 +645,19 @@ the one thing that can quietly break this engine.
 1. Write the handler in `src/server/routes/`, and its SQL in the matching
    `*-store.ts`. Parse the body in a `*-input.ts` function so the rules can be
    tested on their own.
-2. Add the path to `matchRoute` and to the `ROUTES` list in `index.ts`.
+2. Add the path to `matchRoute` in `index.ts` and to the `ROUTES` list in
+   `src/server/route-list.ts`.
 3. Add it to `RULES` in `src/access/route-policy.ts`. Skipping this makes the
    route return 403 — that is the design, not a bug.
 4. Document it in `docs/api.md`.
+5. Describe it in `src/openapi/paths/`, or put it in `PENDING` in
+   `src/openapi/operations.ts`. One or the other — the coverage test fails
+   until a route is in exactly one of the two lists, which is how the spec
+   stays honest about its own gaps rather than quietly omitting a route. Then
+   `npm run openapi:build` and commit `docs/openapi.json`.
+
+`npm run lint` is `typecheck` plus `openapi:check`, so a committed document
+that no longer matches the code fails before anyone generates a client from it.
 
 ## Two languages
 

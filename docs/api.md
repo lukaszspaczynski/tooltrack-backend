@@ -150,6 +150,26 @@ themselves like the category list above — the names in use are the vocabulary,
 and one typed the same way on every card is what makes the catalog answerable
 later. Names that differ only in case or spacing count as one.
 
+### `GET /api/openapi.json` — public
+
+The OpenAPI 3.1 description of everything below, served by the API it
+describes, so a client generates itself against the instance it is talking to
+rather than against a file checked in beside it. Public for the same reason
+`/healthz` is: a client that has not logged in yet cannot be asked to
+authenticate before it may find out how.
+
+It is built by `npm run openapi:build` into `docs/openapi.json` and committed;
+`npm run lint` fails when what is committed is out of date. The entity schemas
+in it are generated from the TypeScript types the handlers actually return, and
+the `security` of each operation is read from `src/access/route-policy.ts` by
+calling it — neither is transcribed, so neither can drift from the server.
+
+This file stays the one to read. The spec says what the shapes are; the prose
+here says why they are that shape, which is the half no generator can produce.
+Coverage is partial and deliberately so: `src/openapi/operations.ts` keeps a
+`PENDING` list of routes not yet described, and a test asserts that every route
+is in exactly one of the two lists, so a gap is visible rather than silent.
+
 ### `GET /api/tools/import/sources` — `catalog.read`
 
 ```json
