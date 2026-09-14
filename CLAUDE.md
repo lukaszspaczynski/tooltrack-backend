@@ -234,6 +234,26 @@ request, because the photographs and the PDFs are a dozen more fetches to the
 same host. Run the server by something other than its npm script and this
 source, alone among the seven, will look broken.
 
+`gardena.ts` is the eighth, and the first Salesforce Commerce Cloud store. Half
+of it reads a schema.org **Product** — the name, the maker, the article number,
+the gallery, and the breadcrumb, which is inside the graph rather than in the
+markup — and half **scrapes**, because everything a person would call a
+specification is rows of two divs under a tab, printed twice so that a wide
+screen and a narrow one each have one. `mergeDuplicates` keeps one of each.
+
+Three things it settles. The **model starts at the first word with a digit** and
+runs to the end, because "inox automatic" is part of what the machine is called
+rather than a description of it — and it stops at an en dash, since "– zestaw z
+akumulatorem" is which box it came in. The **barcode is the page's own row**
+(`GTIN-13/EAN`), so nothing adds a second one. And a **photograph is taken
+without the query string**: `?height=520&width=750` is the layout talking, and
+dropping it is the difference between ten kilobytes of WebP and the two-megabyte
+file itself.
+
+It is the third source declaring `manuals: false`, for stanley's reason rather
+than mistama's: the only PDFs on a product page are the shop's own terms of
+sale, and the documents for the machine are fetched after the page renders.
+
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
 otherwise show it as its source for ever after.

@@ -233,12 +233,13 @@ is in exactly one of the two lists, so a gap is visible rather than silent.
     { "host": "skileurope.com", "label": "skileurope.com", "manuals": true },
     { "host": "stanleyworks.pl", "label": "stanleyworks.pl", "manuals": false },
     { "host": "lidl.pl", "label": "lidl.pl", "manuals": true },
-    { "host": "nac.com.pl", "label": "nac.com.pl", "manuals": true }
+    { "host": "nac.com.pl", "label": "nac.com.pl", "manuals": true },
+    { "host": "gardena.com", "label": "gardena.com", "manuals": false }
   ]
 }
 ```
 
-The pages this server can read — two shops and five makers' own sites. The address is remembered without its analytics tail:
+The pages this server can read — two shops and six makers' own sites. The address is remembered without its analytics tail:
 `?_gl=…` and `utm_*` say nothing about the product.
 `manuals` says whether that page publishes documents at all: a shop sells the
 tool and leaves the manual to the maker, so a screen asking for one offers only

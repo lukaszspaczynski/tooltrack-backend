@@ -14,6 +14,7 @@ import {
 } from '../routes/tools-input'
 import { boschDiy } from './bosch-diy'
 import { boschProfessional } from './bosch-professional'
+import { gardena } from './gardena'
 import { lidl } from './lidl'
 import { mistama } from './mistama'
 import { nac } from './nac'
@@ -31,6 +32,7 @@ const IMPORTERS: readonly Importer[] = [
   stanley,
   lidl,
   nac,
+  gardena,
 ]
 
 // What the import dialog lists, so the screen never offers a source this
