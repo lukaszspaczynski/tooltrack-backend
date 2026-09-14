@@ -39,6 +39,7 @@ export const ERROR_CODES = {
   ORGANIZER_NOT_FOUND: 'No such organizer.',
   BRAND_NOT_FOUND: 'No such maker.',
   USER_NOT_FOUND: 'No such account.',
+  SESSION_NOT_FOUND: 'No such session, or none belonging to this account.',
   PHOTO_NOT_FOUND: 'No such photograph, or its file is gone.',
   MANUAL_NOT_FOUND: 'No such document, or its file is gone.',
   LABEL_NOT_FOUND: 'No such label, or its file is gone.',

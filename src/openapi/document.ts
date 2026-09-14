@@ -127,7 +127,15 @@ function securityFor(path: string, method: Method): Operation['security'] {
       // has to be written out or the caller inherits the document default.
       return []
     case 'capability':
-      return [{ sessionCookie: [requirement.check.capability] }]
+      // Two entries rather than one object with two keys: a list is OR in
+      // OpenAPI and an object is AND, so this says "a cookie or a bearer
+      // token", which is what the guard does. Written once here and every
+      // route gets it, which is the reason this function calls the policy
+      // instead of restating it.
+      return [
+        { sessionCookie: [requirement.check.capability] },
+        { bearerAuth: [requirement.check.capability] },
+      ]
     case 'deny':
       throw new Error(
         `${method.toUpperCase()} ${path} is in the operation table but the route policy denies it`,

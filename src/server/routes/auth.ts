@@ -11,12 +11,14 @@ import { errorResponse } from '../error-codes'
 import {
   parseLoginInput,
   parseLanguageInput,
+  parseTokenInput,
   parsePasswordChangeInput,
   parseRegisterInput,
 } from './auth-input'
 import { t } from '../i18n'
 import { forgetFailedLogins, loginAttemptAllowed, recordFailedLogin } from '../login-throttle'
 import type { RouteContext } from '../route-context'
+import type { LoginAttempt } from '../login-throttle'
 import {
   authenticateRequest,
   clearedSessionCookie,
@@ -25,7 +27,9 @@ import {
   findCredentialsByEmail,
   findCredentialsById,
   issueSession,
+  listSessions,
   revokeSession,
+  revokeSessionById,
   setLanguage,
   setPassword,
   verifyPassword,
@@ -63,18 +67,8 @@ export async function login(request: Request, context: RouteContext): Promise<Re
   // A body that does not parse is not counted: it cannot be a guess at a
   // password, and counting it would let a flood of junk lock out a colleague.
   const attempt = { address: context.clientAddress, email: parsed.value.email }
-  const throttle = loginAttemptAllowed(attempt)
-
-  if (!throttle.allowed) {
-    return errorResponse(
-      429,
-      'TOO_MANY_ATTEMPTS',
-      t('Za dużo nieudanych prób logowania. Spróbuj ponownie za {minutes} min.', {
-        minutes: Math.ceil(throttle.retryAfterSeconds / 60),
-      }),
-      { headers: { 'retry-after': String(throttle.retryAfterSeconds) } },
-    )
-  }
+  const refusal = throttled(attempt)
+  if (refusal) return refusal
 
   const credentials = await findCredentialsByEmail(parsed.value.email)
 
@@ -99,6 +93,88 @@ export async function login(request: Request, context: RouteContext): Promise<Re
   forgetFailedLogins(attempt)
 
   return sessionResponse(session.user, session.cookie, 200)
+}
+
+// POST /api/auth/token — the same door as login, for a client that has no
+// cookie jar worth relying on.
+//
+// It answers with the token itself and sets no cookie. That split is the point:
+// a token in a response body is a token any script on a page can read, which is
+// exactly what HttpOnly exists to prevent — so the web client keeps using
+// /api/auth/login and never sees one, and a native client, where there is no
+// page and no script, asks here.
+//
+// Everything else is the same session: one row in account.session, one hash,
+// one expiry, and revoking, disabling an account or changing a password reach
+// it without knowing there are two ways in.
+export async function token(request: Request, context: RouteContext): Promise<Response> {
+  const parsed = parseTokenInput(await readJson(request))
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
+
+  // The same counter as login, deliberately shared. A throttle that guarded one
+  // of two doors into the same house would be a throttle somebody walks around
+  // by knocking on the other.
+  const attempt = { address: context.clientAddress, email: parsed.value.email }
+  const refusal = throttled(attempt)
+  if (refusal) return refusal
+
+  const credentials = await findCredentialsByEmail(parsed.value.email)
+
+  if (
+    !credentials ||
+    credentials.status === 'disabled' ||
+    !(await verifyPassword(parsed.value.password, credentials))
+  ) {
+    recordFailedLogin(attempt)
+    return errorResponse(401, 'INVALID_CREDENTIALS', t('Nieprawidłowy e-mail lub hasło'))
+  }
+
+  const session = await issueSession(Number(credentials.id), parsed.value.device)
+
+  forgetFailedLogins(attempt)
+
+  return Response.json({
+    capabilities: capabilitiesFor(session.user),
+    expiresAt: session.expiresAt,
+    token: session.token,
+    user: session.user,
+  })
+}
+
+// GET /api/auth/sessions — where this account is signed in.
+//
+// Its own account only, always: the user id comes from the guard rather than
+// from anything the caller sent, so there is no id to tamper with.
+export async function sessions(request: Request, context: RouteContext): Promise<Response> {
+  if (!context.user) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
+
+  return Response.json({ sessions: await listSessions(request, context.user.id) })
+}
+
+// DELETE /api/auth/sessions/:id — sign a lost phone out.
+//
+// Scoped by user in the SQL as well as here. Revoking the session making the
+// request is allowed and works: the answer goes out, and the next call with
+// that token is a 401 — which is logging out the long way round, and is what a
+// list with the current row on it should let somebody do.
+export async function revokeSessionRoute(
+  _request: Request,
+  context: RouteContext,
+): Promise<Response> {
+  if (!context.user) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
+
+  const id = Number(context.params.id)
+  if (!Number.isInteger(id) || id <= 0) {
+    return errorResponse(404, 'SESSION_NOT_FOUND', t('Nie ma takiej sesji'))
+  }
+
+  // The same answer for "not yours" as for "not there", so the ids of other
+  // people's sessions cannot be found by trying them.
+  if (!(await revokeSessionById(context.user.id, id))) {
+    return errorResponse(404, 'SESSION_NOT_FOUND', t('Nie ma takiej sesji'))
+  }
+
+  return new Response(null, { status: 204 })
 }
 
 export async function logout(request: Request): Promise<Response> {
@@ -184,4 +260,21 @@ async function readJson(request: Request): Promise<unknown> {
   } catch {
     return undefined
   }
+}
+
+// The 429 both doors answer with, written once. `Retry-After` is in seconds
+// because that is what the header means; the sentence rounds to minutes
+// because that is what a person waits in.
+function throttled(attempt: LoginAttempt): null | Response {
+  const decision = loginAttemptAllowed(attempt)
+  if (decision.allowed) return null
+
+  return errorResponse(
+    429,
+    'TOO_MANY_ATTEMPTS',
+    t('Za dużo nieudanych prób logowania. Spróbuj ponownie za {minutes} min.', {
+      minutes: Math.ceil(decision.retryAfterSeconds / 60),
+    }),
+    { headers: { 'retry-after': String(decision.retryAfterSeconds) } },
+  )
 }

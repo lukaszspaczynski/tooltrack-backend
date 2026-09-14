@@ -119,6 +119,62 @@ export const AUTH_OPERATIONS: OperationSpec[] = [
     tag: 'auth',
   },
   {
+    description: [
+      'The same door as `login`, for a client with no cookie jar worth relying on. It answers with the token itself and sets no cookie; send it back as `Authorization: Bearer <token>`, which wins over a cookie when both are present.',
+      '',
+      'Two doors, one session: the same row, the same expiry, the same revocation. `login` deliberately does not answer with a token — a token in a response body is one any script on the page can read, and that is what the httpOnly cookie exists to prevent.',
+      '',
+      '`device` is a label for the session list and nothing else. It is never read while authenticating.',
+      '',
+      'The same throttle as `login`, counting against the same totals: a limit guarding one of two doors into the same house is one a caller walks around.',
+    ].join('\n'),
+    operationId: 'issueToken',
+    requestBody: jsonBody(ref('TokenBody')),
+    responses: {
+      200: jsonResponse(
+        'Signed in. No cookie is set; the token is in the body and nowhere else.',
+        object({
+          capabilities: arrayOf(ref('Capability')),
+          expiresAt: { format: 'date-time', type: 'string' },
+          token: { type: 'string' },
+          user: ref('User'),
+        }),
+      ),
+      ...errors(400, 401, 429, 503),
+    },
+    route: 'POST /api/auth/token',
+    summary: 'Sign in for a bearer token',
+    tag: 'auth',
+  },
+  {
+    description:
+      'Where this account is signed in, newest use first, with the session making the request marked `current`. Its own only — the account comes from the session rather than from anything the caller sent — and expired rows are left out, since the question is what is open now.',
+    operationId: 'listSessions',
+    responses: {
+      200: jsonResponse(
+        'The open sessions of this account.',
+        object({ sessions: arrayOf(ref('SessionSummary')) }),
+      ),
+      ...errors(401, 503),
+    },
+    route: 'GET /api/auth/sessions',
+    summary: 'List open sessions',
+    tag: 'auth',
+  },
+  {
+    description:
+      "Signs a device out. A session that is not this account's answers 404, the same as one that never existed, so other accounts' ids cannot be found by trying them. Revoking the session making the request is allowed: the answer goes out, and the next call with that token is a 401.",
+    operationId: 'revokeSession',
+    pathParams: { id: 'The session id, from `GET /api/auth/sessions`.' },
+    responses: {
+      204: { description: 'Revoked. The token stops working immediately.' },
+      ...errors(401, 404, 503),
+    },
+    route: 'DELETE /api/auth/sessions/:id',
+    summary: 'Revoke a session',
+    tag: 'auth',
+  },
+  {
     description: 'Idempotent: logging out without a session is a 200, not an error.',
     operationId: 'logout',
     responses: {

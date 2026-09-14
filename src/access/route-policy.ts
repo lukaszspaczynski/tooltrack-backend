@@ -54,7 +54,17 @@ const RULES: readonly Rule[] = [
     // idempotent, and register always creates a viewer.
     domain: 'auth',
     methods: { GET: ALLOW, PATCH: ALLOW, POST: ALLOW },
-    pattern: /^\/api\/auth\/(?:register|login|logout|me|password|language)$/,
+    pattern: /^\/api\/auth\/(?:register|login|token|logout|me|password|language|sessions)$/,
+  },
+  {
+    // Revoking one session. Classified `allow` like the rest of this family
+    // because it is a route somebody reaches with a session rather than with a
+    // capability — the handler refuses without a user, and the store scopes the
+    // delete to that user's own rows, so an id from somewhere else matches
+    // nothing.
+    domain: 'auth',
+    methods: { DELETE: ALLOW },
+    pattern: /^\/api\/auth\/sessions\/[^/]+$/,
   },
   {
     domain: 'tools',

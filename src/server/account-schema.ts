@@ -48,12 +48,21 @@ CREATE TABLE IF NOT EXISTS "account"."session" (
   "last_seen_at" timestamp with time zone NOT NULL DEFAULT now()
 );
 
+-- What to call this session on the "signed in on" list. A browser leaves it
+-- empty and shows as such; a mobile client names itself when it asks for a
+-- token, because a list nobody can read is a list nobody revokes from.
+--
+-- It is a label and nothing else: never read while authenticating, never
+-- trusted, never matched against. Whoever holds the token chose this string.
+ALTER TABLE "account"."session" ADD COLUMN IF NOT EXISTS "device" text NOT NULL DEFAULT '';
+
 CREATE INDEX IF NOT EXISTS "account_session_user_idx" ON "account"."session" ("user_id");
 CREATE INDEX IF NOT EXISTS "account_session_expires_idx" ON "account"."session" ("expires_at");
 
 COMMENT ON SCHEMA "account" IS 'ToolTrack accounts and login sessions.';
 COMMENT ON COLUMN "account"."user_account"."language" IS 'Which language this account reads the interface in.';
 COMMENT ON TABLE "account"."session" IS 'Opaque login sessions. Tokens are stored only as SHA-256 hashes.';
+COMMENT ON COLUMN "account"."session"."device" IS 'Client-supplied label for the revocation list. Never used to authenticate.';
 `
 
 export const ACCOUNT_DROP_DDL = `

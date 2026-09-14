@@ -3,14 +3,17 @@ import test from 'node:test'
 
 import type { PgPool, PgQueryResult } from '../db'
 import {
+  EmailTakenError,
+  SESSION_COOKIE,
   authenticateRequest,
   clearedSessionCookie,
   createUser,
-  EmailTakenError,
   issueSession,
+  listSessions,
   readCookie,
   revokeSession,
-  SESSION_COOKIE,
+  revokeSessionById,
+  sessionTokenOf,
   setLanguage,
   updateUser,
   verifyPassword,
@@ -108,7 +111,7 @@ test('a hash written by another scheme fails instead of throwing', async () => {
 test('only the hash of a session token is stored', async () => {
   const { calls, pool } = fakePool([userRow()])
 
-  const session = await issueSession(4, pool)
+  const session = await issueSession(4, '', pool)
 
   const token = readCookie(session.cookie.replaceAll('; ', '; '), SESSION_COOKIE)
   assert.ok(token)
@@ -123,7 +126,7 @@ test('the session cookie is HttpOnly and Lax, and Secure only in production', as
 
   const { pool } = fakePool([userRow()])
 
-  const local = await issueSession(4, pool)
+  const local = await issueSession(4, '', pool)
   assert.match(local.cookie, /HttpOnly/)
   assert.match(local.cookie, /SameSite=Lax/)
   assert.match(local.cookie, /Path=\//)
@@ -131,7 +134,7 @@ test('the session cookie is HttpOnly and Lax, and Secure only in production', as
   assert.doesNotMatch(local.cookie, /Secure/)
 
   process.env.NODE_ENV = 'production'
-  const deployed = await issueSession(4, pool)
+  const deployed = await issueSession(4, '', pool)
   assert.match(deployed.cookie, /Secure/)
 })
 
@@ -258,4 +261,88 @@ test('choosing a language writes one column and leaves the sessions alone', asyn
   assert.equal(calls.length, 1)
   assert.match(calls[0].text, /SET "language" = \$2/)
   assert.deepEqual(calls[0].params, [4, 'en'])
+})
+
+test('a bearer token is read from the header, and beats a stale cookie', () => {
+  // A client that has been given a token means to use it. A cookie left over
+  // from the same host must not quietly authenticate as somebody else.
+  const withBoth = new Request('http://x/api/tools', {
+    headers: { authorization: 'Bearer abc123', cookie: `${SESSION_COOKIE}=stary` },
+  })
+  assert.equal(sessionTokenOf(withBoth), 'abc123')
+
+  const cookieOnly = new Request('http://x/api/tools', {
+    headers: { cookie: `${SESSION_COOKIE}=zciasteczka` },
+  })
+  assert.equal(sessionTokenOf(cookieOnly), 'zciasteczka')
+
+  assert.equal(sessionTokenOf(new Request('http://x/api/tools')), null)
+})
+
+test('the scheme is matched loosely enough to be usable and not more', () => {
+  const of = (authorization: string) =>
+    sessionTokenOf(new Request('http://x/', { headers: { authorization } }))
+
+  // Case does not matter — the RFC says so, and clients differ.
+  assert.equal(of('bearer abc'), 'abc')
+  assert.equal(of('BEARER abc'), 'abc')
+  // Anything that is not this scheme is not a token. Basic auth carries a
+  // password, and reading it as a session token would be nonsense with a hash
+  // put through it.
+  assert.equal(of('Basic abc'), null)
+  assert.equal(of('Bearer'), null)
+  assert.equal(of('Bearer a b'), null)
+})
+
+test('using a session slides its expiry, and the slide is capped', async () => {
+  // The UPDATE was already happening for last_seen_at, so this costs nothing —
+  // which is the whole reason a fixed thirty days was worth changing.
+  const { calls, pool } = fakePool([userRow()])
+
+  await authenticateRequest(
+    new Request('http://x/api/tools', { headers: { authorization: 'Bearer abc' } }),
+    pool,
+  )
+
+  assert.match(calls[0].text, /SET "last_seen_at" = now\(\)/)
+  assert.match(calls[0].text, /"expires_at" = LEAST/)
+  // Against the row's own birthday, or a token taken silently would be good
+  // for ever as long as whoever took it kept using it.
+  assert.match(calls[0].text, /"s"\."created_at" \+ \(\$3 \|\| ' days'\)::interval/)
+  assert.equal(calls[0].params[1], '30')
+  assert.equal(calls[0].params[2], '365')
+})
+
+test('a session is revoked by id only for the account that owns it', async () => {
+  // The id in the path came from somewhere, and a number is easy to guess.
+  const { calls, pool } = fakePool([])
+
+  const revoked = await revokeSessionById(4, 12, pool)
+
+  assert.equal(revoked, false)
+  assert.match(calls[0].text, /WHERE "user_id" = \$1 AND "id" = \$2/)
+  assert.deepEqual(calls[0].params, [4, 12])
+})
+
+test('the session list marks the one asking and leaves out the dead', async () => {
+  const { calls, pool } = fakePool([])
+
+  await listSessions(
+    new Request('http://x/', { headers: { authorization: 'Bearer abc' } }),
+    4,
+    pool,
+  )
+
+  assert.match(calls[0].text, /\("token_hash" = \$2\) AS "current"/)
+  assert.match(calls[0].text, /"expires_at" > now\(\)/)
+  // Compared as a hash, like everything else: the table holds no tokens.
+  assert.match(String(calls[0].params[1]), /^[0-9a-f]{64}$/)
+})
+
+test('the device label is stored but cannot be used as storage', async () => {
+  const { calls, pool } = fakePool([userRow()])
+
+  await issueSession(4, 'x'.repeat(500), pool)
+
+  assert.equal(String(calls[0].params[3]).length, 120)
 })

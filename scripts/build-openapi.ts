@@ -35,6 +35,7 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
     types: ['User', 'Role', 'Capability', 'AccountStatus', 'UserWithCapabilities'],
   },
   { path: 'src/server/i18n/lang.ts', types: ['Lang'] },
+  { path: 'src/server/routes/auth-store.ts', types: ['SessionSummary'] },
   {
     path: 'src/server/routes/tools-store.ts',
     types: [
@@ -153,6 +154,27 @@ const document = buildDocument({
   ...requestSchemas(),
 })
 const serialised = `${JSON.stringify(document, null, 2)}\n`
+
+assertNoDanglingRefs(serialised)
+
+// A `$ref` to a component nobody generated. Everything else in this build is
+// derived, so the one thing a person still writes by hand is the name in a
+// `ref('…')` — and a name with a typo, or one whose type was never added to
+// ENTITY_TYPES, produced a document that looked finished and had a hole in it.
+// A generator then fails on it rather than here, which is the wrong end.
+function assertNoDanglingRefs(json: string): void {
+  const components = document.components as Record<string, Record<string, unknown>>
+  const dangling = [...json.matchAll(/"#\/components\/(\w+)\/([^"]+)"/g)]
+    .map((match) => [match[1], match[2]] as const)
+    .filter(([kind, name]) => components[kind]?.[name] === undefined)
+    .map(([kind, name]) => `${kind}/${name}`)
+
+  if (dangling.length === 0) return
+
+  console.error(`${OUTPUT} references components that do not exist:`)
+  for (const name of [...new Set(dangling)].sort()) console.error(`  #/components/${name}`)
+  process.exit(1)
+}
 
 if (process.argv.includes('--check')) {
   const current = readFileSync(OUTPUT, 'utf8')

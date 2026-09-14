@@ -51,9 +51,16 @@ test('the security of an operation is the policy, not a copy of it', () => {
     }
 
     assert.ok(requirement.check.kind === 'capability')
+    // Two entries, which OpenAPI reads as "either". The guard takes the token
+    // from a cookie or from an Authorization header and cannot tell the two
+    // apart afterwards, so an operation that named only one of them would be
+    // describing a restriction this server does not have.
     assert.deepEqual(
       described,
-      [{ sessionCookie: [requirement.check.capability] }],
+      [
+        { sessionCookie: [requirement.check.capability] },
+        { bearerAuth: [requirement.check.capability] },
+      ],
       `${operation.route} should need ${requirement.check.capability}`,
     )
   }

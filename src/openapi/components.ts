@@ -7,10 +7,18 @@ import { jsonResponse, object, queryParam, ref } from './operation'
 import type { Parameter, Response, Schema } from './types'
 
 export const SECURITY_SCHEMES: Record<string, Schema> = {
+  // The token from POST /api/auth/token, carried by hand. For a client that is
+  // not a browser: there is no page, so nothing can read a token out of a
+  // response, and no cookie jar worth depending on.
+  bearerAuth: {
+    description:
+      'Opaque session token from `POST /api/auth/token`, sent as `Authorization: Bearer <token>`. The same session a cookie carries — same expiry, same revocation — and it wins over a cookie when both are present.',
+    scheme: 'bearer',
+    type: 'http',
+  },
   // A session cookie, set by POST /api/auth/login and cleared by logout. It is
   // httpOnly, so a browser client never reads it and never sends it by hand —
-  // `credentials: 'include'` is the whole of what a fetch has to do. A client
-  // that is not a browser has to keep a cookie jar.
+  // `credentials: 'include'` is the whole of what a fetch has to do.
   sessionCookie: {
     description:
       'Session cookie set by `POST /api/auth/login`. httpOnly, and marked Secure when the server runs with NODE_ENV=production.',

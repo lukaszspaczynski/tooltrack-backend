@@ -97,7 +97,7 @@
         "additionalProperties": false,
         "properties": {
           "code": {
-            "description": "The stable name of the failure. Branch on this, not on `error`.\n\n- `INVALID_BODY` — The body did not parse, or a field is out of range.\n- `INVALID_QUERY` — A query parameter names something impossible.\n- `BODY_TOO_LARGE` — The request body is over the route’s ceiling.\n- `UNSUPPORTED_MEDIA_TYPE` — The bytes are not a format this route can read.\n- `METHOD_NOT_ALLOWED` — The path exists, but not with this method. See the Allow header.\n- `UNAUTHENTICATED` — No session, or one that has expired.\n- `FORBIDDEN` — A session, but not the capability this route needs.\n- `ACCOUNT_DISABLED` — The account exists but has been switched off.\n- `INVALID_CREDENTIALS` — The e-mail and password do not match an account.\n- `TOO_MANY_ATTEMPTS` — Too many failed sign-ins from this address, or against this e-mail. See Retry-After.\n- `NOT_FOUND` — No such record, or none this account may see.\n- `TOOL_NOT_FOUND` — No such tool card.\n- `CASE_NOT_FOUND` — No such case.\n- `ORGANIZER_NOT_FOUND` — No such organizer.\n- `BRAND_NOT_FOUND` — No such maker.\n- `USER_NOT_FOUND` — No such account.\n- `PHOTO_NOT_FOUND` — No such photograph, or its file is gone.\n- `MANUAL_NOT_FOUND` — No such document, or its file is gone.\n- `LABEL_NOT_FOUND` — No such label, or its file is gone.\n- `SEARCH_ENGINE_NOT_FOUND` — No search engine or cutout method by that name.\n- `LABEL_SLOT_NOT_FOUND` — This case has no such label slot.\n- `TOOL_NOT_IN_ORGANIZER` — That tool is not in this organizer.\n- `EMAIL_TAKEN` — An account with that e-mail already exists.\n- `SERIAL_NUMBER_TAKEN` — Another card already carries that serial number.\n- `ATTRIBUTE_NAME_TAKEN` — This card already has a parameter with that name.\n- `BRAND_NAME_TAKEN` — A maker with that name already exists.\n- `LOGO_TAKEN` — That picture is already another maker’s logo.\n- `LABEL_SLOT_TAKEN` — This case already has a slot that size.\n- `ORGANIZER_NUMBER_TAKEN` — Another organizer already has that number.\n- `TOOL_ALREADY_IN_ORGANIZER` — That tool is in another organizer already.\n- `PHOTO_ALREADY_ON_CARD` — That photograph is already on this card.\n- `MANUAL_ALREADY_ON_CARD` — That document is already on this card.\n- `LAST_ACTIVE_ADMIN` — The change would leave the installation with no admin.\n- `SELF_ROLE_CHANGE` — An account cannot change or delete itself here.\n- `PAGE_UNREACHABLE` — The product page would not load.\n- `NOT_A_PRODUCT_PAGE` — There is no product card at that address.\n- `UNSUPPORTED_SOURCE` — No importer can read that host.\n- `NO_SOURCE_PAGE` — This card was not imported, so there is no page to read.\n- `SOURCE_HAS_NO_MANUALS` — That source publishes no documents.\n- `DOWNLOAD_FAILED` — Every address in the request failed to download.\n- `IMAGE_UNREADABLE` — The bytes are not an image this server can decode.\n- `NOT_A_PDF` — The bytes are not a PDF.\n- `CUTOUT_UNSUITABLE` — The picture is not one this method can cut out.\n- `CUTOUT_UNAVAILABLE` — No cutout method is configured and enabled.\n- `PREVIEW_EXPIRED` — The preview has been swept, or is damaged.\n- `LABEL_UNDRAWABLE` — The label cannot be drawn from what the catalog says now.\n- `SEARCH_UNAVAILABLE` — No search engine is configured and enabled.\n- `ATTACH_FAILED` — None of the selected records could be attached.\n- `DATABASE_UNAVAILABLE` — Postgres is unreachable. The request was fine; retry.\n- `INTERNAL` — Something went wrong that the caller cannot act on.",
+            "description": "The stable name of the failure. Branch on this, not on `error`.\n\n- `INVALID_BODY` — The body did not parse, or a field is out of range.\n- `INVALID_QUERY` — A query parameter names something impossible.\n- `BODY_TOO_LARGE` — The request body is over the route’s ceiling.\n- `UNSUPPORTED_MEDIA_TYPE` — The bytes are not a format this route can read.\n- `METHOD_NOT_ALLOWED` — The path exists, but not with this method. See the Allow header.\n- `UNAUTHENTICATED` — No session, or one that has expired.\n- `FORBIDDEN` — A session, but not the capability this route needs.\n- `ACCOUNT_DISABLED` — The account exists but has been switched off.\n- `INVALID_CREDENTIALS` — The e-mail and password do not match an account.\n- `TOO_MANY_ATTEMPTS` — Too many failed sign-ins from this address, or against this e-mail. See Retry-After.\n- `NOT_FOUND` — No such record, or none this account may see.\n- `TOOL_NOT_FOUND` — No such tool card.\n- `CASE_NOT_FOUND` — No such case.\n- `ORGANIZER_NOT_FOUND` — No such organizer.\n- `BRAND_NOT_FOUND` — No such maker.\n- `USER_NOT_FOUND` — No such account.\n- `SESSION_NOT_FOUND` — No such session, or none belonging to this account.\n- `PHOTO_NOT_FOUND` — No such photograph, or its file is gone.\n- `MANUAL_NOT_FOUND` — No such document, or its file is gone.\n- `LABEL_NOT_FOUND` — No such label, or its file is gone.\n- `SEARCH_ENGINE_NOT_FOUND` — No search engine or cutout method by that name.\n- `LABEL_SLOT_NOT_FOUND` — This case has no such label slot.\n- `TOOL_NOT_IN_ORGANIZER` — That tool is not in this organizer.\n- `EMAIL_TAKEN` — An account with that e-mail already exists.\n- `SERIAL_NUMBER_TAKEN` — Another card already carries that serial number.\n- `ATTRIBUTE_NAME_TAKEN` — This card already has a parameter with that name.\n- `BRAND_NAME_TAKEN` — A maker with that name already exists.\n- `LOGO_TAKEN` — That picture is already another maker’s logo.\n- `LABEL_SLOT_TAKEN` — This case already has a slot that size.\n- `ORGANIZER_NUMBER_TAKEN` — Another organizer already has that number.\n- `TOOL_ALREADY_IN_ORGANIZER` — That tool is in another organizer already.\n- `PHOTO_ALREADY_ON_CARD` — That photograph is already on this card.\n- `MANUAL_ALREADY_ON_CARD` — That document is already on this card.\n- `LAST_ACTIVE_ADMIN` — The change would leave the installation with no admin.\n- `SELF_ROLE_CHANGE` — An account cannot change or delete itself here.\n- `PAGE_UNREACHABLE` — The product page would not load.\n- `NOT_A_PRODUCT_PAGE` — There is no product card at that address.\n- `UNSUPPORTED_SOURCE` — No importer can read that host.\n- `NO_SOURCE_PAGE` — This card was not imported, so there is no page to read.\n- `SOURCE_HAS_NO_MANUALS` — That source publishes no documents.\n- `DOWNLOAD_FAILED` — Every address in the request failed to download.\n- `IMAGE_UNREADABLE` — The bytes are not an image this server can decode.\n- `NOT_A_PDF` — The bytes are not a PDF.\n- `CUTOUT_UNSUITABLE` — The picture is not one this method can cut out.\n- `CUTOUT_UNAVAILABLE` — No cutout method is configured and enabled.\n- `PREVIEW_EXPIRED` — The preview has been swept, or is damaged.\n- `LABEL_UNDRAWABLE` — The label cannot be drawn from what the catalog says now.\n- `SEARCH_UNAVAILABLE` — No search engine is configured and enabled.\n- `ATTACH_FAILED` — None of the selected records could be attached.\n- `DATABASE_UNAVAILABLE` — Postgres is unreachable. The request was fine; retry.\n- `INTERNAL` — Something went wrong that the caller cannot act on.",
             "enum": [
               "INVALID_BODY",
               "INVALID_QUERY",
@@ -115,6 +115,7 @@
               "ORGANIZER_NOT_FOUND",
               "BRAND_NOT_FOUND",
               "USER_NOT_FOUND",
+              "SESSION_NOT_FOUND",
               "PHOTO_NOT_FOUND",
               "MANUAL_NOT_FOUND",
               "LABEL_NOT_FOUND",
@@ -271,6 +272,38 @@
           "role",
           "status"
         ]
+      },
+      "SessionSummary": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "current": {
+            "type": "boolean"
+          },
+          "device": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "id": {
+            "type": "number"
+          },
+          "lastSeenAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdAt",
+          "current",
+          "device",
+          "expiresAt",
+          "id",
+          "lastSeenAt"
+        ],
+        "additionalProperties": false
       },
       "ToolDetail": {
         "type": "object",
@@ -3170,6 +3203,27 @@
           "enabled"
         ]
       },
+      "TokenBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          },
+          "device": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
       "ToolCreateBody": {
         "type": "object",
         "properties": {
@@ -3301,6 +3355,11 @@
       }
     },
     "securitySchemes": {
+      "bearerAuth": {
+        "description": "Opaque session token from `POST /api/auth/token`, sent as `Authorization: Bearer <token>`. The same session a cookie carries — same expiry, same revocation — and it wins over a cookie when both are present.",
+        "scheme": "bearer",
+        "type": "http"
+      },
       "sessionCookie": {
         "description": "Session cookie set by `POST /api/auth/login`. httpOnly, and marked Secure when the server runs with NODE_ENV=production.",
         "in": "cookie",
@@ -3704,6 +3763,197 @@
         ]
       }
     },
+    "/api/auth/sessions": {
+      "get": {
+        "description": "Where this account is signed in, newest use first, with the session making the request marked `current`. Its own only — the account comes from the session rather than from anything the caller sent — and expired rows are left out, since the question is what is open now.",
+        "operationId": "listSessions",
+        "parameters": [
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "sessions": {
+                      "items": {
+                        "$ref": "#/components/schemas/SessionSummary"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "sessions"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The open sessions of this account."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [],
+        "summary": "List open sessions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/sessions/{id}": {
+      "delete": {
+        "description": "Signs a device out. A session that is not this account's answers 404, the same as one that never existed, so other accounts' ids cannot be found by trying them. Revoking the session making the request is allowed: the answer goes out, and the next call with that token is a 401.",
+        "operationId": "revokeSession",
+        "parameters": [
+          {
+            "description": "The session id, from `GET /api/auth/sessions`.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked. The token stops working immediately."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [],
+        "summary": "Revoke a session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/token": {
+      "post": {
+        "description": "The same door as `login`, for a client with no cookie jar worth relying on. It answers with the token itself and sets no cookie; send it back as `Authorization: Bearer <token>`, which wins over a cookie when both are present.\n\nTwo doors, one session: the same row, the same expiry, the same revocation. `login` deliberately does not answer with a token — a token in a response body is one any script on the page can read, and that is what the httpOnly cookie exists to prevent.\n\n`device` is a label for the session list and nothing else. It is never read while authenticating.\n\nThe same throttle as `login`, counting against the same totals: a limit guarding one of two doors into the same house is one a caller walks around.",
+        "operationId": "issueToken",
+        "parameters": [
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "capabilities": {
+                      "items": {
+                        "$ref": "#/components/schemas/Capability"
+                      },
+                      "type": "array"
+                    },
+                    "expiresAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "required": [
+                    "capabilities",
+                    "expiresAt",
+                    "token",
+                    "user"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Signed in. No cookie is set; the token is in the body and nowhere else."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [],
+        "summary": "Sign in for a bearer token",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/brands": {
       "get": {
         "description": "Every maker, with `toolCount` — how many cards name it. That count is the reason the list is worth looking at, and it is read-only.\n\nSorted by name unless `?sort=tools`, and ascending by default, unlike every other list here: a shelf of makers is read alphabetically.",
@@ -3809,6 +4059,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "List makers",
@@ -3892,6 +4147,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Create a maker",
@@ -3965,6 +4225,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -4064,6 +4329,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Edit a maker",
@@ -4136,6 +4406,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -4244,6 +4519,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Set the logo",
@@ -4315,6 +4595,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -4449,6 +4734,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "List cases",
@@ -4520,6 +4810,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -4595,6 +4890,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -4684,6 +4984,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Edit a case",
@@ -4756,6 +5061,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -4854,6 +5164,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -4964,6 +5279,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Edit a parameter on a case",
@@ -5045,6 +5365,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -5164,6 +5489,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Read the page again into an existing case",
@@ -5262,6 +5592,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Add a label slot to a case",
@@ -5345,6 +5680,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -5481,6 +5821,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Where a picture of this card could come from",
@@ -5569,6 +5914,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -5831,6 +6181,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Upload a photograph, or fetch one from an address",
@@ -5939,6 +6294,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Make a photograph the main one",
@@ -6021,6 +6381,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -6107,6 +6472,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -6218,6 +6588,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Keep a previewed cutout",
@@ -6318,6 +6693,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Try a cutout without keeping it",
@@ -6408,6 +6788,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "The preview image",
@@ -6480,6 +6865,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -6599,6 +6989,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Put existing photographs on a card",
@@ -6662,6 +7057,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -6775,6 +7175,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Import a case from a product page",
@@ -6850,6 +7255,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "The sources a case can be imported from",
@@ -6913,6 +7323,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -7143,6 +7558,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "Every label, with its arrangement and box",
@@ -7217,6 +7637,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -7312,6 +7737,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "A sheet of labels to print",
@@ -7394,6 +7824,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -7484,6 +7919,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Rename a document",
@@ -7546,6 +7986,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -7612,6 +8057,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -7720,6 +8170,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -7882,6 +8337,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "List organizers",
@@ -7975,6 +8435,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Create an organizer",
@@ -8048,6 +8513,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -8154,6 +8624,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Edit an organizer",
@@ -8226,6 +8701,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -8304,6 +8784,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -8401,6 +8886,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Draw a label",
@@ -8486,6 +8976,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Delete a label",
@@ -8560,6 +9055,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "The label PDF",
@@ -8632,6 +9132,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -8718,6 +9223,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -8818,6 +9328,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Put tools in an organizer",
@@ -8902,6 +9417,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -9033,6 +9553,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "Every photograph, with or without a card",
@@ -9159,6 +9684,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Upload a photograph with no card",
@@ -9221,6 +9751,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -9289,6 +9824,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Delete photographs outright",
@@ -9340,6 +9880,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -9404,6 +9949,11 @@
         "security": [
           {
             "sessionCookie": [
+              "users.manage"
+            ]
+          },
+          {
+            "bearerAuth": [
               "users.manage"
             ]
           }
@@ -9503,6 +10053,11 @@
             "sessionCookie": [
               "users.manage"
             ]
+          },
+          {
+            "bearerAuth": [
+              "users.manage"
+            ]
           }
         ],
         "summary": "Configure a cutout method",
@@ -9571,6 +10126,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -9679,6 +10239,11 @@
         "security": [
           {
             "sessionCookie": [
+              "users.manage"
+            ]
+          },
+          {
+            "bearerAuth": [
               "users.manage"
             ]
           }
@@ -9834,6 +10399,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "List tool cards",
@@ -9918,6 +10488,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Create a tool card",
@@ -9991,6 +10566,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -10090,6 +10670,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Edit a tool card",
@@ -10162,6 +10747,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -10278,6 +10868,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -10402,6 +10997,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Edit a parameter",
@@ -10485,6 +11085,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Delete a parameter",
@@ -10558,6 +11163,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -10643,6 +11253,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Read the page again into an existing card",
@@ -10719,6 +11334,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -10869,6 +11489,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Add a document to a card",
@@ -10967,6 +11592,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Rename a document on a card",
@@ -11051,6 +11681,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Take a document off a card",
@@ -11128,6 +11763,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -11253,6 +11893,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -11389,6 +12034,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Where a picture of this card could come from",
@@ -11477,6 +12127,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -11739,6 +12394,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Upload a photograph, or fetch one from an address",
@@ -11847,6 +12507,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Make a photograph the main one",
@@ -11929,6 +12594,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -12015,6 +12685,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.write"
             ]
           }
@@ -12126,6 +12801,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Keep a previewed cutout",
@@ -12226,6 +12906,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Try a cutout without keeping it",
@@ -12316,6 +13001,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "The preview image",
@@ -12388,6 +13078,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -12507,6 +13202,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Put existing photographs on a card",
@@ -12572,6 +13272,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "The parameter names in use",
@@ -12635,6 +13340,11 @@
         "security": [
           {
             "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
               "catalog.read"
             ]
           }
@@ -12714,6 +13424,11 @@
             "sessionCookie": [
               "catalog.write"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
           }
         ],
         "summary": "Import a card from a product page",
@@ -12776,6 +13491,11 @@
             "sessionCookie": [
               "catalog.read"
             ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
           }
         ],
         "summary": "The sources that can be imported from",
@@ -12827,6 +13547,11 @@
         "security": [
           {
             "sessionCookie": [
+              "users.manage"
+            ]
+          },
+          {
+            "bearerAuth": [
               "users.manage"
             ]
           }
@@ -12935,6 +13660,11 @@
             "sessionCookie": [
               "users.manage"
             ]
+          },
+          {
+            "bearerAuth": [
+              "users.manage"
+            ]
           }
         ],
         "summary": "Edit an account",
@@ -13024,6 +13754,11 @@
         "security": [
           {
             "sessionCookie": [
+              "users.manage"
+            ]
+          },
+          {
+            "bearerAuth": [
               "users.manage"
             ]
           }

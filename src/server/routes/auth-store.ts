@@ -27,6 +27,9 @@ const PBKDF2_KEY_BYTES = 32
 const PBKDF2_DIGEST = 'sha512'
 const SALT_BYTES = 16
 const TOKEN_BYTES = 32
+// A label on a list, not a field anybody reads twice. Long enough for "Pixel 8
+// — magazyn", short enough that a client cannot use it as storage.
+export const MAX_DEVICE_LENGTH = 120
 
 // Every account column except the two password ones. Written once so a new
 // column cannot be added to one query and forgotten in the other four. The
@@ -64,7 +67,24 @@ type CredentialRow = UserRow & {
 export type Session = {
   cookie: string
   expiresAt: string
+  // The token itself, which only the caller that asked for one ever sees: it
+  // is never stored — the table holds its SHA-256 — and never read back out of
+  // anything. `POST /api/auth/token` answers with it; `POST /api/auth/login`
+  // puts it in the cookie and drops it, which is what keeps the web client's
+  // session out of reach of any script running on the page.
+  token: string
   user: User
+}
+
+// One row of "where am I signed in", for the list somebody revokes a lost
+// phone from.
+export type SessionSummary = {
+  createdAt: string
+  current: boolean
+  device: string
+  expiresAt: string
+  id: number
+  lastSeenAt: string
 }
 
 export class EmailTakenError extends Error {
@@ -130,27 +150,32 @@ export async function verifyPassword(password: string, row: CredentialRow): Prom
   return crypto.timingSafeEqual(candidate, stored)
 }
 
-export async function issueSession(userId: number, pool: PgPool = db()): Promise<Session> {
+export async function issueSession(
+  userId: number,
+  device = '',
+  pool: PgPool = db(),
+): Promise<Session> {
   const token = crypto.randomBytes(TOKEN_BYTES).toString('base64url')
   const expiresAt = new Date(Date.now() + sessionTtlDays() * 24 * 60 * 60 * 1000)
 
   const result = await pool.query<UserRow>(
     `
       WITH "new_session" AS (
-        INSERT INTO "account"."session" ("user_id", "token_hash", "expires_at")
-        VALUES ($1, $2, $3)
+        INSERT INTO "account"."session" ("user_id", "token_hash", "expires_at", "device")
+        VALUES ($1, $2, $3, $4)
         RETURNING "user_id"
       )
       SELECT ${userColumns()}
       FROM "account"."user_account"
       WHERE "id" = (SELECT "user_id" FROM "new_session")
     `,
-    [userId, hashToken(token), expiresAt.toISOString()],
+    [userId, hashToken(token), expiresAt.toISOString(), device.slice(0, MAX_DEVICE_LENGTH)],
   )
 
   return {
     cookie: sessionCookie(token, expiresAt),
     expiresAt: expiresAt.toISOString(),
+    token,
     user: toUser(result.rows[0]),
   }
 }
@@ -163,33 +188,123 @@ export async function authenticateRequest(
   request: Request,
   pool: PgPool = db(),
 ): Promise<null | User> {
-  const token = readCookie(request.headers.get('cookie'), SESSION_COOKIE)
+  const token = sessionTokenOf(request)
   if (!token) return null
 
   // One statement: it touches the session (last_seen_at, which is what tells
   // an admin a login is still in use) and reads the account behind it. An
-  // expired row is simply not matched, so an old cookie reads as no session
+  // expired row is simply not matched, so an old token reads as no session
   // rather than as a session belonging to nobody.
+  //
+  // It also **slides** the expiry, and that is free: this UPDATE was already
+  // happening on every authenticated request, so moving a second column in the
+  // same SET costs nothing. Without it a session ends a fixed thirty days after
+  // it was issued however much it is used, which on a phone is a login screen
+  // every month for no reason anybody can see.
+  //
+  // LEAST caps it against the row's own birthday. A session that renewed itself
+  // for ever would mean a token taken silently is good for ever, as long as
+  // whoever took it keeps using it — so the sliding window can carry a session
+  // a long way, but not past the absolute one.
   const result = await pool.query<UserRow>(
     `
       UPDATE "account"."session" AS "s"
-      SET "last_seen_at" = now()
+      SET "last_seen_at" = now(),
+          "expires_at" = LEAST(
+            now() + ($2 || ' days')::interval,
+            "s"."created_at" + ($3 || ' days')::interval
+          )
       FROM "account"."user_account" AS "a"
       WHERE "s"."token_hash" = $1 AND "s"."expires_at" > now() AND "a"."id" = "s"."user_id"
       RETURNING ${userColumns('a')}
     `,
-    [hashToken(token)],
+    [hashToken(token), String(sessionTtlDays()), String(sessionAbsoluteTtlDays())],
   )
 
   const row = result.rows[0]
   return row ? toUser(row) : null
 }
 
+// The token, however this caller carries it.
+//
+// A browser sends the cookie, which it cannot be talked out of and which no
+// script on the page can read. A native client has no cookie jar worth relying
+// on and sends `Authorization: Bearer`. One session store either way — the same
+// row, the same hash, the same expiry — so revoking, disabling an account and
+// changing a password all reach both without knowing there are two.
+//
+// The header wins when both are present. A client that has been given a token
+// means to use it; a stale cookie from the same host should not quietly
+// authenticate as somebody else.
+export function sessionTokenOf(request: Request): null | string {
+  const authorization = request.headers.get('authorization') ?? ''
+  const bearer = /^Bearer[ \t]+(\S+)$/i.exec(authorization)
+
+  return bearer ? bearer[1] : readCookie(request.headers.get('cookie'), SESSION_COOKIE)
+}
+
 export async function revokeSession(request: Request, pool: PgPool = db()): Promise<void> {
-  const token = readCookie(request.headers.get('cookie'), SESSION_COOKIE)
+  const token = sessionTokenOf(request)
   if (!token) return
 
   await pool.query(`DELETE FROM "account"."session" WHERE "token_hash" = $1`, [hashToken(token)])
+}
+
+// Where this account is signed in, newest first, with the session asking
+// marked. Expired rows are left out rather than shown as dead: the question
+// this answers is "what is open right now", and a list of things that already
+// closed is noise in front of the one row somebody came here to revoke.
+export async function listSessions(
+  request: Request,
+  userId: number,
+  pool: PgPool = db(),
+): Promise<SessionSummary[]> {
+  const token = sessionTokenOf(request)
+
+  const result = await pool.query<{
+    created_at: Date | string
+    current: boolean
+    device: string
+    expires_at: Date | string
+    id: string
+    last_seen_at: Date | string
+  }>(
+    `
+      SELECT "id", "device", "created_at", "last_seen_at", "expires_at",
+             ("token_hash" = $2) AS "current"
+      FROM "account"."session"
+      WHERE "user_id" = $1 AND "expires_at" > now()
+      ORDER BY "last_seen_at" DESC
+    `,
+    [userId, token ? hashToken(token) : ''],
+  )
+
+  return result.rows.map((row) => ({
+    createdAt: toIso(row.created_at),
+    current: row.current,
+    device: row.device,
+    expiresAt: toIso(row.expires_at),
+    id: Number(row.id),
+    lastSeenAt: toIso(row.last_seen_at),
+  }))
+}
+
+// Scoped by user as well as by id, which is the whole safety of this route: an
+// id from somewhere else must not end somebody else's session, and a number is
+// easy to guess. False when it matched nothing, which the route answers 404 —
+// the same answer a session that never existed gets, so the two cannot be told
+// apart by trying.
+export async function revokeSessionById(
+  userId: number,
+  sessionId: number,
+  pool: PgPool = db(),
+): Promise<boolean> {
+  const result = await pool.query(
+    `DELETE FROM "account"."session" WHERE "user_id" = $1 AND "id" = $2`,
+    [userId, sessionId],
+  )
+
+  return (result.rowCount ?? 0) > 0
 }
 
 // Called when a password changes or an account is disabled. Signing in again
@@ -349,12 +464,26 @@ export function readCookie(header: null | string, name: string): null | string {
   return null
 }
 
+// How far a session can be carried from the day it was issued, however much it
+// is used. The sliding window above renews a session on every request; this is
+// what stops that meaning "for ever" — a year, which for somebody using the app
+// daily is one password prompt a year.
+function sessionAbsoluteTtlDays(): number {
+  return positiveIntEnv(process.env.SESSION_ABSOLUTE_TTL_DAYS, 365)
+}
+
 function sessionTtlDays(): number {
-  const raw = process.env.SESSION_TTL_DAYS
-  if (raw === undefined || raw.trim() === '') return 30
+  return positiveIntEnv(process.env.SESSION_TTL_DAYS, 30)
+}
+
+// Unset, blank and nonsense all mean the default. A session length read as NaN
+// would be a session that expires in the past, which is every login failing
+// with nothing to say why.
+function positiveIntEnv(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw.trim() === '') return fallback
 
   const parsed = Number(raw)
-  if (!Number.isInteger(parsed) || parsed <= 0) return 30
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback
   return parsed
 }
 
@@ -403,5 +532,9 @@ function toUser(row: UserRow): User {
 }
 
 function toIsoString(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
+}
+
+function toIso(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
 }

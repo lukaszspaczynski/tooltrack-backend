@@ -20,6 +20,7 @@ import {
   LOGIN_SCHEMA,
   PASSWORD_CHANGE_SCHEMA,
   REGISTER_SCHEMA,
+  TOKEN_SCHEMA,
 } from '../server/routes/auth-input'
 import { BRAND_CREATE_SCHEMA, BRAND_PATCH_SCHEMA, LOGO_SCHEMA } from '../server/routes/brands-input'
 import {
@@ -86,6 +87,7 @@ export const REQUEST_SCHEMAS: Record<string, ZodType> = {
   RegisterBody: REGISTER_SCHEMA,
   SearchEngineBody: GLOBAL_ENGINE_SCHEMA,
   SearchEngineMineBody: USER_ENGINE_SCHEMA,
+  TokenBody: TOKEN_SCHEMA,
   ToolCreateBody: TOOL_CREATE_SCHEMA,
   ToolIdsBody: TOOL_IDS_SCHEMA,
   ToolPatchBody: TOOL_PATCH_SCHEMA,

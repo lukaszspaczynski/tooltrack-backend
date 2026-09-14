@@ -698,6 +698,39 @@ the one thing that can quietly break this engine.
 `npm run lint` is `typecheck` plus `openapi:check`, so a committed document
 that no longer matches the code fails before anyone generates a client from it.
 
+## Two doors, one session
+
+A session is a row in `account.session`: an opaque token, stored only as its
+SHA-256, with an expiry. There are two ways to present it and they are not two
+systems.
+
+- **The cookie**, set by `POST /api/auth/login`. `httpOnly`, so no script on
+  the page can read it — which is why `login` deliberately does not answer with
+  the token as well. A token in a response body is a token an XSS can take.
+- **`Authorization: Bearer`**, from `POST /api/auth/token`, which answers with
+  the token and sets no cookie. For a client with no page and no cookie jar
+  worth depending on, which is what a native app is.
+
+`sessionTokenOf` is where the two meet, and the header wins when both are
+present: a client that has been given a token means to use it, and a stale
+cookie from the same host should not quietly authenticate as somebody else.
+Everything downstream — the guard, revoking, disabling an account, changing a
+password — sees one session and does not know there are two doors.
+
+Both doors share the login throttle, on purpose. A limit guarding one of two
+ways into the same house is one a caller walks around.
+
+The expiry **slides**: `authenticateRequest` pushes it out on every request, in
+the same `UPDATE` that was already writing `last_seen_at`, so it costs nothing.
+`LEAST` caps it against `created_at + SESSION_ABSOLUTE_TTL_DAYS`, because a
+session that renewed itself for ever would mean a token taken silently is good
+for ever as long as whoever took it keeps using it.
+
+`GET /api/auth/sessions` and `DELETE /api/auth/sessions/:id` are what make a
+lost phone recoverable without changing a password, which revokes everything
+including the browser. The `device` label is the client's own string, shown on
+that list and **never** read while authenticating.
+
 ## Guessing at a password
 
 `login-throttle.ts` counts failed sign-ins, per e-mail and per address, and is

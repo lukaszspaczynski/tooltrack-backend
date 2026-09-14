@@ -97,6 +97,51 @@ optional and defaults to the part before the `@`. `409` if the email is taken.
 password, an unknown account and a disabled account alike — one answer, so the
 form cannot be used to find out which addresses have an account.
 
+Failures are counted per address and per e-mail. Over either limit the answer
+is `429` with `Retry-After`, before the password is looked at, and the same
+`429` whether or not an account by that name exists.
+
+### `POST /api/auth/token`
+
+```json
+{ "email": "ola@example.com", "password": "sekret1234", "device": "Pixel 8 — Ola" }
+```
+
+The same door as `login`, for a client with no cookie jar worth relying on — a
+native app. It answers with the token itself and **sets no cookie**:
+
+```json
+{ "token": "…", "expiresAt": "2026-10-14T18:22:41.000Z", "user": {}, "capabilities": [] }
+```
+
+Send it back as `Authorization: Bearer <token>` on every call. The header wins
+over a cookie when both are present.
+
+Two doors, one session: the same row in `account.session`, the same expiry, the
+same revocation. Which means `login` deliberately does **not** answer with a
+token — a token in a response body is one any script on the page can read, and
+that is exactly what the `HttpOnly` cookie exists to prevent. A browser has a
+page and scripts on it; a native client has neither.
+
+`device` is optional, free text, and a label only. It is what the session list
+below shows and it is never read while authenticating.
+
+Same `401`, same `429`, same counter as `login`: a throttle guarding one of two
+doors into the same house is one somebody walks around.
+
+### `GET /api/auth/sessions`
+
+`200 { sessions: [{ id, device, createdAt, lastSeenAt, expiresAt, current }] }` —
+where this account is signed in, newest use first, with the session asking
+marked `current`. This account's own only; expired rows are left out.
+
+### `DELETE /api/auth/sessions/:id`
+
+`204`, or `404` when the session is not this account's — the same answer as one
+that never existed, so other people's ids cannot be found by trying. Revoking
+the session making the request is allowed: the answer goes out and the next
+call with that token is a `401`, which is logging out the long way round.
+
 ### `PATCH /api/auth/language`
 
 `{ "language": "en" }` — which language this account reads the interface in,

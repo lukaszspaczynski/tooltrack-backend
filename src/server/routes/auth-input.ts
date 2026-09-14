@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 
+import { MAX_DEVICE_LENGTH } from './auth-store'
 import { NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 import { isLang, LANGS, t, type Lang } from '../i18n'
 
@@ -82,6 +83,14 @@ export const LOGIN_SCHEMA = z
   )
   .strip()
 
+// The same credentials, plus what to call the session on the list somebody
+// revokes a lost phone from. The label is optional and free text: a client that
+// says nothing shows as an unnamed session, which is worse to read and not
+// worth refusing a login over.
+export const TOKEN_SCHEMA = LOGIN_SCHEMA.extend({
+  device: z.string().trim().max(MAX_DEVICE_LENGTH).optional(),
+})
+
 export const PASSWORD_CHANGE_SCHEMA = z
   .object(
     {
@@ -120,6 +129,16 @@ export function parseRegisterInput(body: unknown): Parsed<RegisterInput> {
     email: parsed.value.email,
     password: parsed.value.password,
   })
+}
+
+export function parseTokenInput(body: unknown): Parsed<LoginInput & { device: string }> {
+  const parsed = parseWith(TOKEN_SCHEMA, body)
+
+  // One message whatever was missing, exactly as at sign-in: this is the same
+  // door with a different handle, and it must not say more about a failure.
+  if (!parsed.ok) return { error: 'Email and password are required', ok: false }
+
+  return valid({ ...parsed.value, device: parsed.value.device ?? '' })
 }
 
 export function parseLoginInput(body: unknown): Parsed<LoginInput> {
