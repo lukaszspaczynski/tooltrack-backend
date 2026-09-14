@@ -17,8 +17,10 @@
 
 import { writeFileSync, readFileSync } from 'node:fs'
 import { createGenerator } from 'ts-json-schema-generator'
+import { z } from 'zod'
 
 import { buildDocument } from '../src/openapi/document'
+import { REQUEST_SCHEMAS } from '../src/openapi/request-schemas'
 import { HAND_WRITTEN_SCHEMAS } from '../src/openapi/schemas'
 import type { Schema } from '../src/openapi/types'
 
@@ -109,7 +111,28 @@ function stripDraftKeywords(schema: Schema): Schema {
   ) as Schema
 }
 
-const document = buildDocument({ ...generateEntitySchemas(), ...HAND_WRITTEN_SCHEMAS })
+// The request bodies, converted from the Zod schemas that enforce them.
+//
+// `io: 'input'` rather than the default: what a client may send is the input
+// side of a schema, and several of these transform on the way through — a
+// measurement arrives as "4,5" and leaves as 4.5, and a contract describing the
+// second would be describing what the server holds rather than what to send.
+function requestSchemas(): Record<string, Schema> {
+  return Object.fromEntries(
+    Object.entries(REQUEST_SCHEMAS).map(([name, schema]) => {
+      const generated = z.toJSONSchema(schema, { io: 'input' }) as Record<string, unknown>
+      delete generated.$schema
+
+      return [name, generated as Schema]
+    }),
+  )
+}
+
+const document = buildDocument({
+  ...generateEntitySchemas(),
+  ...HAND_WRITTEN_SCHEMAS,
+  ...requestSchemas(),
+})
 const serialised = `${JSON.stringify(document, null, 2)}\n`
 
 if (process.argv.includes('--check')) {

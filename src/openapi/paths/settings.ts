@@ -63,22 +63,7 @@ export const SETTINGS_OPERATIONS: OperationSpec[] = [
         schema: { enum: SEARCH_PROVIDERS, type: 'string' },
       },
     },
-    requestBody: jsonBody({
-      additionalProperties: false,
-      minProperties: 1,
-      properties: {
-        apiKey: { type: 'string' },
-        apiSecret: { type: 'string' },
-        enabled: { type: 'boolean' },
-        resultLimit: {
-          description:
-            'Refused past this server’s ceiling; quietly lowered to the provider’s own where that is smaller. One is somebody typing nonsense, the other is Google not answering with more than ten however politely it is asked.',
-          minimum: 1,
-          type: 'integer',
-        },
-      },
-      type: 'object',
-    }),
+    requestBody: jsonBody(ref('SearchEngineBody')),
     responses: {
       200: ENGINES,
       404: jsonResponse('No engine by that name.', ref('Error')),
@@ -98,7 +83,7 @@ export const SETTINGS_OPERATIONS: OperationSpec[] = [
         schema: { enum: SEARCH_PROVIDERS, type: 'string' },
       },
     },
-    requestBody: jsonBody(object({ enabled: { type: 'boolean' } })),
+    requestBody: jsonBody(ref('SearchEngineMineBody')),
     responses: {
       200: ENGINES,
       404: jsonResponse('No engine by that name.', ref('Error')),
@@ -121,7 +106,7 @@ export const SETTINGS_OPERATIONS: OperationSpec[] = [
     description:
       'The one setting that is not a method: the local method’s threshold, which the cutout screen offers as a starting point. Summed over the three channels, so 765 is pure white.',
     operationId: 'updateCutoutThreshold',
-    requestBody: jsonBody(object({ threshold: { maximum: 765, minimum: 1, type: 'integer' } })),
+    requestBody: jsonBody(ref('CutoutThresholdBody')),
     responses: { 200: CUTOUT, ...errors(400, 401, 403, 503) },
     route: 'PATCH /api/settings/cutout',
     summary: 'Set the local method’s threshold',
@@ -134,12 +119,7 @@ export const SETTINGS_OPERATIONS: OperationSpec[] = [
     pathParams: {
       method: { description: 'Which method.', schema: { enum: CUTOUT_METHODS, type: 'string' } },
     },
-    requestBody: jsonBody({
-      additionalProperties: false,
-      minProperties: 1,
-      properties: { apiKey: { type: 'string' }, enabled: { type: 'boolean' } },
-      type: 'object',
-    }),
+    requestBody: jsonBody(ref('CutoutMethodBody')),
     responses: {
       200: CUTOUT,
       400: jsonResponse(

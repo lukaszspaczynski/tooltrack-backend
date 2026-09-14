@@ -1,6 +1,8 @@
 // Brand bodies and list query strings. Pure; see input.ts.
 
-import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
+import { z } from 'zod'
+
+import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 
 export const MAX_NAME_LENGTH = 120
 export const MAX_NOTES_LENGTH = 4000
@@ -25,61 +27,6 @@ export type BrandQuery = {
   sort: 'name' | 'tools'
 }
 
-export function parseBrandCreate(body: unknown): Parsed<BrandFields> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
-
-  const name = trimmedString(body.name) ?? ''
-  if (!name) return invalid('name is required')
-  if (name.length > MAX_NAME_LENGTH) {
-    return invalid(`name must be at most ${MAX_NAME_LENGTH} characters`)
-  }
-
-  const notes = trimmedString(body.notes ?? '')
-  if (notes === null) return invalid('notes must be a string')
-  if (notes.length > MAX_NOTES_LENGTH) {
-    return invalid(`notes must be at most ${MAX_NOTES_LENGTH} characters`)
-  }
-
-  const color = parseColor(body.color ?? '')
-  if (color === null) return invalid(COLOR_ERROR)
-
-  return valid({ color, name, notes })
-}
-
-export function parseBrandPatch(body: unknown): Parsed<BrandPatch> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
-
-  const patch: BrandPatch = {}
-
-  if ('name' in body) {
-    const name = trimmedString(body.name)
-    if (!name) return invalid('name must be a non-empty string')
-    if (name.length > MAX_NAME_LENGTH) {
-      return invalid(`name must be at most ${MAX_NAME_LENGTH} characters`)
-    }
-    patch.name = name
-  }
-
-  if ('notes' in body) {
-    const notes = trimmedString(body.notes)
-    if (notes === null) return invalid('notes must be a string')
-    if (notes.length > MAX_NOTES_LENGTH) {
-      return invalid(`notes must be at most ${MAX_NOTES_LENGTH} characters`)
-    }
-    patch.notes = notes
-  }
-
-  if ('color' in body) {
-    const color = parseColor(body.color)
-    if (color === null) return invalid(COLOR_ERROR)
-    patch.color = color
-  }
-
-  if (Object.keys(patch).length === 0) return invalid('No editable fields in request body')
-
-  return valid(patch)
-}
-
 const COLOR_ERROR = 'color must be #rrggbb, "r g b", or empty'
 
 // One colour, two spellings accepted. A leading colour is read off a logo or a
@@ -87,8 +34,8 @@ const COLOR_ERROR = 'color must be #rrggbb, "r g b", or empty'
 // arrive here and one form is stored, so a search or a comparison cannot miss
 // because somebody wrote the same colour differently.
 //
-// Null means "not a colour", which the caller turns into a 400. An empty
-// string is a colour nobody has said, and is allowed.
+// Null means "not a colour", which the schema turns into a 400. An empty string
+// is a colour nobody has said, and is allowed.
 export function parseColor(raw: unknown): null | string {
   if (raw === null || raw === undefined) return ''
 
@@ -118,21 +65,84 @@ export function parseColor(raw: unknown): null | string {
   return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
 }
 
+// The two spellings are both strings on the wire, so that is what the contract
+// says; which of them this is gets decided by the transform, not by the type.
+const COLOR = z
+  .string()
+  .nullable()
+  .transform((raw) => parseColor(raw))
+  .refine((value): value is string => value !== null, { error: () => COLOR_ERROR })
+
+const NAME = z
+  .string({ error: () => 'name must be a non-empty string' })
+  .trim()
+  .min(1, { error: () => 'name must be a non-empty string' })
+  .max(MAX_NAME_LENGTH, { error: () => `name must be at most ${MAX_NAME_LENGTH} characters` })
+
+const NOTES = z
+  .string({ error: () => 'notes must be a string' })
+  .trim()
+  .max(MAX_NOTES_LENGTH, { error: () => `notes must be at most ${MAX_NOTES_LENGTH} characters` })
+
+export const BRAND_PATCH_SCHEMA = z
+  .object(
+    { color: COLOR.optional(), name: NAME.optional(), notes: NOTES.optional() },
+    NOT_AN_OBJECT,
+  )
+  .strip()
+
+export const BRAND_CREATE_SCHEMA = z
+  .object({ color: COLOR.optional(), name: NAME, notes: NOTES.optional() }, NOT_AN_OBJECT)
+  .strip()
+
 // The logo is a picture that already exists — the same library everything else
 // draws from, so a logo can be uploaded, searched for or cut out like anything
-// else before it is pointed at here.
-export function parseLogo(body: unknown): Parsed<number> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+// else before it is pointed at here. A form sends "12", so a string is taken.
+export const LOGO_SCHEMA = z
+  .object(
+    {
+      photoId: z
+        .union([z.number(), z.string()])
+        .transform((raw) => (typeof raw === 'string' ? Number(raw.trim()) : raw))
+        .refine((value) => Number.isSafeInteger(value) && value > 0, {
+          error: () => 'photoId must be the id of a photo',
+        }),
+    },
+    NOT_AN_OBJECT,
+  )
+  .strip()
 
-  const raw = body.photoId
-  const value = typeof raw === 'string' ? Number(raw.trim()) : raw
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) {
-    return invalid('photoId must be the id of a photo')
-  }
+export function parseBrandCreate(body: unknown): Parsed<BrandFields> {
+  const parsed = parseWith(BRAND_CREATE_SCHEMA, body)
+  if (!parsed.ok) return parsed
 
-  return valid(value)
+  return valid({
+    color: parsed.value.color ?? '',
+    name: parsed.value.name,
+    notes: parsed.value.notes ?? '',
+  })
 }
 
+export function parseBrandPatch(body: unknown): Parsed<BrandPatch> {
+  const parsed = parseWith(BRAND_PATCH_SCHEMA, body)
+  if (!parsed.ok) return parsed
+
+  if (Object.keys(parsed.value).length === 0) {
+    return invalid('No editable fields in request body')
+  }
+
+  return parsed
+}
+
+export function parseLogo(body: unknown): Parsed<number> {
+  const parsed = parseWith(LOGO_SCHEMA, body)
+
+  return parsed.ok ? valid(parsed.value.photoId) : parsed
+}
+
+// A bad value in the query string is clamped or dropped rather than refused:
+// a pasted link should still show the shelf. That is why this is not a schema —
+// Zod refuses, and what this wants is to forgive.
 export function parseBrandQuery(params: URLSearchParams): Parsed<BrandQuery> {
   return valid({
     direction: params.get('order')?.trim().toLowerCase() === 'desc' ? 'desc' : 'asc',

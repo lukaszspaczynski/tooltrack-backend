@@ -46,16 +46,10 @@ export const USER_OPERATIONS: OperationSpec[] = [
       'The display name, the role and the status. Only the fields present are touched, and a body with none of them is a 400.',
     operationId: 'updateUser',
     pathParams: { id: 'The account to edit.' },
-    requestBody: jsonBody({
-      additionalProperties: false,
-      minProperties: 1,
-      properties: {
-        displayName: { maxLength: 100, type: 'string' },
-        role: ref('Role'),
-        status: ref('AccountStatus'),
-      },
-      type: 'object',
-    }),
+    requestBody: jsonBody(
+      ref('UserPatchBody'),
+      'The fields to change, and only those. At least one.',
+    ),
     responses: {
       200: jsonResponse(
         'The account as it now stands.',

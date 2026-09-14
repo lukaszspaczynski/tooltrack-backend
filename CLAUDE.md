@@ -644,7 +644,11 @@ the one thing that can quietly break this engine.
 
 1. Write the handler in `src/server/routes/`, and its SQL in the matching
    `*-store.ts`. Parse the body in a `*-input.ts` function so the rules can be
-   tested on their own.
+   tested on their own — as an exported **Zod schema** plus a thin
+   `parseWith()` wrapper, because the contract's request schema is generated
+   from that object. A rule written as an `if` is a rule the document cannot
+   see. Query strings stay hand-written: they clamp rather than refuse, and a
+   schema cannot express forgiveness.
 2. Add the path to `matchRoute` in `index.ts` and to the `ROUTES` list in
    `src/server/route-list.ts`.
 3. Add it to `RULES` in `src/access/route-policy.ts`. Skipping this makes the

@@ -81,27 +81,6 @@ const LINKS_SCHEMA: Schema = {
     'Either one `url`, or `items` picked from the suggestions. A link sent as `items` is recorded as having come from a search and one sent as `url` as a paste, because the card says which.',
 }
 
-const CUTOUT_RUN_BODY = jsonBody(
-  {
-    additionalProperties: false,
-    description:
-      'Overrides for this run only. Everything is optional, and an empty body — or none at all — uses the settings an admin configured.',
-    properties: {
-      method: { enum: CUTOUT_METHODS, type: 'string' },
-      padding: { maximum: 200, minimum: 0, type: 'integer' },
-      removeBgType: { enum: ['auto', 'product'], type: 'string' },
-      threshold: {
-        description: 'How light counts as background, summed over the three channels.',
-        maximum: 765,
-        minimum: 1,
-        type: 'integer',
-      },
-    },
-    type: 'object',
-  },
-  'Optional. Omit it entirely to use the configured settings.',
-)
-
 type Family = {
   // 'tools' or 'cases', as the path spells it.
   owner: string
@@ -194,16 +173,7 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
         'The way out of the library’s unassigned shelf, and the other half of being able to upload a picture before deciding what it is. A photograph that belongs to nothing is moved onto this card, keeping its id; one that already belongs elsewhere is copied, which costs a row rather than a second file.\n\nNothing attached at all is a 409 — some of them failing is normal and reported per photograph.',
       operationId: `attach${suffix}Photos`,
       pathParams: id,
-      requestBody: jsonBody(
-        object({
-          photoIds: {
-            items: { minimum: 1, type: 'integer' },
-            maxItems: 200,
-            minItems: 1,
-            type: 'array',
-          },
-        }),
-      ),
+      requestBody: jsonBody(ref('PhotoAttachBody')),
       responses: {
         201: jsonResponse(
           'At least one was attached.',
@@ -292,7 +262,10 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
         'Runs the cutout and hands back somewhere to look at it, without writing a photograph. The result goes into a cache that expires on its own, and `preview.checksum` is what `…/cutout/commit` takes to keep it.',
       operationId: `preview${suffix}Cutout`,
       pathParams: onPhoto,
-      requestBody: CUTOUT_RUN_BODY,
+      requestBody: jsonBody(
+        ref('CutoutRunBody'),
+        'Optional. Omit it entirely to use the configured settings.',
+      ),
       responses: {
         200: jsonResponse(
           'The cutout, cached rather than stored.',
@@ -342,7 +315,7 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
       operationId: `commit${suffix}Cutout`,
       pathParams: onPhoto,
       requestBody: jsonBody(
-        object({ checksum: { pattern: '^[0-9a-f]{64}$', type: 'string' } }),
+        ref('CutoutCommitBody'),
         'The checksum of a preview this server produced. Nothing else — naming the bytes by content is what makes a save unable to invent a photograph that was never previewed.',
       ),
       responses: {
@@ -476,16 +449,7 @@ const LIBRARY_OPERATIONS: OperationSpec[] = [
     description:
       'The library’s bin: deletes outright, from every card at once. A cap of two hundred keeps one mis-click from taking the whole library and keeps the transaction short.\n\n`deleted` can be lower than `requested` — somebody else may have removed a photograph between the screen loading and the button being pressed, and the client shows what actually happened rather than what was asked for. `promoted` names the cards that now show a different main picture.',
     operationId: 'deleteLibraryPhotos',
-    requestBody: jsonBody(
-      object({
-        ids: {
-          items: { minimum: 1, type: 'integer' },
-          maxItems: 200,
-          minItems: 1,
-          type: 'array',
-        },
-      }),
-    ),
+    requestBody: jsonBody(ref('PhotoDeleteBody')),
     responses: {
       200: jsonResponse(
         'What was actually removed.',

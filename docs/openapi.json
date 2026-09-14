@@ -2100,6 +2100,813 @@
           "user"
         ],
         "type": "object"
+      },
+      "AttributeCreateBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ]
+      },
+      "AttributePatchBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      },
+      "BrandCreateBody": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "BrandLogoBody": {
+        "type": "object",
+        "properties": {
+          "photoId": {
+            "type": [
+              "number",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "photoId"
+        ]
+      },
+      "BrandPatchBody": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        }
+      },
+      "CaseCreateBody": {
+        "type": "object",
+        "properties": {
+          "capacityL": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "diagonalMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "ean": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "innerHeightMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "innerLengthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "innerWidthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "loadKg": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "manufacturer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "outerHeightMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "outerLengthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "outerWidthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "sku": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "system": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "manufacturer",
+          "name"
+        ]
+      },
+      "CaseLabelSlotBody": {
+        "type": "object",
+        "properties": {
+          "heightMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "widthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "heightMm",
+          "widthMm"
+        ]
+      },
+      "CasePatchBody": {
+        "type": "object",
+        "properties": {
+          "capacityL": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "diagonalMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "ean": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "innerHeightMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "innerLengthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "innerWidthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "loadKg": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "manufacturer": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "outerHeightMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "outerLengthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "outerWidthMm": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "sku": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "system": {
+            "type": "string",
+            "maxLength": 120
+          }
+        }
+      },
+      "CutoutCommitBody": {
+        "type": "object",
+        "properties": {
+          "checksum": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "checksum"
+        ]
+      },
+      "CutoutMethodBody": {
+        "type": "object",
+        "properties": {
+          "apiKey": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CutoutRunBody": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "local",
+              "removebg",
+              "gemini"
+            ]
+          },
+          "padding": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 200
+          },
+          "removeBgType": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "product"
+            ]
+          },
+          "threshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 765
+          }
+        }
+      },
+      "CutoutThresholdBody": {
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 765
+          }
+        },
+        "required": [
+          "threshold"
+        ]
+      },
+      "ImportUrlBody": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "LabelIdsBody": {
+        "type": "object",
+        "properties": {
+          "labelIds": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "labelIds"
+        ]
+      },
+      "LabelRequestBody": {
+        "type": "object",
+        "properties": {
+          "namesSource": {
+            "type": "string"
+          },
+          "namesText": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "photoIds": {
+            "maxItems": 6,
+            "type": "array",
+            "items": {}
+          },
+          "printReady": {
+            "type": "boolean"
+          },
+          "slotId": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "number",
+              "contents"
+            ]
+          },
+          "titleText": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "withLogos": {
+            "type": "boolean"
+          },
+          "withNames": {
+            "type": "boolean"
+          },
+          "withTitle": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "slotId",
+          "template"
+        ]
+      },
+      "LanguageBody": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "enum": [
+              "pl",
+              "en"
+            ]
+          }
+        },
+        "required": [
+          "language"
+        ]
+      },
+      "LoginBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "ManualIdsBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "ManualTitleBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "ManualUrlBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "OrganizerCreateBody": {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "number": {
+            "type": [
+              "number",
+              "string",
+              "null"
+            ]
+          },
+          "toolIds": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "caseId",
+          "name"
+        ]
+      },
+      "OrganizerPatchBody": {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "number": {
+            "type": [
+              "number",
+              "string"
+            ]
+          }
+        }
+      },
+      "PasswordChangeBody": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "PhotoAttachBody": {
+        "type": "object",
+        "properties": {
+          "photoIds": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "photoIds"
+        ]
+      },
+      "PhotoDeleteBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "RegisterBody": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 320,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "SearchEngineBody": {
+        "type": "object",
+        "properties": {
+          "apiKey": {
+            "type": "string"
+          },
+          "apiSecret": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "resultLimit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        }
+      },
+      "SearchEngineMineBody": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
+      "ToolCreateBody": {
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "new",
+              "good",
+              "worn",
+              "needs_repair",
+              "retired"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "serialNumber": {
+            "type": "string",
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ToolIdsBody": {
+        "type": "object",
+        "properties": {
+          "toolIds": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "toolIds"
+        ]
+      },
+      "ToolPatchBody": {
+        "type": "object",
+        "properties": {
+          "brand": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "condition": {
+            "type": "string",
+            "enum": [
+              "new",
+              "good",
+              "worn",
+              "needs_repair",
+              "retired"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "serialNumber": {
+            "type": "string",
+            "maxLength": 120
+          }
+        }
+      },
+      "UserPatchBody": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "viewer",
+              "editor",
+              "admin"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -2145,16 +2952,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "language": {
-                    "$ref": "#/components/schemas/Lang"
-                  }
-                },
-                "required": [
-                  "language"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/LanguageBody"
               }
             }
           },
@@ -2223,25 +3021,8 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "example": {
-                "email": "ola@example.com",
-                "password": "sekret1234"
-              },
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "email": {
-                    "type": "string"
-                  },
-                  "password": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/LoginBody"
               }
             }
           },
@@ -2429,22 +3210,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "currentPassword": {
-                    "type": "string"
-                  },
-                  "newPassword": {
-                    "maxLength": 200,
-                    "minLength": 8,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "currentPassword",
-                  "newPassword"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/PasswordChangeBody"
               }
             }
           },
@@ -2509,33 +3275,8 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "example": {
-                "displayName": "Ola",
-                "email": "ola@example.com",
-                "password": "sekret1234"
-              },
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "displayName": {
-                    "maxLength": 100,
-                    "type": "string"
-                  },
-                  "email": {
-                    "format": "email",
-                    "type": "string"
-                  },
-                  "password": {
-                    "maxLength": 200,
-                    "minLength": 8,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "email",
-                  "password"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/RegisterBody"
               }
             }
           },
@@ -2703,30 +3444,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "color": {
-                    "description": "Accepted as `#rrggbb`, as `\"18 36 71\"`, `\"18,36,71\"` or `\"rgb(18, 36, 71)\"`. Always stored and returned as lowercase `#rrggbb`. An empty string is a maker whose colour nobody has said, and is allowed.",
-                    "examples": [
-                      "#123447",
-                      "18 36 71"
-                    ],
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 120,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "notes": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/BrandCreateBody"
               }
             }
           },
@@ -2894,32 +3612,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "color": {
-                    "description": "Accepted as `#rrggbb`, as `\"18 36 71\"`, `\"18,36,71\"` or `\"rgb(18, 36, 71)\"`. Always stored and returned as lowercase `#rrggbb`. An empty string is a maker whose colour nobody has said, and is allowed.",
-                    "examples": [
-                      "#123447",
-                      "18 36 71"
-                    ],
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 120,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "notes": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  }
-                },
-                "required": [],
-                "type": "object",
-                "minProperties": 1
+                "$ref": "#/components/schemas/BrandPatchBody"
               }
             }
           },
+          "description": "The fields to change, and only those. At least one.",
           "required": true
         },
         "responses": {
@@ -3088,17 +3785,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "photoId": {
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "photoId"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/BrandLogoBody"
               }
             }
           },
@@ -3397,185 +4084,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "capacityL": {
-                    "anyOf": [
-                      {
-                        "exclusiveMinimum": 0,
-                        "maximum": 10000,
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Litres, to two decimals, or `null` for unmeasured."
-                  },
-                  "diagonalMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "ean": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "innerHeightMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "innerLengthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "innerWidthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "loadKg": {
-                    "anyOf": [
-                      {
-                        "exclusiveMinimum": 0,
-                        "maximum": 10000,
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Kilograms, to two decimals, or `null` for unmeasured."
-                  },
-                  "manufacturer": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "notes": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  },
-                  "outerHeightMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "outerLengthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "outerWidthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "sku": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "system": {
-                    "description": "The stacking system this box belongs to — \"L-BOXX\", \"Systainer\".",
-                    "maxLength": 120,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "manufacturer"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/CaseCreateBody"
               }
             }
           },
@@ -3733,187 +4242,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "capacityL": {
-                    "anyOf": [
-                      {
-                        "exclusiveMinimum": 0,
-                        "maximum": 10000,
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Litres, to two decimals, or `null` for unmeasured."
-                  },
-                  "diagonalMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "ean": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "innerHeightMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "innerLengthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "innerWidthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "loadKg": {
-                    "anyOf": [
-                      {
-                        "exclusiveMinimum": 0,
-                        "maximum": 10000,
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Kilograms, to two decimals, or `null` for unmeasured."
-                  },
-                  "manufacturer": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "notes": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  },
-                  "outerHeightMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "outerLengthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "outerWidthMm": {
-                    "anyOf": [
-                      {
-                        "maximum": 5000,
-                        "minimum": 1,
-                        "type": "integer"
-                      },
-                      {
-                        "type": "null"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "Whole millimetres, or `null` for unmeasured."
-                  },
-                  "sku": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "system": {
-                    "description": "The stacking system this box belongs to — \"L-BOXX\", \"Systainer\".",
-                    "maxLength": 120,
-                    "type": "string"
-                  }
-                },
-                "required": [],
-                "type": "object",
-                "minProperties": 1
+                "$ref": "#/components/schemas/CasePatchBody"
               }
             }
           },
-          "description": "The fields to change, and only those.",
+          "description": "The fields to change, and only those. At least one.",
           "required": true
         },
         "responses": {
@@ -4072,24 +4405,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "heightMm": {
-                    "maximum": 5000,
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  "widthMm": {
-                    "maximum": 5000,
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "heightMm",
-                  "widthMm"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/CaseLabelSlotBody"
               }
             }
           },
@@ -5062,17 +5378,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "checksum": {
-                    "pattern": "^[0-9a-f]{64}$",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "checksum"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/CutoutCommitBody"
               }
             }
           },
@@ -5181,37 +5487,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "description": "Overrides for this run only. Everything is optional, and an empty body — or none at all — uses the settings an admin configured.",
-                "properties": {
-                  "method": {
-                    "enum": [
-                      "local",
-                      "removebg",
-                      "gemini"
-                    ],
-                    "type": "string"
-                  },
-                  "padding": {
-                    "maximum": 200,
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  "removeBgType": {
-                    "enum": [
-                      "auto",
-                      "product"
-                    ],
-                    "type": "string"
-                  },
-                  "threshold": {
-                    "description": "How light counts as background, summed over the three channels.",
-                    "maximum": 765,
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/CutoutRunBody"
               }
             }
           },
@@ -5520,22 +5796,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "photoIds": {
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 200,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "photoIds"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/PhotoAttachBody"
               }
             }
           },
@@ -5867,21 +6128,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "ids": {
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "ids"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/LabelIdsBody"
               }
             }
           },
@@ -6173,19 +6420,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "title": {
-                    "description": "What a person reads in the list. Blank is refused rather than stored.",
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "title"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ManualTitleBody"
               }
             }
           },
@@ -6327,22 +6562,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "ids": {
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 50,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "ids"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ManualIdsBody"
               }
             }
           },
@@ -6452,16 +6672,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "enabled"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/SearchEngineMineBody"
               }
             }
           },
@@ -6712,46 +6923,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "caseId": {
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  "description": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "number": {
-                    "description": "Leave it out, or send null, for the next free number.",
-                    "maximum": 100000,
-                    "minimum": 1,
-                    "type": [
-                      "integer",
-                      "null"
-                    ]
-                  },
-                  "toolIds": {
-                    "description": "At most 200 at a time.",
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 200,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "caseId",
-                  "name"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/OrganizerCreateBody"
               }
             }
           },
@@ -6929,32 +7101,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "minProperties": 1,
-                "properties": {
-                  "caseId": {
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  "description": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "number": {
-                    "maximum": 100000,
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/OrganizerPatchBody"
               }
             }
           },
+          "description": "The fields to change, and only those.",
           "required": true
         },
         "responses": {
@@ -7208,66 +7359,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "description": "The slot and the artwork. Which options are read depends on `template`: `number` takes `withLogos`, `contents` takes the rest.",
-                "properties": {
-                  "namesSource": {
-                    "description": "Where the names under the rule come from. Normalised on the way in.",
-                    "type": "string"
-                  },
-                  "namesText": {
-                    "description": "Replaces the tool names. Empty means \"work it out from the catalog\".",
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "photoIds": {
-                    "description": "At most 6, and fewer on a small slot — how many fit is a fact about the shape, so it is checked once the slot is known. Too many is a 400 naming the number that fits.",
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 6,
-                    "type": "array"
-                  },
-                  "printReady": {
-                    "default": true,
-                    "description": "A margin and crop marks around the artwork. On by default: a label is made to be printed, and somebody who wants the bare artwork can say so.",
-                    "type": "boolean"
-                  },
-                  "slotId": {
-                    "description": "One of the slots from `GET /api/organizers/:id/label-slots`.",
-                    "minimum": 1,
-                    "type": "integer"
-                  },
-                  "template": {
-                    "enum": [
-                      "number",
-                      "contents"
-                    ],
-                    "type": "string"
-                  },
-                  "titleText": {
-                    "description": "Replaces the title over the rule. Empty means \"work it out\".",
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "withLogos": {
-                    "default": false,
-                    "type": "boolean"
-                  },
-                  "withNames": {
-                    "default": false,
-                    "type": "boolean"
-                  },
-                  "withTitle": {
-                    "default": false,
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "slotId",
-                  "template"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/LabelRequestBody"
               }
             }
           },
@@ -7595,22 +7687,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "labelIds": {
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 50,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "labelIds"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/LabelIdsBody"
               }
             }
           },
@@ -7729,23 +7806,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "toolIds": {
-                    "description": "At most 200 at a time.",
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 200,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "toolIds"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ToolIdsBody"
               }
             }
           },
@@ -8238,22 +8299,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "ids": {
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 200,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "ids"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/PhotoDeleteBody"
               }
             }
           },
@@ -8390,18 +8436,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "threshold": {
-                    "maximum": 765,
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "threshold"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/CutoutThresholdBody"
               }
             }
           },
@@ -8481,17 +8516,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "minProperties": 1,
-                "properties": {
-                  "apiKey": {
-                    "type": "string"
-                  },
-                  "enabled": {
-                    "type": "boolean"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/CutoutMethodBody"
               }
             }
           },
@@ -8659,25 +8684,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "minProperties": 1,
-                "properties": {
-                  "apiKey": {
-                    "type": "string"
-                  },
-                  "apiSecret": {
-                    "type": "string"
-                  },
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "resultLimit": {
-                    "description": "Refused past this server’s ceiling; quietly lowered to the provider’s own where that is smaller. One is somebody typing nonsense, the other is Google not answering with more than ten however politely it is asked.",
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/SearchEngineBody"
               }
             }
           },
@@ -8921,50 +8928,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "brand": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "category": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "condition": {
-                    "default": "good",
-                    "enum": [
-                      "new",
-                      "good",
-                      "worn",
-                      "needs_repair",
-                      "retired"
-                    ],
-                    "type": "string"
-                  },
-                  "model": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "notes": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  },
-                  "serialNumber": {
-                    "description": "Identifies one physical machine. Unique across the catalog when not blank.",
-                    "maxLength": 120,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ToolCreateBody"
               }
             }
           },
@@ -9133,53 +9097,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "brand": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "category": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "condition": {
-                    "default": "good",
-                    "enum": [
-                      "new",
-                      "good",
-                      "worn",
-                      "needs_repair",
-                      "retired"
-                    ],
-                    "type": "string"
-                  },
-                  "model": {
-                    "maxLength": 120,
-                    "type": "string"
-                  },
-                  "name": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "notes": {
-                    "maxLength": 4000,
-                    "type": "string"
-                  },
-                  "serialNumber": {
-                    "description": "Identifies one physical machine. Unique across the catalog when not blank.",
-                    "maxLength": 120,
-                    "type": "string"
-                  }
-                },
-                "required": [],
-                "type": "object",
-                "minProperties": 1
+                "$ref": "#/components/schemas/ToolPatchBody"
               }
             }
           },
-          "description": "The fields to change, and only those.",
+          "description": "The fields to change, and only those. At least one.",
           "required": true
         },
         "responses": {
@@ -9744,18 +9666,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "url": {
-                    "description": "A product page on one of the supported hosts.",
-                    "format": "uri",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "url"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ImportUrlBody"
               }
             }
           },
@@ -9936,24 +9847,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "title": {
-                    "description": "Optional. Taken from the page or the file name when absent.",
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "url": {
-                    "format": "uri",
-                    "maxLength": 2000,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "url"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ManualUrlBody"
               }
             },
             "application/octet-stream": {
@@ -10104,19 +9998,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "title": {
-                    "description": "What a person reads in the list. Blank is refused rather than stored.",
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "title"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ManualTitleBody"
               }
             }
           },
@@ -10288,22 +10170,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "ids": {
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 50,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "ids"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ManualIdsBody"
               }
             }
           },
@@ -10398,24 +10265,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "title": {
-                    "description": "Optional. Taken from the page or the file name when absent.",
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "url": {
-                    "format": "uri",
-                    "maxLength": 2000,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "url"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ManualUrlBody"
               }
             }
           },
@@ -11362,17 +11212,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "checksum": {
-                    "pattern": "^[0-9a-f]{64}$",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "checksum"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/CutoutCommitBody"
               }
             }
           },
@@ -11481,37 +11321,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "description": "Overrides for this run only. Everything is optional, and an empty body — or none at all — uses the settings an admin configured.",
-                "properties": {
-                  "method": {
-                    "enum": [
-                      "local",
-                      "removebg",
-                      "gemini"
-                    ],
-                    "type": "string"
-                  },
-                  "padding": {
-                    "maximum": 200,
-                    "minimum": 0,
-                    "type": "integer"
-                  },
-                  "removeBgType": {
-                    "enum": [
-                      "auto",
-                      "product"
-                    ],
-                    "type": "string"
-                  },
-                  "threshold": {
-                    "description": "How light counts as background, summed over the three channels.",
-                    "maximum": 765,
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/CutoutRunBody"
               }
             }
           },
@@ -11820,22 +11630,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "photoIds": {
-                    "items": {
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    "maxItems": 200,
-                    "minItems": 1,
-                    "type": "array"
-                  }
-                },
-                "required": [
-                  "photoIds"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/PhotoAttachBody"
               }
             }
           },
@@ -12104,18 +11899,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "url": {
-                    "description": "A product page on one of the supported hosts.",
-                    "format": "uri",
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "url"
-                ],
-                "type": "object"
+                "$ref": "#/components/schemas/ImportUrlBody"
               }
             }
           },
@@ -12342,24 +12126,11 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": false,
-                "minProperties": 1,
-                "properties": {
-                  "displayName": {
-                    "maxLength": 100,
-                    "type": "string"
-                  },
-                  "role": {
-                    "$ref": "#/components/schemas/Role"
-                  },
-                  "status": {
-                    "$ref": "#/components/schemas/AccountStatus"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/UserPatchBody"
               }
             }
           },
+          "description": "The fields to change, and only those. At least one.",
           "required": true
         },
         "responses": {

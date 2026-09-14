@@ -1,40 +1,56 @@
 // Manual bodies. Pure; see input.ts.
 
+import { z } from 'zod'
+
 import { t } from '../i18n'
-import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
+import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 
 export const MAX_MANUAL_TITLE_LENGTH = 200
 export const MAX_MANUAL_URL_LENGTH = 2000
 
-export function parseManualUrl(body: unknown): Parsed<{ title: string; url: string }> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+const TITLE = z
+  .string({ error: () => 'title must be a non-empty string' })
+  .trim()
+  .max(MAX_MANUAL_TITLE_LENGTH, {
+    error: () => `title must be at most ${MAX_MANUAL_TITLE_LENGTH} characters`,
+  })
 
-  const url = trimmedString(body.url)
-  if (!url) return invalid('url is required')
-  if (url.length > MAX_MANUAL_URL_LENGTH) {
-    return invalid(`url must be at most ${MAX_MANUAL_URL_LENGTH} characters`)
-  }
-
-  const title = trimmedString(body.title) ?? ''
-  if (title.length > MAX_MANUAL_TITLE_LENGTH) {
-    return invalid(`title must be at most ${MAX_MANUAL_TITLE_LENGTH} characters`)
-  }
-
-  return valid({ title, url })
-}
+export const MANUAL_URL_SCHEMA = z
+  .object(
+    {
+      title: TITLE.optional(),
+      url: z
+        .string({ error: () => 'url is required' })
+        .trim()
+        .min(1, { error: () => 'url is required' })
+        .max(MAX_MANUAL_URL_LENGTH, {
+          error: () => `url must be at most ${MAX_MANUAL_URL_LENGTH} characters`,
+        }),
+    },
+    NOT_AN_OBJECT,
+  )
+  .strip()
 
 // Renaming one. Blank is refused rather than stored: a manual with no title is
 // a row nobody can tell from the one under it.
+export const MANUAL_TITLE_SCHEMA = z
+  .object(
+    { title: TITLE.min(1, { error: () => 'title must be a non-empty string' }) },
+    NOT_AN_OBJECT,
+  )
+  .strip()
+
+export function parseManualUrl(body: unknown): Parsed<{ title: string; url: string }> {
+  const parsed = parseWith(MANUAL_URL_SCHEMA, body)
+  if (!parsed.ok) return parsed
+
+  return valid({ title: parsed.value.title ?? '', url: parsed.value.url })
+}
+
 export function parseManualTitle(body: unknown): Parsed<string> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+  const parsed = parseWith(MANUAL_TITLE_SCHEMA, body)
 
-  const title = trimmedString(body.title)
-  if (!title) return invalid('title must be a non-empty string')
-  if (title.length > MAX_MANUAL_TITLE_LENGTH) {
-    return invalid(`title must be at most ${MAX_MANUAL_TITLE_LENGTH} characters`)
-  }
-
-  return valid(title)
+  return parsed.ok ? valid(parsed.value.title) : parsed
 }
 
 export const DEFAULT_MANUAL_LIMIT = 24
@@ -47,9 +63,9 @@ export type ManualQuery = {
   search: null | string
 }
 
-// The library's query string. Like every other list here, a bad value is
+// The library\'s query string. Like every other list here, a bad value is
 // clamped or dropped rather than refused: a pasted link should still show the
-// shelf.
+// shelf — which is why it is not a schema.
 export function parseManualQuery(params: URLSearchParams): ManualQuery {
   return {
     limit: clampInteger(params.get('limit'), DEFAULT_MANUAL_LIMIT, 1, MAX_MANUAL_LIMIT),
@@ -58,21 +74,32 @@ export function parseManualQuery(params: URLSearchParams): ManualQuery {
   }
 }
 
+export const MANUAL_IDS_SCHEMA = z
+  .object(
+    {
+      ids: z
+        .array(z.unknown(), { error: () => 'Expected { "ids": [1, 2, 3] }' })
+        .min(1, { error: () => t('Nie zaznaczono żadnej instrukcji') })
+        .max(MAX_DELETE_MANUALS, {
+          error: () => t('Maksymalnie {max} instrukcji naraz', { max: MAX_DELETE_MANUALS }),
+        }),
+    },
+    { error: () => 'Expected { "ids": [1, 2, 3] }' },
+  )
+  .strip()
+
 export function parseManualIds(body: unknown): Parsed<number[]> {
-  if (!isPlainObject(body) || !Array.isArray(body.ids)) {
-    return invalid('Expected { "ids": [1, 2, 3] }')
-  }
-  if (body.ids.length === 0) return invalid(t('Nie zaznaczono żadnej instrukcji'))
-  if (body.ids.length > MAX_DELETE_MANUALS) {
-    return invalid(t('Maksymalnie {max} instrukcji naraz', { max: MAX_DELETE_MANUALS }))
-  }
+  const parsed = parseWith(MANUAL_IDS_SCHEMA, body)
+  if (!parsed.ok) return parsed
 
   const ids: number[] = []
-  for (const raw of body.ids) {
+  for (const raw of parsed.value.ids) {
     const id = Number(raw)
     if (!Number.isSafeInteger(id) || id <= 0) {
       return invalid(t('Nieprawidłowy identyfikator: {value}', { value: String(raw) }))
     }
+    // Duplicates in the selection are the client\'s business, not the
+    // database\'s: it would count the same row twice.
     if (!ids.includes(id)) ids.push(id)
   }
 

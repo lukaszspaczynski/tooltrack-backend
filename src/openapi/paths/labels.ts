@@ -90,15 +90,7 @@ export const LABEL_OPERATIONS: OperationSpec[] = [
     description:
       'Draws the chosen labels again, wherever they live. This is how a label stops being wrong after somebody moved a tool between boxes.\n\nThe selection spans arrangements, so the answer cannot be one of them the way the per-organizer refresh’s is — the screen re-reads the list instead. What it does say is how many were drawn and which were not, because a label whose photographs have been deleted since is the one thing somebody has to act on.',
     operationId: 'refreshLabels',
-    requestBody: jsonBody(
-      object({
-        ids: {
-          items: { minimum: 1, type: 'integer' },
-          minItems: 1,
-          type: 'array',
-        },
-      }),
-    ),
+    requestBody: jsonBody(ref('LabelIdsBody')),
     responses: {
       200: jsonResponse(
         'How many were drawn, and what went wrong with the rest.',

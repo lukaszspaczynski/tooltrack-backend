@@ -1,6 +1,8 @@
 // Query and body parsing for the photo library. Pure; see input.ts.
 
-import { invalid, isPlainObject, valid, type Parsed } from './input'
+import { z } from 'zod'
+
+import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 import { PHOTO_SOURCES, type PhotoSource } from './photos-store'
 import { t } from '../i18n'
 
@@ -50,28 +52,42 @@ export function parseMediaQuery(params: URLSearchParams): Parsed<MediaQuery> {
 
 // The body of an attach: which existing photos to put on a tool. Same shape
 // and same cap as a delete — it is a selection from the same screen.
-export function parseAttachIds(body: unknown): Parsed<number[]> {
-  if (!isPlainObject(body) || !Array.isArray(body.photoIds)) {
-    return invalid('Expected { "photoIds": [1, 2, 3] }')
-  }
+// One shape, two field names: an attach is a selection from the same screen as
+// a delete and is capped the same way.
+function idListSchema(field: 'ids' | 'photoIds') {
+  const shape = `Expected { "${field}": [1, 2, 3] }`
 
-  return parseIdList(body.photoIds, t('Nie zaznaczono żadnego zdjęcia'))
+  return z
+    .object(
+      {
+        [field]: z
+          .array(z.unknown(), { error: () => shape })
+          .min(1, { error: () => t('Nie zaznaczono żadnego zdjęcia') })
+          .max(MAX_DELETE_IDS, {
+            error: () => t('Maksymalnie {max} zdjęć naraz', { max: MAX_DELETE_IDS }),
+          }),
+      },
+      { error: () => shape },
+    )
+    .strip()
+}
+
+export const ATTACH_IDS_SCHEMA = idListSchema('photoIds')
+export const DELETE_IDS_SCHEMA = idListSchema('ids')
+
+export function parseAttachIds(body: unknown): Parsed<number[]> {
+  const parsed = parseWith(ATTACH_IDS_SCHEMA, body)
+
+  return parsed.ok ? parseIdList(parsed.value.photoIds as unknown[]) : parsed
 }
 
 export function parseDeleteIds(body: unknown): Parsed<number[]> {
-  if (!isPlainObject(body) || !Array.isArray(body.ids)) {
-    return invalid('Expected { "ids": [1, 2, 3] }')
-  }
+  const parsed = parseWith(DELETE_IDS_SCHEMA, body)
 
-  return parseIdList(body.ids, t('Nie zaznaczono żadnego zdjęcia'))
+  return parsed.ok ? parseIdList(parsed.value.ids as unknown[]) : parsed
 }
 
-function parseIdList(raw: unknown[], emptyMessage: string): Parsed<number[]> {
-  if (raw.length === 0) return invalid(emptyMessage)
-  if (raw.length > MAX_DELETE_IDS) {
-    return invalid(t('Maksymalnie {max} zdjęć naraz', { max: MAX_DELETE_IDS }))
-  }
-
+function parseIdList(raw: unknown[]): Parsed<number[]> {
   const ids: number[] = []
   for (const value of raw) {
     const id = Number(value)

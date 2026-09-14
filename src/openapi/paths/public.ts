@@ -1,7 +1,15 @@
 // The two endpoints a load balancer and a deploy pipeline ask for, and the
 // document describing all the others. None of them needs a session.
 
-import { arrayOf, errors, jsonResponse, object, type OperationSpec, ref } from '../operation'
+import {
+  arrayOf,
+  errors,
+  jsonBody,
+  jsonResponse,
+  object,
+  type OperationSpec,
+  ref,
+} from '../operation'
 
 export const PUBLIC_OPERATIONS: OperationSpec[] = [
   {
@@ -51,22 +59,7 @@ export const AUTH_OPERATIONS: OperationSpec[] = [
     description:
       'Always creates a viewer, whatever the body asks for: promotion is an administrator action and never a side effect of signing up. A display name is optional — without one the account is named after the part of the address before the @, which is a better placeholder than a blank row in the user list.',
     operationId: 'register',
-    requestBody: {
-      content: {
-        'application/json': {
-          example: { displayName: 'Ola', email: 'ola@example.com', password: 'sekret1234' },
-          schema: object(
-            {
-              displayName: { maxLength: 100, type: 'string' },
-              email: { format: 'email', type: 'string' },
-              password: { maxLength: 200, minLength: 8, type: 'string' },
-            },
-            ['email', 'password'],
-          ),
-        },
-      },
-      required: true,
-    },
+    requestBody: jsonBody(ref('RegisterBody')),
     responses: {
       201: jsonResponse('The account, which is a viewer.', ref('SessionResponse')),
       ...errors(400, 409, 503),
@@ -79,15 +72,7 @@ export const AUTH_OPERATIONS: OperationSpec[] = [
     description:
       'Sets the session cookie. The body is checked for presence rather than shape: telling somebody their address "looks wrong" at sign-in leaks which addresses this instance considers acceptable, so a bad address and a bad password are answered the same way.',
     operationId: 'login',
-    requestBody: {
-      content: {
-        'application/json': {
-          example: { email: 'ola@example.com', password: 'sekret1234' },
-          schema: object({ email: { type: 'string' }, password: { type: 'string' } }),
-        },
-      },
-      required: true,
-    },
+    requestBody: jsonBody(ref('LoginBody')),
     responses: {
       200: jsonResponse(
         'Signed in. The session cookie is on the response.',
@@ -135,17 +120,7 @@ export const AUTH_OPERATIONS: OperationSpec[] = [
     description:
       'The current password is required even though the session already proves who this is: it is what stops a borrowed, unlocked browser from becoming a permanent one.',
     operationId: 'changePassword',
-    requestBody: {
-      content: {
-        'application/json': {
-          schema: object({
-            currentPassword: { type: 'string' },
-            newPassword: { maxLength: 200, minLength: 8, type: 'string' },
-          }),
-        },
-      },
-      required: true,
-    },
+    requestBody: jsonBody(ref('PasswordChangeBody')),
     responses: {
       200: jsonResponse('Changed.', object({ ok: { type: 'boolean' } })),
       ...errors(400, 401, 503),
@@ -158,10 +133,7 @@ export const AUTH_OPERATIONS: OperationSpec[] = [
     description:
       'The language travels with the account rather than the browser, so a phone and a laptop agree about which one this person reads.',
     operationId: 'changeLanguage',
-    requestBody: {
-      content: { 'application/json': { schema: object({ language: ref('Lang') }) } },
-      required: true,
-    },
+    requestBody: jsonBody(ref('LanguageBody')),
     responses: {
       200: jsonResponse('Changed.', object({ ok: { type: 'boolean' }, user: ref('User') })),
       ...errors(400, 401, 503),

@@ -27,30 +27,10 @@ import {
 } from '../operation'
 import { OFFSET_PARAM } from '../components'
 
-const TITLE = {
-  description: 'What a person reads in the list. Blank is refused rather than stored.',
-  maxLength: 200,
-  minLength: 1,
-  type: 'string',
-}
-
 // The body of a save from an address, and of a read from a product page.
-const URL_BODY = object(
-  {
-    title: { ...TITLE, description: 'Optional. Taken from the page or the file name when absent.' },
-    url: { format: 'uri', maxLength: 2000, type: 'string' },
-  },
-  ['url'],
-)
+const URL_BODY = ref('ManualUrlBody')
 
-const ID_LIST = object({
-  ids: {
-    items: { minimum: 1, type: 'integer' },
-    maxItems: 50,
-    minItems: 1,
-    type: 'array',
-  },
-})
+const ID_LIST = ref('ManualIdsBody')
 
 export const MANUAL_OPERATIONS: OperationSpec[] = [
   {
@@ -159,7 +139,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
       id: 'The tool card.',
       manualId: 'The document, which must be on this card.',
     },
-    requestBody: jsonBody(object({ title: TITLE })),
+    requestBody: jsonBody(ref('ManualTitleBody')),
     responses: {
       200: jsonResponse('The document, renamed.', object({ manual: ref('Manual') })),
       ...errors(400, 401, 403, 404, 503),
@@ -211,7 +191,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
       'Renaming from the library, where the document is not being looked at through any one card.',
     operationId: 'renameManual',
     pathParams: { id: 'The document.' },
-    requestBody: jsonBody(object({ title: TITLE })),
+    requestBody: jsonBody(ref('ManualTitleBody')),
     responses: {
       200: jsonResponse('The document, renamed.', object({ manual: ref('Manual') })),
       ...errors(400, 401, 403, 404, 503),

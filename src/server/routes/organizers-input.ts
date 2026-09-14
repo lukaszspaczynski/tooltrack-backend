@@ -2,7 +2,9 @@
 
 import { MAX_CONTENTS_PHOTOS } from '../labels/contents-label'
 import { captionSource } from '../labels/generate'
-import { invalid, isPlainObject, trimmedString, valid, type Parsed } from './input'
+import { z } from 'zod'
+
+import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 import { t } from '../i18n'
 
 export const MAX_NAME_LENGTH = 200
@@ -32,110 +34,141 @@ export type OrganizerQuery = {
   sort: 'name' | 'number'
 }
 
-export function parseOrganizerCreate(body: unknown): Parsed<OrganizerFields> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+const required = (max: number, field: string) =>
+  z
+    .string({ error: () => `${field} must be a non-empty string` })
+    .trim()
+    .min(1, { error: () => `${field} must be a non-empty string` })
+    .max(max, { error: () => `${field} must be at most ${max} characters` })
 
-  const name = trimmedString(body.name) ?? ''
-  if (!name) return invalid('name is required')
-  if (name.length > MAX_NAME_LENGTH) {
-    return invalid(`name must be at most ${MAX_NAME_LENGTH} characters`)
-  }
+// A form sends "12", so a string is taken and coerced.
+const id = (complaint: string) =>
+  z
+    .union([z.number(), z.string()])
+    .transform((raw) => (typeof raw === 'string' ? Number(raw.trim()) : raw))
+    .refine((value) => Number.isSafeInteger(value) && value > 0, { error: () => complaint })
 
+const NUMBER = z
+  .union([z.number(), z.string()])
+  .transform((raw) => (typeof raw === 'string' ? Number(raw.trim()) : raw))
+  .refine((value) => Number.isInteger(value) && value > 0 && value <= MAX_NUMBER, {
+    error: () => `number must be a whole number from 1 to ${MAX_NUMBER}`,
+  })
+
+export const ORGANIZER_PATCH_SCHEMA = z
+  .object(
+    {
+      // Null would leave an arrangement of nothing, so moving an organizer to
+      // another case is allowed but emptying it is not.
+      caseId: id('caseId must be the id of a case').optional(),
+      description: z
+        .string({ error: () => 'description must be a string' })
+        .trim()
+        .max(MAX_DESCRIPTION_LENGTH, {
+          error: () => `description must be at most ${MAX_DESCRIPTION_LENGTH} characters`,
+        })
+        .optional(),
+      name: required(MAX_NAME_LENGTH, 'name').optional(),
+      number: NUMBER.optional(),
+    },
+    NOT_AN_OBJECT,
+  )
+  .strip()
+
+export const ORGANIZER_CREATE_SCHEMA = ORGANIZER_PATCH_SCHEMA.extend({
   // An organizer without a case is an arrangement of nothing. The wizard asks
   // for the case first for the same reason.
-  const caseId = parseId(body.caseId)
-  if (caseId === null) return invalid('caseId is required')
+  caseId: id('caseId is required'),
+  name: required(MAX_NAME_LENGTH, 'name'),
+  // Null means "give me the next free one". The store decides, because only it
+  // can see what is taken.
+  number: NUMBER.nullish(),
+  toolIds: z.array(z.unknown()).optional(),
+})
 
-  const description = trimmedString(body.description ?? '')
-  if (description === null) return invalid('description must be a string')
-  if (description.length > MAX_DESCRIPTION_LENGTH) {
-    return invalid(`description must be at most ${MAX_DESCRIPTION_LENGTH} characters`)
-  }
+export function parseOrganizerCreate(body: unknown): Parsed<OrganizerFields> {
+  const parsed = parseWith(ORGANIZER_CREATE_SCHEMA, body)
+  if (!parsed.ok) return parsed
 
-  if ('number' in body && body.number !== null && body.number !== undefined) {
-    const number = parseNumber(body.number)
-    if (number === null) return invalid(`number must be a whole number from 1 to ${MAX_NUMBER}`)
-    return valid({ caseId, description, name, number })
-  }
-
-  return valid({ caseId, description, name, number: null })
+  return valid({
+    caseId: parsed.value.caseId,
+    description: parsed.value.description ?? '',
+    name: parsed.value.name,
+    number: parsed.value.number ?? null,
+  })
 }
 
 export function parseOrganizerPatch(body: unknown): Parsed<OrganizerPatch> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+  const parsed = parseWith(ORGANIZER_PATCH_SCHEMA, body)
+  if (!parsed.ok) return parsed
 
-  const patch: OrganizerPatch = {}
-
-  if ('name' in body) {
-    const name = trimmedString(body.name)
-    if (!name) return invalid('name must be a non-empty string')
-    if (name.length > MAX_NAME_LENGTH) {
-      return invalid(`name must be at most ${MAX_NAME_LENGTH} characters`)
-    }
-    patch.name = name
+  if (Object.keys(parsed.value).length === 0) {
+    return invalid('No editable fields in request body')
   }
 
-  if ('description' in body) {
-    const description = trimmedString(body.description)
-    if (description === null) return invalid('description must be a string')
-    if (description.length > MAX_DESCRIPTION_LENGTH) {
-      return invalid(`description must be at most ${MAX_DESCRIPTION_LENGTH} characters`)
-    }
-    patch.description = description
-  }
-
-  if ('caseId' in body) {
-    const caseId = parseId(body.caseId)
-    // Null would leave an arrangement of nothing, so moving an organizer to
-    // another case is allowed but emptying it is not.
-    if (caseId === null) return invalid('caseId must be the id of a case')
-    patch.caseId = caseId
-  }
-
-  if ('number' in body) {
-    const number = parseNumber(body.number)
-    if (number === null) return invalid(`number must be a whole number from 1 to ${MAX_NUMBER}`)
-    patch.number = number
-  }
-
-  if (Object.keys(patch).length === 0) return invalid('No editable fields in request body')
-
-  return valid(patch)
+  return parsed
 }
 
-// The ids a wizard sends when it has finished picking tools.
+// One shape for the two selections this domain takes. Everything else about a
+// redraw is already on the row, which is the point of keeping the options.
+function idsSchema(
+  field: 'labelIds' | 'toolIds',
+  max: number,
+  empty: () => string,
+  tooMany: () => string,
+) {
+  return z
+    .object(
+      {
+        [field]: z
+          .array(z.unknown(), { error: () => `${field} must be an array` })
+          .min(1, { error: empty })
+          .max(max, { error: tooMany }),
+      },
+      NOT_AN_OBJECT,
+    )
+    .strip()
+}
+
+// The messages are written out rather than built from `max`, because `t()`
+// keys on the Polish sentence: one assembled from pieces has no entry in
+// i18n/catalog.ts and goes out untranslated, which a test here catches.
+export const TOOL_IDS_SCHEMA = idsSchema(
+  'toolIds',
+  200,
+  () => 'toolIds must not be empty',
+  () => t('Maksymalnie 200 narzędzi naraz'),
+)
+
+export const LABEL_IDS_SCHEMA = idsSchema(
+  'labelIds',
+  50,
+  () => t('Nie wybrano żadnej etykiety'),
+  () => 'Maksymalnie 50 etykiet naraz',
+)
+
+function wholeNumbers(raw: unknown[], field: string): Parsed<number[]> {
+  const ids: number[] = []
+
+  for (const value of raw) {
+    const parsed = parseId(value)
+    if (parsed === null) return invalid(`${field} must be whole numbers`)
+    if (!ids.includes(parsed)) ids.push(parsed)
+  }
+
+  return valid(ids)
+}
+
 export function parseToolIds(body: unknown): Parsed<number[]> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
-  if (!Array.isArray(body.toolIds)) return invalid('toolIds must be an array')
-  if (body.toolIds.length === 0) return invalid('toolIds must not be empty')
-  if (body.toolIds.length > 200) return invalid(t('Maksymalnie 200 narzędzi naraz'))
+  const parsed = parseWith(TOOL_IDS_SCHEMA, body)
 
-  const ids: number[] = []
-  for (const raw of body.toolIds) {
-    const id = parseId(raw)
-    if (id === null) return invalid('toolIds must be whole numbers')
-    if (!ids.includes(id)) ids.push(id)
-  }
-
-  return valid(ids)
+  return parsed.ok ? wholeNumbers(parsed.value.toolIds as unknown[], 'toolIds') : parsed
 }
 
-// Which labels to draw again. Ids only: everything else about a redraw is
-// already on the row, which is the point of keeping the options.
 export function parseLabelIds(body: unknown): Parsed<number[]> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
-  if (!Array.isArray(body.labelIds)) return invalid('labelIds must be an array')
-  if (body.labelIds.length === 0) return invalid(t('Nie wybrano żadnej etykiety'))
-  if (body.labelIds.length > 50) return invalid('Maksymalnie 50 etykiet naraz')
+  const parsed = parseWith(LABEL_IDS_SCHEMA, body)
 
-  const ids: number[] = []
-  for (const raw of body.labelIds) {
-    const id = parseId(raw)
-    if (id === null) return invalid('labelIds must be whole numbers')
-    if (!ids.includes(id)) ids.push(id)
-  }
-
-  return valid(ids)
+  return parsed.ok ? wholeNumbers(parsed.value.labelIds as unknown[], 'labelIds') : parsed
 }
 
 // A label is 30 mm across. Past this the template can only shrink the type
@@ -149,76 +182,85 @@ export type LabelRequest = {
   template: 'contents' | 'number'
 }
 
+const caption = z
+  .string()
+  .trim()
+  .max(CAPTION_MAX, {
+    error: () => t('Własny tekst może mieć najwyżej {max} znaków', { max: CAPTION_MAX }),
+  })
+
 // What the wizard sends when it finishes. The size is not in here: it comes
 // from the slot, which is one of the case's, so a label cannot be printed at a
 // size the box has no place for.
+export const LABEL_REQUEST_SCHEMA = z
+  .object(
+    {
+      namesSource: z.string().trim().optional(),
+      namesText: caption.optional(),
+      // The ceiling any label has. How many this one actually holds depends on
+      // its shape, and the shape comes from the slot, which this schema has no
+      // business resolving — the route checks that once it has one. Silently
+      // dropping the extras is what neither of them does.
+      photoIds: z
+        .array(z.unknown(), { error: () => 'photoIds must be an array' })
+        .max(MAX_CONTENTS_PHOTOS, {
+          error: () => t('Maksymalnie {max} zdjęcia', { max: MAX_CONTENTS_PHOTOS }),
+        })
+        .optional(),
+      // Default on: a label is made to be printed, and somebody who wants the
+      // bare artwork can say so.
+      printReady: z.boolean().optional(),
+      slotId: id('slotId is required'),
+      template: z.enum(['number', 'contents'], {
+        error: () => 'template must be "number" or "contents"',
+      }),
+      titleText: caption.optional(),
+      withLogos: z.boolean().optional(),
+      withNames: z.boolean().optional(),
+      withTitle: z.boolean().optional(),
+    },
+    NOT_AN_OBJECT,
+  )
+  .strip()
+
 export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
-  if (!isPlainObject(body)) return invalid('Expected a JSON object')
+  const parsed = parseWith(LABEL_REQUEST_SCHEMA, body)
+  if (!parsed.ok) return parsed
 
-  const slotId = parseId(body.slotId)
-  if (slotId === null) return invalid('slotId is required')
+  const input = parsed.value
+  const printReady = input.printReady !== false
 
-  const template = trimmedString(body.template)
-  if (template !== 'number' && template !== 'contents') {
-    return invalid('template must be "number" or "contents"')
-  }
-
-  // Default on: a label is made to be printed, and somebody who wants the bare
-  // artwork can say so.
-  const printReady = body.printReady !== false
-
-  if (template === 'number') {
+  if (input.template === 'number') {
     return valid({
-      options: { printReady, template, withLogos: body.withLogos === true },
-      slotId,
-      template,
+      options: { printReady, template: input.template, withLogos: input.withLogos === true },
+      slotId: input.slotId,
+      template: input.template,
     })
   }
 
-  const photoIds: number[] = []
-  if ('photoIds' in body) {
-    if (!Array.isArray(body.photoIds)) return invalid('photoIds must be an array')
-    // The ceiling any label has. How many this one actually holds depends on
-    // its shape, and the shape comes from the slot, which this parser has no
-    // business resolving — the route checks that once it has one. Silently
-    // dropping the extras is what neither of them does.
-    if (body.photoIds.length > MAX_CONTENTS_PHOTOS) {
-      return invalid(t('Maksymalnie {max} zdjęcia', { max: MAX_CONTENTS_PHOTOS }))
-    }
-
-    for (const raw of body.photoIds) {
-      const id = parseId(raw)
-      if (id === null) return invalid('photoIds must be whole numbers')
-      if (!photoIds.includes(id)) photoIds.push(id)
-    }
-  }
+  const photoIds = wholeNumbers((input.photoIds ?? []) as unknown[], 'photoIds')
+  if (!photoIds.ok) return photoIds
 
   // Empty means "work it out": the organizer's name over the rule, the tool
-  // names under it. Anything else is what somebody typed instead, and the
-  // label says that rather than what the catalog thinks. The same convention
-  // as brand.color, where empty is not a value but the absence of one.
-  const titleText = trimmedString(body.titleText ?? '') ?? ''
-  const namesText = trimmedString(body.namesText ?? '') ?? ''
-  if (titleText.length > CAPTION_MAX || namesText.length > CAPTION_MAX) {
-    return invalid(t('Własny tekst może mieć najwyżej {max} znaków', { max: CAPTION_MAX }))
-  }
+  // names under it. Anything else is what somebody typed instead, and the label
+  // says that rather than what the catalog thinks.
+  const namesText = input.namesText ?? ''
 
   return valid({
     options: {
       // Normalised on the way in, so a stored row always says outright where
-      // its caption came from. Reading it back still tolerates a row that
-      // does not, because the older ones do not.
-      namesSource: captionSource({ namesSource: trimmedString(body.namesSource) ?? '', namesText }),
+      // its caption came from.
+      namesSource: captionSource({ namesSource: input.namesSource ?? '', namesText }),
       namesText,
-      photoIds,
+      photoIds: photoIds.value,
       printReady,
-      template,
-      titleText,
-      withNames: body.withNames === true,
-      withTitle: body.withTitle === true,
+      template: input.template,
+      titleText: input.titleText ?? '',
+      withNames: input.withNames === true,
+      withTitle: input.withTitle === true,
     },
-    slotId,
-    template,
+    slotId: input.slotId,
+    template: input.template,
   })
 }
 

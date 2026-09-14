@@ -21,23 +21,6 @@ import {
 import { OFFSET_PARAM } from '../components'
 import type { Schema } from '../types'
 
-// One colour, two spellings accepted. A leading colour is read off a logo or a
-// brand book, where it is given as three numbers; CSS wants it as hex. Both
-// arrive and one form is stored, so a comparison cannot miss because somebody
-// wrote the same colour differently.
-const COLOR: Schema = {
-  description:
-    'Accepted as `#rrggbb`, as `"18 36 71"`, `"18,36,71"` or `"rgb(18, 36, 71)"`. Always stored and returned as lowercase `#rrggbb`. An empty string is a maker whose colour nobody has said, and is allowed.',
-  examples: ['#123447', '18 36 71'],
-  type: 'string',
-}
-
-const WRITABLE_FIELDS: Record<string, Schema> = {
-  color: COLOR,
-  name: { maxLength: 120, minLength: 1, type: 'string' },
-  notes: { maxLength: 4000, type: 'string' },
-}
-
 const BRAND = jsonResponse('The maker.', object({ brand: ref('Brand') }))
 
 export const BRAND_OPERATIONS: OperationSpec[] = [
@@ -72,7 +55,7 @@ export const BRAND_OPERATIONS: OperationSpec[] = [
   {
     description: 'Only the name is required. The colour and the note can wait.',
     operationId: 'createBrand',
-    requestBody: jsonBody(object(WRITABLE_FIELDS, ['name'])),
+    requestBody: jsonBody(ref('BrandCreateBody')),
     responses: {
       201: jsonResponse('The new maker.', object({ brand: ref('Brand') })),
       409: jsonResponse('A maker with that name already exists.', ref('Error')),
@@ -96,7 +79,10 @@ export const BRAND_OPERATIONS: OperationSpec[] = [
       'Only the fields present in the body are touched, and a body with no editable field at all is a 400.',
     operationId: 'updateBrand',
     pathParams: { id: 'The maker to edit.' },
-    requestBody: jsonBody({ ...object(WRITABLE_FIELDS, []), minProperties: 1 }),
+    requestBody: jsonBody(
+      ref('BrandPatchBody'),
+      'The fields to change, and only those. At least one.',
+    ),
     responses: {
       200: BRAND,
       409: jsonResponse('Another maker already has that name.', ref('Error')),
@@ -124,10 +110,7 @@ export const BRAND_OPERATIONS: OperationSpec[] = [
       'Points the maker at a picture that already exists. A PUT rather than a POST because there is one logo and setting it twice is setting it once: the body names which picture, and the maker comes back with `logoUrl` filled in.',
     operationId: 'setBrandLogo',
     pathParams: { id: 'The maker.' },
-    requestBody: jsonBody(
-      object({ photoId: { minimum: 1, type: 'integer' } }),
-      'The id of a photograph in the library.',
-    ),
+    requestBody: jsonBody(ref('BrandLogoBody'), 'The id of a photograph in the library.'),
     responses: {
       200: BRAND,
       404: jsonResponse('No such maker, or no such photograph.', ref('Error')),

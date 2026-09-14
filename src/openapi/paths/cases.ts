@@ -24,44 +24,6 @@ import {
 import { LIMIT_PARAM, OFFSET_PARAM } from '../components'
 import type { Schema } from '../types'
 
-// Millimetres. A metre and a half of toolbox is already absurd; the cap is
-// there to catch a number typed in micrometres, not to judge anybody's case.
-const MM: Schema = {
-  anyOf: [{ maximum: 5000, minimum: 1, type: 'integer' }, { type: 'null' }, { type: 'string' }],
-  description: 'Whole millimetres, or `null` for unmeasured.',
-}
-
-const DECIMAL = (max: number, unit: string): Schema => ({
-  anyOf: [
-    { exclusiveMinimum: 0, maximum: max, type: 'number' },
-    { type: 'null' },
-    { type: 'string' },
-  ],
-  description: `${unit}, to two decimals, or \`null\` for unmeasured.`,
-})
-
-const WRITABLE_FIELDS: Record<string, Schema> = {
-  capacityL: DECIMAL(10_000, 'Litres'),
-  diagonalMm: MM,
-  ean: { maxLength: 120, type: 'string' },
-  innerHeightMm: MM,
-  innerLengthMm: MM,
-  innerWidthMm: MM,
-  loadKg: DECIMAL(10_000, 'Kilograms'),
-  manufacturer: { maxLength: 200, minLength: 1, type: 'string' },
-  name: { maxLength: 200, minLength: 1, type: 'string' },
-  notes: { maxLength: 4000, type: 'string' },
-  outerHeightMm: MM,
-  outerLengthMm: MM,
-  outerWidthMm: MM,
-  sku: { maxLength: 120, type: 'string' },
-  system: {
-    description: 'The stacking system this box belongs to — "L-BOXX", "Systainer".',
-    maxLength: 120,
-    type: 'string',
-  },
-}
-
 const CASE = jsonResponse('The case, with its label slots.', object({ case: ref('ToolCase') }))
 
 export const CASE_OPERATIONS: OperationSpec[] = [
@@ -94,7 +56,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
     description:
       'Two fields are required. A case with no name cannot be pointed at in a van, and without a maker the name alone — "Toolbox 2.0" — does not say what it is. Every measurement is optional and starts unmeasured.',
     operationId: 'createCase',
-    requestBody: jsonBody(object(WRITABLE_FIELDS, ['name', 'manufacturer'])),
+    requestBody: jsonBody(ref('CaseCreateBody')),
     responses: {
       201: jsonResponse('The new case.', object({ case: ref('ToolCase') })),
       ...errors(400, 401, 403, 503),
@@ -133,8 +95,8 @@ export const CASE_OPERATIONS: OperationSpec[] = [
     operationId: 'updateCase',
     pathParams: { id: 'The case to edit.' },
     requestBody: jsonBody(
-      { ...object(WRITABLE_FIELDS, []), minProperties: 1 },
-      'The fields to change, and only those.',
+      ref('CasePatchBody'),
+      'The fields to change, and only those. At least one.',
     ),
     responses: { 200: CASE, ...errors(400, 401, 403, 404, 503) },
     route: 'PATCH /api/cases/:id',
@@ -159,12 +121,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
       'One more place a label goes. A slot is a size and nothing else: width by height, in millimetres, and neither may be `null` — a slot with no width is not a slot.\n\nThe whole case comes back rather than the slot, because the screen shows the slots together and would otherwise have to merge one into a list it already holds.',
     operationId: 'addCaseLabelSlot',
     pathParams: { id: 'The case.' },
-    requestBody: jsonBody(
-      object({
-        heightMm: { maximum: 5000, minimum: 1, type: 'integer' },
-        widthMm: { maximum: 5000, minimum: 1, type: 'integer' },
-      }),
-    ),
+    requestBody: jsonBody(ref('CaseLabelSlotBody')),
     responses: {
       201: CASE,
       409: jsonResponse('This case already has a slot that size.', ref('Error')),

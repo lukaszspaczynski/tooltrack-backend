@@ -13,7 +13,12 @@ export const ROLE_OPTIONS = [
 
 export type Role = (typeof ROLE_OPTIONS)[number]['value']
 
-export type AccountStatus = 'active' | 'disabled'
+// Written as a list rather than a union so that a schema can enumerate it:
+// `users-input.ts` builds its enum from this, and the OpenAPI document is
+// generated from that schema, so the three cannot disagree.
+export const ACCOUNT_STATUSES = ['active', 'disabled'] as const
+
+export type AccountStatus = (typeof ACCOUNT_STATUSES)[number]
 
 // One capability for the catalog, not one per kind of thing in it. Tools live
 // in cases, both carry photos, and every screen that shows one shows the

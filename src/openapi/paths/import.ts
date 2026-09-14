@@ -5,16 +5,7 @@
 
 import { errors, jsonBody, jsonResponse, object, type OperationSpec, ref } from '../operation'
 
-const IMPORT_URL_BODY = jsonBody(
-  object({
-    url: {
-      description: 'A product page on one of the supported hosts.',
-      format: 'uri',
-      type: 'string',
-    },
-  }),
-  'The address of the page to read.',
-)
+const IMPORT_URL_BODY = jsonBody(ref('ImportUrlBody'), 'The address of the page to read.')
 
 export const IMPORT_OPERATIONS: OperationSpec[] = [
   {

@@ -43,62 +43,6 @@ const ORGANIZER = jsonResponse(
   object({ organizer: ref('Organizer') }),
 )
 
-const TOOL_IDS: Schema = {
-  description: 'At most 200 at a time.',
-  items: { minimum: 1, type: 'integer' },
-  maxItems: 200,
-  minItems: 1,
-  type: 'array',
-}
-
-// What the wizard sends when it finishes. `template` decides which of the two
-// option sets is read; the other is ignored rather than refused, because a
-// client switching between them should not have to strip its own state.
-const LABEL_REQUEST: Schema = {
-  description:
-    'The slot and the artwork. Which options are read depends on `template`: `number` takes `withLogos`, `contents` takes the rest.',
-  properties: {
-    namesSource: {
-      description: 'Where the names under the rule come from. Normalised on the way in.',
-      type: 'string',
-    },
-    namesText: {
-      description: 'Replaces the tool names. Empty means "work it out from the catalog".',
-      maxLength: 120,
-      type: 'string',
-    },
-    photoIds: {
-      description:
-        'At most 6, and fewer on a small slot — how many fit is a fact about the shape, so it is checked once the slot is known. Too many is a 400 naming the number that fits.',
-      items: { minimum: 1, type: 'integer' },
-      maxItems: 6,
-      type: 'array',
-    },
-    printReady: {
-      default: true,
-      description:
-        'A margin and crop marks around the artwork. On by default: a label is made to be printed, and somebody who wants the bare artwork can say so.',
-      type: 'boolean',
-    },
-    slotId: {
-      description: 'One of the slots from `GET /api/organizers/:id/label-slots`.',
-      minimum: 1,
-      type: 'integer',
-    },
-    template: { enum: ['number', 'contents'], type: 'string' },
-    titleText: {
-      description: 'Replaces the title over the rule. Empty means "work it out".',
-      maxLength: 120,
-      type: 'string',
-    },
-    withLogos: { default: false, type: 'boolean' },
-    withNames: { default: false, type: 'boolean' },
-    withTitle: { default: false, type: 'boolean' },
-  },
-  required: ['slotId', 'template'],
-  type: 'object',
-}
-
 const LABEL_PATH_PARAMS = {
   id: 'The arrangement.',
   labelId: 'The label, which must be this arrangement’s.',
@@ -136,23 +80,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
     description:
       'The wizard’s last step, in one request: a case, a name, and the tools that were ticked. One request rather than three, so a half-made arrangement cannot exist because somebody closed the tab between two of them.\n\nAn arrangement without a case is an arrangement of nothing, so `caseId` is required. Leave `number` out for the next free one — only the server can see what is taken.',
     operationId: 'createOrganizer',
-    requestBody: jsonBody(
-      object(
-        {
-          caseId: { minimum: 1, type: 'integer' },
-          description: { maxLength: 4000, type: 'string' },
-          name: { maxLength: 200, minLength: 1, type: 'string' },
-          number: {
-            description: 'Leave it out, or send null, for the next free number.',
-            maximum: 100_000,
-            minimum: 1,
-            type: ['integer', 'null'],
-          },
-          toolIds: TOOL_IDS,
-        },
-        ['caseId', 'name'],
-      ),
-    ),
+    requestBody: jsonBody(ref('OrganizerCreateBody')),
     responses: {
       201: jsonResponse('The new arrangement.', object({ organizer: ref('Organizer') })),
       404: jsonResponse('No such case.', ref('Error')),
@@ -180,17 +108,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
       'Only the fields present are touched. `caseId` may move the arrangement to another box but cannot be null — that would leave an arrangement of nothing.',
     operationId: 'updateOrganizer',
     pathParams: { id: 'The arrangement to edit.' },
-    requestBody: jsonBody({
-      additionalProperties: false,
-      minProperties: 1,
-      properties: {
-        caseId: { minimum: 1, type: 'integer' },
-        description: { maxLength: 4000, type: 'string' },
-        name: { maxLength: 200, minLength: 1, type: 'string' },
-        number: { maximum: 100_000, minimum: 1, type: 'integer' },
-      },
-      type: 'object',
-    }),
+    requestBody: jsonBody(ref('OrganizerPatchBody'), 'The fields to change, and only those.'),
     responses: {
       200: ORGANIZER,
       404: jsonResponse('No such arrangement, or no such case.', ref('Error')),
@@ -219,7 +137,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
       'A tool is in one arrangement at a time — that is what makes a label true — so one that is already somewhere else is a 409 rather than a quiet move.',
     operationId: 'addOrganizerTools',
     pathParams: { id: 'The arrangement.' },
-    requestBody: jsonBody(object({ toolIds: TOOL_IDS })),
+    requestBody: jsonBody(ref('ToolIdsBody')),
     responses: {
       200: ORGANIZER,
       409: jsonResponse('One of the tools is already in another arrangement.', ref('Error')),
@@ -266,7 +184,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
       'Draws one and keeps it. The whole arrangement comes back, with the new label among its `labels`.\n\nA `slotId` that is not one of this case’s slots is a 400, as is a `photoIds` longer than the slot holds — the message names how many actually fit.',
     operationId: 'createOrganizerLabel',
     pathParams: { id: 'The arrangement.' },
-    requestBody: jsonBody(LABEL_REQUEST),
+    requestBody: jsonBody(ref('LabelRequestBody')),
     responses: {
       201: ORGANIZER,
       400: jsonResponse(
@@ -284,16 +202,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
       'Draws the chosen labels again from the options they were made with — which is how a label stops being wrong after somebody moved a tool.\n\nScoped to this arrangement: a label id belonging to another one is not found here rather than redrawn, which is what makes the URL mean what it says. For a selection spanning arrangements, use `POST /api/labels/refresh`.',
     operationId: 'refreshOrganizerLabels',
     pathParams: { id: 'The arrangement.' },
-    requestBody: jsonBody(
-      object({
-        labelIds: {
-          items: { minimum: 1, type: 'integer' },
-          maxItems: 50,
-          minItems: 1,
-          type: 'array',
-        },
-      }),
-    ),
+    requestBody: jsonBody(ref('LabelIdsBody')),
     responses: {
       200: jsonResponse(
         'How many were drawn, what went wrong with the rest, and the arrangement.',

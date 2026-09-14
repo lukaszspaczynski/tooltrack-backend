@@ -23,27 +23,7 @@ import {
   ref,
 } from '../operation'
 import { LIMIT_PARAM, OFFSET_PARAM } from '../components'
-import type { Schema } from '../types'
-
-const CONDITIONS = ['new', 'good', 'worn', 'needs_repair', 'retired']
-
-// The card's own fields, as a body carries them. Only the name is required: a
-// card with no name is not findable by the person standing in front of the
-// tool, which is the only reason the card exists. Everything else can be filled
-// in later, and every string is trimmed before it is stored.
-const WRITABLE_FIELDS: Record<string, Schema> = {
-  brand: { maxLength: 120, type: 'string' },
-  category: { maxLength: 120, type: 'string' },
-  condition: { default: 'good', enum: CONDITIONS, type: 'string' },
-  model: { maxLength: 120, type: 'string' },
-  name: { maxLength: 200, minLength: 1, type: 'string' },
-  notes: { maxLength: 4000, type: 'string' },
-  serialNumber: {
-    description: 'Identifies one physical machine. Unique across the catalog when not blank.',
-    maxLength: 120,
-    type: 'string',
-  },
-}
+import { TOOL_CONDITIONS } from '../../server/routes/tools-input'
 
 const CARD = jsonResponse('The card, with its parameters.', object({ tool: ref('ToolDetail') }))
 
@@ -56,7 +36,7 @@ export const TOOL_OPERATIONS: OperationSpec[] = [
       queryParam('q', 'Free-text search over the card.', { type: 'string' }, 'młot'),
       queryParam('category', 'Exact category, as the cards spell it.', { type: 'string' }),
       queryParam('condition', 'Only cards in this condition.', {
-        enum: CONDITIONS,
+        enum: [...TOOL_CONDITIONS],
         type: 'string',
       }),
       queryParam(
@@ -87,7 +67,7 @@ export const TOOL_OPERATIONS: OperationSpec[] = [
       'A new card arrives with no parameters, and `attributes` comes back as an empty array rather than absent — saying so beats leaving the client to work out whether the field is missing or empty.',
     operationId: 'createTool',
     requestBody: jsonBody(
-      object(WRITABLE_FIELDS, ['name']),
+      ref('ToolCreateBody'),
       'Only `name` is required; the rest default to blank.',
     ),
     responses: {
@@ -145,8 +125,8 @@ export const TOOL_OPERATIONS: OperationSpec[] = [
     operationId: 'updateTool',
     pathParams: { id: 'The card to edit.' },
     requestBody: jsonBody(
-      { ...object(WRITABLE_FIELDS, []), minProperties: 1 },
-      'The fields to change, and only those.',
+      ref('ToolPatchBody'),
+      'The fields to change, and only those. At least one.',
     ),
     responses: {
       200: CARD,
