@@ -21,7 +21,13 @@
 // notices.
 
 import { ImageConversionError, toStoredPng } from '../image-convert'
-import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
+import { fetchRemoteFile, fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
+import {
+  importerFor,
+  IMPORT_SOURCES,
+  REFERENCE_ATTRIBUTE,
+  type ImportedProduct,
+} from '../importers'
 import { PhotoNotSuitableError } from '../cutout-local'
 import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
 import { getCase } from './cases-store'
@@ -62,7 +68,7 @@ import {
   unlinkPhoto,
   type CardPhoto,
 } from './photos-store'
-import { getTool } from './tools-store'
+import { getTool, listAttributes } from './tools-store'
 import { t } from '../i18n'
 
 // Write the picture, then put it on this card. Two steps because they are two
@@ -528,6 +534,85 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
 // client shows them, the person ticks the ones that are actually this machine
 // or this box, and POST /photos with those addresses is what puts bytes on our
 // disk.
+// The pictures the product page this card was imported from publishes.
+//
+// Not a search: the address is written on the card, so this is the one source
+// that cannot return somebody else's machine. Offered beside the engines
+// because it is the same errand — pick the pictures worth keeping — and
+// answered in the same shape, so the screen needs no second way to show them.
+async function suggestFromPage(toolId: number): Promise<Response> {
+  const reference = (await listAttributes(toolId)).find(
+    (attribute) => attribute.name === REFERENCE_ATTRIBUTE,
+  )?.value
+
+  if (!reference) {
+    return Response.json(
+      { error: t('Ta karta nie ma adresu karty produktu'), providers: [] },
+      { status: 422 },
+    )
+  }
+
+  const importer = importerFor(reference)
+  if (!importer) {
+    return Response.json(
+      {
+        error: t('Nie umiem czytać tej strony. Obsługiwane źródła: {sources}', {
+          sources: IMPORT_SOURCES.map((source) => source.label).join(', '),
+        }),
+        providers: [],
+      },
+      { status: 422 },
+    )
+  }
+
+  let product: null | ImportedProduct
+  try {
+    const page = await fetchRemoteFile(reference, {
+      accept: 'text/html,application/xhtml+xml',
+      limit: 4_000_000,
+    })
+    product = importer.parse(new TextDecoder('utf-8').decode(page.bytes), reference)
+  } catch {
+    return Response.json(
+      { error: t('Nie udało się pobrać strony produktu'), providers: [] },
+      { status: 422 },
+    )
+  }
+
+  if (!product) {
+    return Response.json(
+      { error: t('Pod tym adresem nie ma karty produktu'), providers: [] },
+      { status: 422 },
+    )
+  }
+
+  return Response.json(
+    {
+      // The whole answer's shape, not most of it: a screen reading `failed` on
+      // a payload that happens to lack it is a blank page, which is how this
+      // was found.
+      failed: [],
+      providers: ['page'],
+      query: reference,
+      suggestions: product.photoUrls.map((url) => ({
+        attribution: new URL(reference).hostname.replace(/^www\./, ''),
+        // The page states neither, and a number read off a file name is a
+        // number somebody would trust.
+        height: null,
+        provider: 'page' as const,
+        sourceUrl: reference,
+        // The picture is its own thumbnail: a maker's photograph is one file,
+        // not a set of sizes this can pick from.
+        thumbnailUrl: url,
+        title: product.name,
+        url,
+        width: null,
+      })),
+    },
+    { headers: { 'cache-control': 'no-store' } },
+  )
+}
+
 export async function suggestionsGET(request: Request, context: RouteContext): Promise<Response> {
   const owner = parsePhotoOwner(context.params)
   if (!owner) return ownerNotFound(context)
@@ -538,7 +623,22 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
   const card = await loadOwner(owner)
   if (!card) return ownerNotFound(context)
 
-  const asked = new URL(request.url).searchParams.get('q')?.trim()
+  const url = new URL(request.url)
+
+  // `?source=page` — the product page rather than the engines. Only a tool has
+  // one: a case is not imported from anywhere.
+  if (url.searchParams.get('source') === 'page') {
+    if (owner.kind !== 'tool') {
+      return Response.json(
+        { error: t('Ta karta nie ma adresu karty produktu'), providers: [] },
+        { status: 422 },
+      )
+    }
+
+    return suggestFromPage(owner.id)
+  }
+
+  const asked = url.searchParams.get('q')?.trim()
   const query = asked || card.searchQuery
 
   try {

@@ -725,6 +725,15 @@ exact cutout is already on the card.
 
 ### `GET /api/{tools,cases}/:id/photo-suggestions` — `catalog.write`
 
+`?source=page` answers from the **product page this card was imported from**
+instead of from the engines: the address is the card's `Referencja` parameter,
+so it is the one source that cannot come back with somebody else's machine.
+`providers: ["page"]`, and each suggestion is attributed to the page's host.
+
+`422` when the card has no such address, when this server cannot read that
+page, or when the page cannot be fetched. Tools only — a case is not imported
+from anywhere.
+
 Up to ten images found on the web for this tool. `?q=` overrides the query,
 which otherwise is the tool's brand and model.
 

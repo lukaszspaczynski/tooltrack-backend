@@ -25,6 +25,11 @@ import {
   type SearchProvider,
 } from './search-engines'
 
+// Where a suggestion came from. Every search engine, plus the product page a
+// card was imported from — which is not an engine and has no settings of its
+// own, but produces the same thing: a picture somebody may want to keep.
+export type SuggestionProvider = 'page' | SearchProvider
+
 export type PhotoSuggestion = {
   // Author and licence when the provider states them. Carried through to the
   // stored photo, because an image taken off the web without its attribution
@@ -32,7 +37,7 @@ export type PhotoSuggestion = {
   attribution: string
   height: null | number
   // The page the image sits on, for anyone who wants to check the source.
-  provider: SearchProvider
+  provider: SuggestionProvider
   sourceUrl: string
   thumbnailUrl: string
   title: string
@@ -43,8 +48,8 @@ export type PhotoSuggestion = {
 export type PhotoSearchResult = {
   // Which engines actually answered, and which failed — the screen says so
   // rather than quietly showing half a result set.
-  failed: { message: string; provider: SearchProvider }[]
-  providers: SearchProvider[]
+  failed: { message: string; provider: SuggestionProvider }[]
+  providers: SuggestionProvider[]
   query: string
   suggestions: PhotoSuggestion[]
 }

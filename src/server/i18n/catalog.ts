@@ -59,6 +59,7 @@ export const EN: Record<string, string> = {
     'I cannot read that page. Supported sources: {sources}',
   'Nie udało się pobrać strony produktu': 'The product page could not be fetched',
   'Ta strona nie udostępnia żadnych instrukcji': 'That page publishes no manuals',
+  'Ta karta nie ma adresu karty produktu': 'This card has no product page address',
   '{source} nie udostępnia instrukcji. Spróbuj ze strony producenta: {sources}':
     '{source} publishes no manuals. Try the maker’s own site: {sources}',
   'Nie udało się pobrać instrukcji': 'The manuals could not be fetched',
