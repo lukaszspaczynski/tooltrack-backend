@@ -342,6 +342,23 @@ its origin has to be on `TOOLTRACK_ALLOWED_ORIGINS`. In development
 `http://localhost:5173` is allowed by default; in production the list starts
 empty, because credentialed CORS cannot use a wildcard.
 
+Being on that list is necessary and **not sufficient**, which is the one thing
+worth knowing before planning a deployment around it. The cookie is
+`SameSite=Lax`, and Lax is about the site rather than the origin:
+
+- `tooltrack.example.com` with the API under its own `/api` — no CORS involved
+  at all, which is what one reverse proxy in front of both gives you;
+- `app.example.com` calling `api.example.com` — a different origin, so the
+  allowlist is needed, and the cookie still travels, because both are
+  `example.com`;
+- `app.example.com` calling `api.elsewhere.com` — a different _site_. CORS will
+  let the answer through and the browser will send no cookie, so every call
+  arrives anonymous and the screens look like a login that does not stick.
+
+Making that last one work means `SameSite=None; Secure`, and that is not a
+one-line change: Lax is what stands in for CSRF tokens here, so `None` without
+tokens would trade a real defence for a deployment nobody has asked for.
+
 ## Verification
 
 ```bash
