@@ -497,6 +497,45 @@ answer as one that never existed — and `409` on a name the card already lists.
 `200 { tool }` or `404`. Deleting the last parameter leaves an empty list, not
 a card without the field.
 
+## Importing a case
+
+### `GET /api/cases/import/sources` — `catalog.read`
+
+```json
+{ "sources": [{ "host": "qbricksystem.com", "label": "qbricksystem.com" }] }
+```
+
+A different list from the tool one, and a shorter one. A page that sells drills
+has nothing to say about a box, so the two registries are separate and a dialog
+asking "where is this case from" never offers one.
+
+### `POST /api/cases/import` — `catalog.write`
+
+`{ "url": "https://qbricksystem.com/…" }`, read into a case.
+
+`201 { case, imported }`, where `imported` is `{ photos, photosFailed, sourceUrl }`
+— the photographs and nothing else. A case has no parameters and no documents,
+which is most of why it has its own importer type rather than sharing the tool
+one.
+
+Everything worth knowing about a box is a measurement, and the page writes the
+units into the values — `450 [L] x 322 [W] x 126 [H] mm`, `15kg`. A measurement
+that reads outside what a case can be is dropped rather than stored: a number
+nobody can have measured looks like a fact. The weight goes into the note,
+because the catalog stores what a box measures and what it carries rather than
+what it weighs empty.
+
+### `POST /api/cases/:id/import` — `catalog.write`
+
+The same page, read again into a case that exists. What the page knows it
+overwrites: the maker, the name, the system, every measurement and the note.
+
+What it cannot know it leaves alone. The **label slots** are where a sticker
+goes on this particular box in this particular van, and no product page has an
+opinion about that — which is the whole reason this is a refresh rather than a
+delete and a re-import. The photographs are left too, so `imported.photos` is
+always 0 here.
+
 ## Cases
 
 A case is the box the tools live in. Name and manufacturer are required;

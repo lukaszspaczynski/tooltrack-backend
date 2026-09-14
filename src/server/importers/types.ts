@@ -47,3 +47,45 @@ export type Importer = {
   // can act on rather than a card full of empty fields.
   parse: (html: string, pageUrl: string) => null | ImportedProduct
 }
+
+// What a case importer hands back: one product page, read into the shape of a
+// case rather than of a tool card.
+//
+// A separate type rather than a wider `ImportedProduct`, because the two have
+// almost nothing in common. A tool has a maker, a model and a spec sheet of
+// free-text parameters; a case is a box, and what is worth knowing about it is
+// measurements with units the catalog stores as numbers. Folding them together
+// would mean every field being optional and nothing being checked.
+//
+// Null is "not stated on the page", which is not zero: a case nobody has
+// measured is normal, and a case with no height does not exist.
+export type ImportedCase = {
+  capacityL: null | number
+  diagonalMm: null | number
+  ean: string
+  innerHeightMm: null | number
+  innerLengthMm: null | number
+  innerWidthMm: null | number
+  loadKg: null | number
+  manufacturer: string
+  name: string
+  notes: string
+  outerHeightMm: null | number
+  outerLengthMm: null | number
+  outerWidthMm: null | number
+  // Full-size, in the order the page lists them. The first becomes the case's
+  // own picture, which is why the order is kept.
+  photoUrls: string[]
+  sku: string
+  sourceUrl: string
+  system: string
+}
+
+export type CaseImporter = {
+  // Every host this script can read, including the www. form.
+  hosts: readonly string[]
+  label: string
+  // Pure, like a tool importer: the page as text, the address it came from,
+  // and a case or nothing. Nothing means "this is not a product page".
+  parse: (html: string, pageUrl: string) => null | ImportedCase
+}

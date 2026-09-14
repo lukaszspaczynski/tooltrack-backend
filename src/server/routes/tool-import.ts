@@ -16,6 +16,7 @@ import { t } from '../i18n'
 import type { RouteContext } from '../route-context'
 import { ManualRejectedError, saveManualFromUrl } from './manuals'
 import type { Manual } from './manuals-store'
+import { fetchPage } from './page-fetch'
 import { importPhotoLinks } from './photos'
 import { parseImportInput } from './tools-input'
 import { clearManuals } from './manuals-store'
@@ -27,11 +28,6 @@ import {
   replaceAttributes,
   updateTool,
 } from './tools-store'
-
-// A product page is text; a shop that answers with a hundred megabytes of
-// something else is a shop that is not answering.
-const MAX_PAGE_BYTES = 4_000_000
-const PAGE_TIMEOUT_MS = 20_000
 
 // A gallery can run to twenty-odd shots of the same drill. Each one is
 // fetched, decoded and stored, so the ceiling is what keeps an import from
@@ -254,32 +250,6 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
     },
     { status: 201 },
   )
-}
-
-// The page, as text, with both ends of the rope tied: a timeout, so a shop
-// that never answers does not hold the request open, and a ceiling, so one
-// that answers forever does not fill the process.
-async function fetchPage(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: {
-      accept: 'text/html,application/xhtml+xml',
-      // Shops answer a bare fetch with a challenge page; saying who this is
-      // gets the product card, which is what was asked for.
-      'user-agent': 'ToolTrack/0.1 (+catalog importer)',
-    },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
-  })
-
-  if (!response.ok) throw new Error(`HTTP ${response.status}`)
-
-  const declared = Number(response.headers.get('content-length') ?? '0')
-  if (declared > MAX_PAGE_BYTES) throw new Error('page too large')
-
-  const bytes = new Uint8Array(await response.arrayBuffer())
-  if (bytes.byteLength > MAX_PAGE_BYTES) throw new Error('page too large')
-
-  return new TextDecoder('utf-8').decode(bytes)
 }
 
 function parseId(value: string | undefined): null | number {

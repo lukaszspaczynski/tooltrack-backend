@@ -69,6 +69,25 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/tools\/attributes$/,
   },
   {
+    // Where this server can read a case from. Offered to anybody who may look
+    // at the catalog, for the same reason the tool list is.
+    domain: 'cases',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/cases\/import\/sources$/,
+  },
+  {
+    domain: 'cases',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/cases\/import$/,
+  },
+  {
+    // Reading the page again into a case that exists. Above the :id rule, which
+    // would otherwise read "import" as one.
+    domain: 'cases',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/cases\/\d+\/import$/,
+  },
+  {
     // Which shops this server can read. Offered to anybody who may look at the
     // catalog, because the import dialog says it before asking for an address.
     domain: 'tools',

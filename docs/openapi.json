@@ -4706,6 +4706,123 @@
         ]
       }
     },
+    "/api/cases/{id}/import": {
+      "post": {
+        "description": "Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the system, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.",
+        "operationId": "refreshCaseFromPage",
+        "parameters": [
+          {
+            "description": "The case to read the page into.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportUrlBody"
+              }
+            }
+          },
+          "description": "The address of the page to read.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "case": {
+                      "$ref": "#/components/schemas/ToolCase"
+                    },
+                    "imported": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "photos": {
+                          "description": "Photographs fetched and stored. Always 0 on a refresh, whose photographs are deliberately left alone.",
+                          "type": "integer"
+                        },
+                        "photosFailed": {
+                          "description": "Photographs that would not download or decode.",
+                          "type": "integer"
+                        },
+                        "sourceUrl": {
+                          "description": "The address the case was read from.",
+                          "format": "uri",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "photos",
+                        "photosFailed",
+                        "sourceUrl"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "case",
+                    "imported"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The case as it now stands."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Read the page again into an existing case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
     "/api/cases/{id}/label-slots": {
       "post": {
         "description": "One more place a label goes. A slot is a size and nothing else: width by height, in millimetres, and neither may be `null` — a slot with no width is not a slot.\n\nThe whole case comes back rather than the slot, because the screen shows the slots together and would otherwise have to merge one into a list it already holds.",
@@ -6138,6 +6255,192 @@
         "summary": "Put existing photographs on a card",
         "tags": [
           "photos"
+        ]
+      }
+    },
+    "/api/cases/import": {
+      "post": {
+        "description": "Reads a maker’s product page into a case. Everything worth knowing about a box is a measurement, and a measurement the page states outside what a case can be is dropped rather than stored — a number nobody can have measured looks like a fact.\n\nWhat comes with it is the photographs and nothing else: a case has no parameters and no documents. The weight goes in the note, because the catalog stores what a box measures and what it carries rather than what it weighs empty.",
+        "operationId": "importCase",
+        "parameters": [
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportUrlBody"
+              }
+            }
+          },
+          "description": "The address of the page to read.",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "case": {
+                      "$ref": "#/components/schemas/ToolCase"
+                    },
+                    "imported": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "photos": {
+                          "description": "Photographs fetched and stored. Always 0 on a refresh, whose photographs are deliberately left alone.",
+                          "type": "integer"
+                        },
+                        "photosFailed": {
+                          "description": "Photographs that would not download or decode.",
+                          "type": "integer"
+                        },
+                        "sourceUrl": {
+                          "description": "The address the case was read from.",
+                          "format": "uri",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "photos",
+                        "photosFailed",
+                        "sourceUrl"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "case",
+                    "imported"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The case, and what came with it."
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The body did not parse, or the address is from a site this server cannot read. The message names the ones it can."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Import a case from a product page",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/cases/import/sources": {
+      "get": {
+        "description": "What the import dialog lists before asking for an address. A shorter list than the tools one, and a different one: a page that sells drills has nothing to say about a box.",
+        "operationId": "listCaseImportSources",
+        "parameters": [
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "sources": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "host": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "host",
+                          "label"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "sources"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The pages this server can read a case from."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.read"
+            ]
+          }
+        ],
+        "summary": "The sources a case can be imported from",
+        "tags": [
+          "cases"
         ]
       }
     },

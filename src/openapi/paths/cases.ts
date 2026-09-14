@@ -27,7 +27,71 @@ import { CASE_PAGING } from '../../server/routes/paging'
 
 const CASE = jsonResponse('The case, with its label slots.', object({ case: ref('ToolCase') }))
 
+const IMPORT_OUTCOME = object({
+  photos: {
+    description:
+      'Photographs fetched and stored. Always 0 on a refresh, whose photographs are deliberately left alone.',
+    type: 'integer',
+  },
+  photosFailed: { description: 'Photographs that would not download or decode.', type: 'integer' },
+  sourceUrl: { description: 'The address the case was read from.', format: 'uri', type: 'string' },
+})
+
 export const CASE_OPERATIONS: OperationSpec[] = [
+  {
+    description:
+      'What the import dialog lists before asking for an address. A shorter list than the tools one, and a different one: a page that sells drills has nothing to say about a box.',
+    operationId: 'listCaseImportSources',
+    responses: {
+      200: jsonResponse(
+        'The pages this server can read a case from.',
+        object({
+          sources: arrayOf(object({ host: { type: 'string' }, label: { type: 'string' } })),
+        }),
+      ),
+      ...errors(401, 403),
+    },
+    route: 'GET /api/cases/import/sources',
+    summary: 'The sources a case can be imported from',
+    tag: 'cases',
+  },
+  {
+    description:
+      'Reads a maker’s product page into a case. Everything worth knowing about a box is a measurement, and a measurement the page states outside what a case can be is dropped rather than stored — a number nobody can have measured looks like a fact.\n\nWhat comes with it is the photographs and nothing else: a case has no parameters and no documents. The weight goes in the note, because the catalog stores what a box measures and what it carries rather than what it weighs empty.',
+    operationId: 'importCase',
+    requestBody: jsonBody(ref('ImportUrlBody'), 'The address of the page to read.'),
+    responses: {
+      201: jsonResponse(
+        'The case, and what came with it.',
+        object({ case: ref('ToolCase'), imported: IMPORT_OUTCOME }),
+      ),
+      400: jsonResponse(
+        'The body did not parse, or the address is from a site this server cannot read. The message names the ones it can.',
+        ref('Error'),
+      ),
+      ...errors(401, 403, 422, 503),
+    },
+    route: 'POST /api/cases/import',
+    summary: 'Import a case from a product page',
+    tag: 'cases',
+  },
+  {
+    description:
+      'Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the system, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.',
+    operationId: 'refreshCaseFromPage',
+    pathParams: { id: 'The case to read the page into.' },
+    requestBody: jsonBody(ref('ImportUrlBody'), 'The address of the page to read.'),
+    responses: {
+      200: jsonResponse(
+        'The case as it now stands.',
+        object({ case: ref('ToolCase'), imported: IMPORT_OUTCOME }),
+      ),
+      ...errors(400, 401, 403, 404, 422, 503),
+    },
+    route: 'POST /api/cases/:id/import',
+    summary: 'Read the page again into an existing case',
+    tag: 'cases',
+  },
   {
     description:
       'A page of cases for the shelf. Every item carries `primaryPhotoUrl` for the thumbnail, fetched for the whole page in one query rather than per row.\n\nA bad value in the query string is clamped or dropped rather than refused: a link somebody pasted with `?limit=banana` should still show the shelf.',

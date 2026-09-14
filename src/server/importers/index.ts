@@ -6,6 +6,14 @@
 // fields, and the person would have to undo it.
 
 import {
+  MAX_CAPACITY_L,
+  MAX_DIMENSION_MM,
+  MAX_FIELD_LENGTH as MAX_CASE_FIELD_LENGTH,
+  MAX_LOAD_KG,
+  MAX_NAME_LENGTH as MAX_CASE_NAME_LENGTH,
+  MAX_NOTES_LENGTH as MAX_CASE_NOTES_LENGTH,
+} from '../routes/cases-input'
+import {
   MAX_ATTRIBUTE_NAME_LENGTH,
   MAX_ATTRIBUTE_VALUE_LENGTH,
   MAX_FIELD_LENGTH,
@@ -18,11 +26,18 @@ import { gardena } from './gardena'
 import { lidl } from './lidl'
 import { mistama } from './mistama'
 import { nac } from './nac'
+import { qbrick } from './qbrick'
 import { skil } from './skil'
 import { stanley } from './stanley'
-import type { ImportedProduct, Importer } from './types'
+import type { CaseImporter, ImportedCase, ImportedProduct, Importer } from './types'
 
-export type { ImportedAttribute, ImportedProduct, Importer } from './types'
+export type {
+  CaseImporter,
+  ImportedAttribute,
+  ImportedCase,
+  ImportedProduct,
+  Importer,
+} from './types'
 
 const IMPORTERS: readonly Importer[] = [
   mistama,
@@ -47,7 +62,32 @@ export const IMPORT_SOURCES = IMPORTERS.map((importer) => ({
 // The sources worth offering when what is wanted is a manual.
 export const MANUAL_SOURCES = IMPORT_SOURCES.filter((source) => source.manuals)
 
+// The scripts that read a case rather than a tool. A separate registry rather
+// than a flag on the same one: the two answer with different shapes, and a
+// dialog asking "where is this box from" should not offer a page that sells
+// drills.
+const CASE_IMPORTERS: readonly CaseImporter[] = [qbrick]
+
+export const CASE_IMPORT_SOURCES = CASE_IMPORTERS.map((importer) => ({
+  host: importer.hosts[0],
+  label: importer.label,
+}))
+
+export function caseImporterFor(rawUrl: string): null | CaseImporter {
+  const host = hostOf(rawUrl)
+
+  return host === null ? null : (CASE_IMPORTERS.find((i) => i.hosts.includes(host)) ?? null)
+}
+
 export function importerFor(rawUrl: string): null | Importer {
+  const host = hostOf(rawUrl)
+
+  return host === null ? null : (IMPORTERS.find((i) => i.hosts.includes(host)) ?? null)
+}
+
+// The host, when the address is one a browser would fetch. A `file:` or `data:`
+// address matching a host by accident is not a shop.
+function hostOf(rawUrl: string): null | string {
   let url: URL
   try {
     url = new URL(rawUrl.trim())
@@ -55,13 +95,9 @@ export function importerFor(rawUrl: string): null | Importer {
     return null
   }
 
-  // Only what a browser would fetch. A `file:` or `data:` address matching a
-  // host by accident is not a shop.
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
 
-  const host = url.hostname.toLocaleLowerCase('en-US')
-
-  return IMPORTERS.find((importer) => importer.hosts.includes(host)) ?? null
+  return url.hostname.toLocaleLowerCase('en-US')
 }
 
 // Where the card came from, as a parameter of the tool.
@@ -135,4 +171,38 @@ function clamp(value: string, limit: number): string {
   const lastSpace = cut.lastIndexOf(' ')
 
   return `${(lastSpace > limit / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
+}
+
+// A page has no idea what a case can hold, the same way it has no idea what a
+// card can. Text is cut to the column, and a measurement the page states in
+// micrometres or in a thousand litres is dropped rather than stored: a number
+// nobody can have measured is worse than an empty field, because it looks like
+// a fact.
+export function fitCaseToCard(imported: ImportedCase): ImportedCase {
+  return {
+    ...imported,
+    capacityL: withinRange(imported.capacityL, MAX_CAPACITY_L, 2),
+    diagonalMm: withinRange(imported.diagonalMm, MAX_DIMENSION_MM, 0),
+    ean: clamp(imported.ean, MAX_CASE_FIELD_LENGTH),
+    innerHeightMm: withinRange(imported.innerHeightMm, MAX_DIMENSION_MM, 0),
+    innerLengthMm: withinRange(imported.innerLengthMm, MAX_DIMENSION_MM, 0),
+    innerWidthMm: withinRange(imported.innerWidthMm, MAX_DIMENSION_MM, 0),
+    loadKg: withinRange(imported.loadKg, MAX_LOAD_KG, 2),
+    manufacturer: clamp(imported.manufacturer, MAX_CASE_NAME_LENGTH),
+    name: clamp(imported.name, MAX_CASE_NAME_LENGTH),
+    notes: clamp(imported.notes, MAX_CASE_NOTES_LENGTH),
+    sku: clamp(imported.sku, MAX_CASE_FIELD_LENGTH),
+    sourceUrl: withoutTracking(imported.sourceUrl),
+    system: clamp(imported.system, MAX_CASE_FIELD_LENGTH),
+  }
+}
+
+// The same range the body parser enforces, applied here so that an import and
+// a form cannot disagree about what a case can measure.
+function withinRange(value: null | number, max: number, decimals: number): null | number {
+  if (value === null || !Number.isFinite(value)) return null
+  if (value <= 0 || value > max) return null
+  if (decimals === 0 && !Number.isInteger(value)) return null
+
+  return decimals === 0 ? value : Math.round(value * 10 ** decimals) / 10 ** decimals
 }

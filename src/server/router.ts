@@ -13,6 +13,7 @@
 import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
 import * as brands from './routes/brands'
+import * as caseImport from './routes/case-import'
 import * as cases from './routes/cases'
 import * as labels from './routes/labels'
 import * as docs from './routes/docs'
@@ -121,6 +122,9 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
   'GET /api/cases': cases.GET,
   'POST /api/cases': cases.POST,
   'GET /api/cases/systems': cases.systemsGET,
+  'GET /api/cases/import/sources': caseImport.sourcesGET,
+  'POST /api/cases/import': caseImport.POST,
+  'POST /api/cases/:id/import': caseImport.refreshPOST,
   'GET /api/cases/:id': cases.detailGET,
   'PATCH /api/cases/:id': cases.detailPATCH,
   'DELETE /api/cases/:id': cases.detailDELETE,
