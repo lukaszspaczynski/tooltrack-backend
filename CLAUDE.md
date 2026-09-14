@@ -698,6 +698,37 @@ the one thing that can quietly break this engine.
 `npm run lint` is `typecheck` plus `openapi:check`, so a committed document
 that no longer matches the code fails before anyone generates a client from it.
 
+## Guessing at a password
+
+`login-throttle.ts` counts failed sign-ins, per e-mail and per address, and is
+the only rate limit here. It is the only route that needs one: everything else
+asks for a session first, so an unauthenticated caller can be refused but not
+made to work.
+
+Four decisions in it are load-bearing, and each is the kind that looks like a
+detail until it is wrong.
+
+- It counts what was **submitted**, before any lookup. An e-mail with no
+  account has to be refused exactly like one that has an account, or the two
+  answers are a way to list who is registered here — the same leak the single
+  401 exists to close.
+- Being refused **records nothing**. A block that renewed itself on every
+  rejected attempt would let one guesser hold somebody's account shut for as
+  long as they cared to, which is a denial of service dressed as a defence.
+- A success clears the **e-mail** counter and not the address one. Clearing
+  both would mean anybody holding one valid account could reset their address
+  counter whenever it filled and carry on guessing at everyone else's.
+- The address comes from the **socket** (`client-address.ts`), never from the
+  Request the handler sees. Its headers are the caller's. `X-Forwarded-For` is
+  read only under `TOOLTRACK_TRUST_PROXY`, and then the **last** entry, because
+  a proxy appends the peer it saw and anything to the left is what the caller
+  wrote.
+
+In memory rather than in a table: the rows would be written by unauthenticated
+requests, so the attacker would choose how many. The cost is that two replicas
+mean two counters. One container is the deployment; the module is the place to
+change if that stops being true.
+
 ## Two languages
 
 The messages a person reads come back in the language the client asked for.

@@ -15,6 +15,7 @@ import { preflightResponse, withCorsHeaders } from './cors'
 import { errorResponse } from './error-codes'
 import { routeErrorResponse } from './pg-error-response'
 import { startPreviewSweeping } from './photo-storage'
+import { clientAddress } from './client-address'
 import { readRequestBody, requestUrl } from './request-body-limit'
 import { parseAcceptLanguage, withLanguage } from './i18n'
 import { enforceRoutePolicy } from './route-guard'
@@ -97,7 +98,14 @@ async function answer(req: IncomingMessage, res: ServerResponse): Promise<void> 
       return
     }
 
-    const response = await match.handler(request, { params: match.params, user: guard.user })
+    const response = await match.handler(request, {
+      // Read from the socket here rather than from the Request: the headers on
+      // that object came from the caller, so a client could otherwise announce
+      // its own address to a counter that exists to limit it.
+      clientAddress: clientAddress(req.socket.remoteAddress, req.headers['x-forwarded-for']),
+      params: match.params,
+      user: guard.user,
+    })
     await writeResponse(res, withCorsHeaders(response, request))
   } catch (error) {
     const response = routeErrorResponse('api', error)

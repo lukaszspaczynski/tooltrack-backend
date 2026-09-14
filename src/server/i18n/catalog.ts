@@ -12,6 +12,8 @@
 export const EN: Record<string, string> = {
   // Signing in
   'Nieprawidłowy e-mail lub hasło': 'Invalid email or password',
+  'Za dużo nieudanych prób logowania. Spróbuj ponownie za {minutes} min.':
+    'Too many failed sign-in attempts. Try again in {minutes} min.',
   'Obecne hasło jest nieprawidłowe': 'Current password is incorrect',
   'Konto z tym adresem już istnieje': 'An account with that email already exists',
   'Hasło musi mieć co najmniej {n} znaków': 'The password must be at least {n} characters',

@@ -359,6 +359,30 @@ Making that last one work means `SameSite=None; Secure`, and that is not a
 one-line change: Lax is what stands in for CSRF tokens here, so `None` without
 tokens would trade a real defence for a deployment nobody has asked for.
 
+Failed sign-ins are counted, which is the one rate limit this API has. Every
+other route asks for a session first, so the worst an unauthenticated caller
+can do there is be refused; login is where guessing is the attack. Two counters
+answer two different questions — **ten failures against one e-mail** stops a
+password list, and **fifty from one address** stops an account list, which the
+e-mail counter cannot see at all, since a hundred accounts tried once each is
+one failure per e-mail. Over either, the answer is `429` with `Retry-After` and
+the password is never looked at.
+
+Three things about it are deliberate. It counts what was **submitted** rather
+than what exists, so an e-mail with no account is refused exactly like one that
+has an account and the difference cannot be used to list who is registered
+here. Being refused **does not extend the block**, so somebody else's guessing
+cannot hold an account shut indefinitely. And a body that does not parse is not
+counted, because it cannot be a guess.
+
+It lives in memory (`src/server/login-throttle.ts`), which is a choice with a
+limit worth knowing: a second replica means a second counter and twice the
+attempts. One container is the deployment here, and a table written by
+unauthenticated requests would be its own thing to defend — but that module is
+where to look if that changes, and its shape is already the shape a table would
+have. Behind a proxy, set `TOOLTRACK_TRUST_PROXY=1` or the counter sees the
+proxy's address for everyone and one guesser locks out the office.
+
 ## Verification
 
 ```bash

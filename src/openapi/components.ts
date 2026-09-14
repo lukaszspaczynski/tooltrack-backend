@@ -61,6 +61,7 @@ const FAILURE: Record<number, string> = {
   409: 'The write conflicts with one already stored — a serial number, an e-mail or a parameter name that is taken.',
   413: 'The request body is larger than this route accepts.',
   422: 'The request was well formed, but something it depends on elsewhere failed — a page that would not load, a file that would not decode.',
+  429: 'Too many failed sign-ins from this address, or against this e-mail. `Retry-After` carries the seconds to wait; the same answer is given whether or not an account by that name exists.',
   503: 'The database is unreachable. The request itself was fine; retry it.',
 }
 

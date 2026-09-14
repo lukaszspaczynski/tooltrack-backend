@@ -104,7 +104,7 @@ export const AUTH_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'Sets the session cookie. The body is checked for presence rather than shape: telling somebody their address "looks wrong" at sign-in leaks which addresses this instance considers acceptable, so a bad address and a bad password are answered the same way.',
+      'Sets the session cookie. The body is checked for presence rather than shape: telling somebody their address "looks wrong" at sign-in leaks which addresses this instance considers acceptable, so a bad address and a bad password are answered the same way.\n\nFailures are counted per address and per e-mail, and a caller over either limit is answered 429 with `Retry-After` before the password is looked at. Being refused does not extend the block, so somebody else\'s guessing cannot hold an account shut.',
     operationId: 'login',
     requestBody: jsonBody(ref('LoginBody')),
     responses: {
@@ -112,7 +112,7 @@ export const AUTH_OPERATIONS: OperationSpec[] = [
         'Signed in. The session cookie is on the response.',
         ref('SessionResponse'),
       ),
-      ...errors(400, 401, 503),
+      ...errors(400, 401, 429, 503),
     },
     route: 'POST /api/auth/login',
     summary: 'Sign in',

@@ -15,6 +15,8 @@ import {
   parseRegisterInput,
 } from './auth-input'
 import { t } from '../i18n'
+import { forgetFailedLogins, loginAttemptAllowed, recordFailedLogin } from '../login-throttle'
+import type { RouteContext } from '../route-context'
 import {
   authenticateRequest,
   clearedSessionCookie,
@@ -48,9 +50,31 @@ export async function register(request: Request): Promise<Response> {
   }
 }
 
-export async function login(request: Request): Promise<Response> {
+export async function login(request: Request, context: RouteContext): Promise<Response> {
   const parsed = parseLoginInput(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
+
+  // Counted before anything is looked up, and keyed on what was *submitted*
+  // rather than on what exists. An address nobody has an account for has to be
+  // throttled exactly like one that does, or the difference between the two
+  // answers is a way to find out which e-mails are registered here — the same
+  // leak the single 401 below exists to close.
+  //
+  // A body that does not parse is not counted: it cannot be a guess at a
+  // password, and counting it would let a flood of junk lock out a colleague.
+  const attempt = { address: context.clientAddress, email: parsed.value.email }
+  const throttle = loginAttemptAllowed(attempt)
+
+  if (!throttle.allowed) {
+    return errorResponse(
+      429,
+      'TOO_MANY_ATTEMPTS',
+      t('Za dużo nieudanych prób logowania. Spróbuj ponownie za {minutes} min.', {
+        minutes: Math.ceil(throttle.retryAfterSeconds / 60),
+      }),
+      { headers: { 'retry-after': String(throttle.retryAfterSeconds) } },
+    )
+  }
 
   const credentials = await findCredentialsByEmail(parsed.value.email)
 
@@ -62,6 +86,7 @@ export async function login(request: Request): Promise<Response> {
     credentials.status === 'disabled' ||
     !(await verifyPassword(parsed.value.password, credentials))
   ) {
+    recordFailedLogin(attempt)
     return errorResponse(401, 'INVALID_CREDENTIALS', t('Nieprawidłowy e-mail lub hasło'))
   }
 
@@ -70,6 +95,8 @@ export async function login(request: Request): Promise<Response> {
   // pg-error-response.ts answers a retryable 503 instead of sending someone to
   // reset a password that was always correct.
   const session = await issueSession(Number(credentials.id))
+
+  forgetFailedLogins(attempt)
 
   return sessionResponse(session.user, session.cookie, 200)
 }

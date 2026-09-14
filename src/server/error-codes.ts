@@ -29,6 +29,8 @@ export const ERROR_CODES = {
   FORBIDDEN: 'A session, but not the capability this route needs.',
   ACCOUNT_DISABLED: 'The account exists but has been switched off.',
   INVALID_CREDENTIALS: 'The e-mail and password do not match an account.',
+  TOO_MANY_ATTEMPTS:
+    'Too many failed sign-ins from this address, or against this e-mail. See Retry-After.',
 
   // Not there
   NOT_FOUND: 'No such record, or none this account may see.',
