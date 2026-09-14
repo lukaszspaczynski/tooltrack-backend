@@ -18,6 +18,7 @@ import type { ImportedCase } from '../importers'
 import { errorResponse } from '../error-codes'
 import { t } from '../i18n'
 import type { RouteContext } from '../route-context'
+import { replaceAttributes } from './attributes-store'
 import { createCase, getCase, updateCase } from './cases-store'
 import { fetchPage } from './page-fetch'
 import { importPhotoLinks } from './photos'
@@ -62,6 +63,8 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
     },
     actorId,
   )
+
+  await replaceAttributes('tool_case', created.id, imported.attributes, actorId)
 
   const photos = await hangPhotos(created.id, imported, actorId)
 
@@ -115,6 +118,14 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
   )
 
   if (!updated) return errorResponse(404, 'CASE_NOT_FOUND', t('Nie ma takiej skrzynki'))
+
+  // Cleared and written again, the same as a tool's sheet: the page is the
+  // source of truth for what the box is, so a row the maker has dropped should
+  // leave the case too. That is the opposite of what the seeder does, and
+  // deliberately — a seeder run months later has no business deleting a line
+  // somebody typed, while this ran because somebody pressed a button meaning
+  // "what does the page say now".
+  await replaceAttributes('tool_case', id, imported.attributes, context.user?.id ?? 0)
 
   return Response.json({
     case: await getCase(id),

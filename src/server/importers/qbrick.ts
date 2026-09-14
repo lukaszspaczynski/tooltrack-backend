@@ -14,6 +14,7 @@
 //
 // Pure, like every importer. The fetching lives in routes/case-import.ts.
 
+import type { ImportedAttribute } from './types'
 import { text } from './html'
 import type { CaseImporter, ImportedCase } from './types'
 
@@ -40,6 +41,7 @@ export function parseQbrickCase(html: string, pageUrl: string): null | ImportedC
   const system = systemOf(heading)
 
   return {
+    attributes: attributesOf(rows),
     capacityL: measurement(rows.get('pojemność')),
     diagonalMm: measurement(rows.get('przekątna')),
     ean: rows.get('ean') ?? '',
@@ -49,7 +51,7 @@ export function parseQbrickCase(html: string, pageUrl: string): null | ImportedC
     loadKg: measurement(rows.get('ładowność')),
     manufacturer: MANUFACTURER,
     name: nameOf(heading, system),
-    notes: notesOf(rows, pageUrl),
+    notes: descriptionOf(html),
     outerHeightMm: outer[2],
     outerLengthMm: outer[0],
     outerWidthMm: outer[1],
@@ -130,19 +132,52 @@ export function nameOf(heading: string, system: string): string {
     .join(' ')
 }
 
-// The weight, which a case has nowhere to put: the catalog stores what a box
-// measures and what it carries, not what it weighs empty. Worth keeping, so it
-// goes in the note with the address it was read from — the same reason a tool
-// card carries its Referencja.
-export function notesOf(rows: Map<string, string>, pageUrl: string): string {
-  const parts: string[] = []
+// What the maker writes about the box, which is what a note is for.
+//
+// It used to be the weight and the address, because the case had nowhere else
+// to put either. Both are parameters now — the sheet is the place for a fact
+// with a name — and a note built out of them was a note that said nothing a
+// person reads: two of the five cases had no prose at all, only a link.
+//
+// The Elementor widget rather than the whole page: this site has no
+// `short-description` and no description tab, and the product's own paragraphs
+// are the only ones on it that are about the product. Anything else — the
+// footer, the cookie notice, what the shop suggests buying next — is markup
+// around it.
+export function descriptionOf(html: string): string {
+  const widget =
+    /<div[^>]*data-widget_type="woocommerce-product-content[^"]*"[^>]*>([\s\S]*?)<\/div><\/div>/i.exec(
+      html,
+    )?.[1] ?? ''
 
-  const weight = rows.get('waga')
-  if (weight) parts.push(`Waga ${weight}.`)
+  const paragraphs = [...widget.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)]
+    .map((match) => text(match[1]))
+    .filter(Boolean)
 
-  parts.push(`Dane producenta: ${pageUrl}`)
+  return paragraphs.join('\n\n')
+}
 
-  return parts.join(' ')
+// The rows of the spec table that are not columns. Seven of the nine are — the
+// dimensions, the capacity, the load, the barcode, the catalog number — and
+// these two are what a box states that the catalog has no field for.
+//
+// Named rather than "everything left over" on purpose: a row this list does
+// not know is a row nobody has decided where to put, and guessing would put the
+// EAN on the sheet as well as in its column.
+const SHEET_ROWS: Record<string, string> = {
+  'ilość na palecie': 'Ilość na palecie',
+  waga: 'Waga',
+}
+
+export function attributesOf(rows: Map<string, string>): ImportedAttribute[] {
+  const attributes: ImportedAttribute[] = []
+
+  for (const [label, name] of Object.entries(SHEET_ROWS)) {
+    const value = rows.get(label)
+    if (value) attributes.push({ name, value })
+  }
+
+  return attributes
 }
 
 // The gallery, at the size it was uploaded: `data-large_image` is the original,

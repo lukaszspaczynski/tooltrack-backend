@@ -60,6 +60,11 @@ export type Importer = {
 // Null is "not stated on the page", which is not zero: a case nobody has
 // measured is normal, and a case with no height does not exist.
 export type ImportedCase = {
+  // What the page states and the columns cannot hold: the weight, the number
+  // that fit on a pallet. Nine rows on a Qbrick page and seven of them are
+  // columns, so the sheet is where the other two go rather than into the note,
+  // which is prose about the box.
+  attributes: ImportedAttribute[]
   capacityL: null | number
   diagonalMm: null | number
   ean: string

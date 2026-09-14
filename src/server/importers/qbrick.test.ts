@@ -2,7 +2,17 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import { caseImporterFor, CASE_IMPORT_SOURCES, fitCaseToCard, importerFor } from './index'
-import { dimensions, measurement, nameOf, parseQbrickCase, photosOf, systemOf } from './qbrick'
+import {
+  attributesOf,
+  descriptionOf,
+  dimensions,
+  measurement,
+  nameOf,
+  parseQbrickCase,
+  photosOf,
+  specifications,
+  systemOf,
+} from './qbrick'
 
 const PAGE_URL = 'https://qbricksystem.com/product/qbrick-system-pro-toolcase-protective-foam/'
 
@@ -10,7 +20,7 @@ const UPLOADS = 'https://qbricksystem.com/wp-content/uploads/2025/01'
 
 // The maker's shape: one small table where every unit is written into the
 // value, and a WooCommerce gallery.
-function page(options: { heading?: string; rows?: string } = {}) {
+function page(options: { content?: string; heading?: string; rows?: string } = {}) {
   const rows =
     options.rows ??
     `
@@ -25,9 +35,19 @@ function page(options: { heading?: string; rows?: string } = {}) {
       <tr><td>SKU</td><td>SKRQTCPROFCZAPG001</td></tr>
     `
 
+  // The description is an Elementor widget rather than WooCommerce's own
+  // short-description or tab: this site has neither.
+  const content =
+    options.content ??
+    `<p>Qbrick System PRO Toolcase to uniwersalny i modułowy pojemnik na elektronarzędzia.</p>
+     <p>Poliamidowe konektory boczne pozwolą na łączenie QS PRO Toolcase z pozostałymi modułami.</p>`
+
   return `
     <html><body>
     <h1>${options.heading ?? 'QBRICK SYSTEM PRO TOOLCASE'}</h1>
+    <div class="elementor-element elementor-widget"
+         data-widget_type="woocommerce-product-content.default">
+      <div class="elementor-widget-container">${content}</div></div>
     <div class="woocommerce-product-gallery">
       <div data-thumb="${UPLOADS}/Toolcase-150x150.png">
         <img src="${UPLOADS}/Toolcase-600x600.png"
@@ -96,13 +116,59 @@ test('the measurements land in the right corners of the box', () => {
   assert.equal(found?.loadKg, 15)
 })
 
-test('the weight goes in the note, because a case has nowhere to put it', () => {
-  // The catalog stores what a box measures and what it carries, not what it
-  // weighs empty — and the address goes with it, like a card's Referencja.
+test('the note is what the maker writes about the box', () => {
+  // It used to be the weight and the address, both of which are parameters
+  // now. That left two of the five cases with a note that was a bare link and
+  // nothing a person reads.
   const notes = parseQbrickCase(page(), PAGE_URL)?.notes ?? ''
 
-  assert.match(notes, /Waga 1\.4kg\./)
-  assert.match(notes, /Dane producenta: https:\/\/qbricksystem\.com/)
+  assert.match(notes, /^Qbrick System PRO Toolcase to uniwersalny/)
+  assert.match(notes, /Poliamidowe konektory boczne/)
+  assert.doesNotMatch(notes, /https:\/\//)
+  // Two paragraphs on the page stay two paragraphs on the card.
+  assert.equal(notes.split('\n\n').length, 2)
+})
+
+test('only the product’s own paragraphs are the description', () => {
+  // A footer, a cookie notice and what the shop suggests buying next are all
+  // paragraphs too, and none of them is about this box.
+  const html = `
+    <p>Newsletter</p>
+    <div data-widget_type="woocommerce-product-content.default">
+      <div class="elementor-widget-container"><p>O tej skrzynce.</p></div></div>
+    <p>Polityka prywatności</p>
+  `
+
+  assert.equal(descriptionOf(html), 'O tej skrzynce.')
+  // A page without the widget has no description rather than the whole page.
+  assert.equal(descriptionOf('<html><body><p>Cokolwiek</p></body></html>'), '')
+})
+
+test('the two rows that are not columns go on the sheet', () => {
+  // Nine rows, seven of them columns. The weight and the pallet count are what
+  // the page states and the catalog has no field for.
+  assert.deepEqual(attributesOf(specifications(page())), [
+    { name: 'Ilość na palecie', value: '94' },
+    { name: 'Waga', value: '1.4kg' },
+  ])
+
+  // A row nobody has decided where to put stays off the sheet: the EAN has a
+  // column, and printing it twice is worse than not at all.
+  assert.deepEqual(
+    attributesOf(specifications(page())).map((one) => one.name),
+    ['Ilość na palecie', 'Waga'],
+  )
+})
+
+test('an imported case carries the address it was read from', () => {
+  // The same Referencja a tool card gets, and the thing the "update from the
+  // page" button looks for.
+  const fitted = fitCaseToCard(parseQbrickCase(page(), `${PAGE_URL}?utm_source=nl`)!)
+
+  const reference = fitted.attributes.find((one) => one.name === 'Referencja')
+  assert.equal(reference?.value, PAGE_URL)
+  // Once, whatever the page itself happens to call a row.
+  assert.equal(fitted.attributes.filter((one) => one.name === 'Referencja').length, 1)
 })
 
 test('a photograph comes at the size it was uploaded', () => {

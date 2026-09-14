@@ -246,6 +246,15 @@ That is the one place this differs from `POST /api/cases/:id/import`, where the
 page is the source of truth and a parameter the maker dropped should leave the
 card.
 
+The **notes disagree** between the two, and knowingly. The live import writes
+the maker's own description, because that is what the page says about the box.
+The manifest holds a remark about the catalog instead — that the capacity on a
+drawer unit is the sum of its drawers — which is a thing no product page can
+know and no description would ever say. Pressing "update from the page" on one
+of those two cases replaces the remark with the maker's prose, which is the
+same bargain a tool card makes and the reason the button is not a background
+job.
+
 The catalog keeps one value per measurement, and two of these products do not
 have one. The drawer units list a capacity and a load **per drawer**, so the
 import stores the sum, takes the internal dimensions of the largest drawer, and

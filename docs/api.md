@@ -514,21 +514,28 @@ asking "where is this case from" never offers one.
 `{ "url": "https://qbricksystem.com/…" }`, read into a case.
 
 `201 { case, imported }`, where `imported` is `{ photos, photosFailed, sourceUrl }`
-— the photographs and nothing else. A case has no parameters and no documents,
-which is most of why it has its own importer type rather than sharing the tool
-one.
+— the photographs and nothing else. A case has no documents, which is part of
+why it has its own importer type rather than sharing the tool one.
 
-Everything worth knowing about a box is a measurement, and the page writes the
-units into the values — `450 [L] x 322 [W] x 126 [H] mm`, `15kg`. A measurement
-that reads outside what a case can be is dropped rather than stored: a number
-nobody can have measured looks like a fact. The weight goes into the note,
-because the catalog stores what a box measures and what it carries rather than
-what it weighs empty.
+Almost everything worth knowing about a box is a measurement, and the page
+writes the units into the values — `450 [L] x 322 [W] x 126 [H] mm`, `15kg`. A
+measurement that reads outside what a case can be is dropped rather than
+stored: a number nobody can have measured looks like a fact.
+
+The rows that are **not** a measurement the catalog has a column for become
+**parameters** on the case, the same way a tool's spec sheet does — the weight,
+and how many fit on a pallet. Beside them goes `Referencja`, the address the
+page was read from, which is what the "update from the page" button on a case
+looks for. The **note** is the maker's own description and nothing else: it
+used to carry the weight and the address, which left cases whose entire note
+was a bare link.
 
 ### `POST /api/cases/:id/import` — `catalog.write`
 
 The same page, read again into a case that exists. What the page knows it
-overwrites: the maker, the name, the system, every measurement and the note.
+overwrites: the maker, the name, the system, every measurement, the note and
+the parameters — those are cleared and written again rather than merged, as a
+tool's are, because a row the maker has dropped should leave the case too.
 
 What it cannot know it leaves alone. The **label slots** are where a sticker
 goes on this particular box in this particular van, and no product page has an

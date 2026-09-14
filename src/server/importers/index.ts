@@ -179,8 +179,26 @@ function clamp(value: string, limit: number): string {
 // nobody can have measured is worse than an empty field, because it looks like
 // a fact.
 export function fitCaseToCard(imported: ImportedCase): ImportedCase {
+  const sourceUrl = withoutTracking(imported.sourceUrl)
+
   return {
     ...imported,
+    sourceUrl,
+    // The same ending fitToCard gives a tool card, and for the same reason: a
+    // case that arrived by import is one somebody will want to check against
+    // its page later. Added here rather than in the importer, so a script
+    // written for the next maker cannot forget it, and after the clamping,
+    // because an address cut in the middle is not an address.
+    attributes: [
+      ...imported.attributes
+        .map((attribute) => ({
+          name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
+          value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
+        }))
+        .filter((attribute) => attribute.name && attribute.value)
+        .filter((attribute) => attribute.name !== REFERENCE_ATTRIBUTE),
+      { name: REFERENCE_ATTRIBUTE, value: sourceUrl },
+    ],
     capacityL: withinRange(imported.capacityL, MAX_CAPACITY_L, 2),
     diagonalMm: withinRange(imported.diagonalMm, MAX_DIMENSION_MM, 0),
     ean: clamp(imported.ean, MAX_CASE_FIELD_LENGTH),
@@ -192,7 +210,6 @@ export function fitCaseToCard(imported: ImportedCase): ImportedCase {
     name: clamp(imported.name, MAX_CASE_NAME_LENGTH),
     notes: clamp(imported.notes, MAX_CASE_NOTES_LENGTH),
     sku: clamp(imported.sku, MAX_CASE_FIELD_LENGTH),
-    sourceUrl: withoutTracking(imported.sourceUrl),
     system: clamp(imported.system, MAX_CASE_FIELD_LENGTH),
   }
 }
