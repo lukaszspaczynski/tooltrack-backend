@@ -123,3 +123,42 @@ export function sampleOf(path: string): string {
     .replace(/:checksum/g, 'a'.repeat(64))
     .replace(/:([A-Za-z]\w*)/g, (_, name: string) => (/^id$|Id$/.test(name) ? '1' : 'x'))
 }
+
+// A route template as a pattern, with the names of the parameters in it.
+//
+// This is the only place a path becomes a regular expression. Before, every
+// parameterised route existed twice — once as a line in ROUTES and once as a
+// `const TOOL_DETAIL_PATTERN = /^\/api\/tools\/(\d+)$/` beside the router —
+// and the two could describe different paths with nothing to say so.
+//
+// The segment types are the ones this API has, and they are deliberately
+// narrow: an id that admits anything is an id that lets `/api/tools/../..`
+// reach a handler.
+const SEGMENT: Record<string, string> = {
+  checksum: '[0-9a-f]{64}',
+  method: '[a-z]+',
+  provider: '[a-z]+',
+}
+
+export type CompiledRoute = {
+  names: string[]
+  pattern: RegExp
+}
+
+export function compileRoute(path: string): CompiledRoute {
+  const names: string[] = []
+
+  const source = path.replace(/:([A-Za-z]\w*)/g, (_, name: string) => {
+    names.push(name)
+    return `(${SEGMENT[name] ?? '\\d+'})`
+  })
+
+  return { names, pattern: new RegExp(`^${source.replace(/\//g, '\\/')}$`) }
+}
+
+// A trailing slash is the same route. Nothing else is normalised — not casing,
+// not encoded segments — because a router that normalises more than the policy
+// does is a router the policy can be walked around.
+export function normalizePath(pathname: string): string {
+  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+}

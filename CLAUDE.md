@@ -649,9 +649,10 @@ the one thing that can quietly break this engine.
    from that object. A rule written as an `if` is a rule the document cannot
    see. Query strings stay hand-written: they clamp rather than refuse, and a
    schema cannot express forgiveness.
-2. Add the path to `matchRoute` in `src/server/router.ts` and to the `ROUTES`
-   list in `src/server/route-list.ts`. `router.test.ts` compares the two in
-   both directions, so forgetting either is a failure rather than a surprise.
+2. Add the route to `ROUTES` in `src/server/route-list.ts` — that is where the
+   path itself lives, and `compileRoute` turns it into a pattern — and the
+   handler to `HANDLERS` in `src/server/router.ts`, keyed by the same string.
+   `router.test.ts` compares the two in both directions.
 3. Add it to `RULES` in `src/access/route-policy.ts`. Skipping this makes the
    route return 403 — that is the design, not a bug.
 4. Document it in `docs/api.md`.

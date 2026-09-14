@@ -380,9 +380,20 @@ with `?limit=banana` still shows the catalog, clamped — and a schema that
 forgives accepts anything, which says less than the parameter list already
 does.
 
-A route lives in four places — `route-list.ts`, `router.ts`, the access policy
-and `src/openapi/paths/` — and three tests tie them together, so forgetting one
-fails immediately and names which. They are `router.test.ts`,
+A **path** is written once, in `ROUTES`. `compileRoute` turns `/api/tools/:id`
+into the pattern that matches it, so the router no longer keeps a second copy as
+a regular expression of its own.
+
+What is still separate, on purpose, is the **access policy**. Six of its rules
+match `[^/]+` where the router matches `\d+`: it classifies a family of paths
+rather than the exact ones the router happens to serve, so a mistake in the
+router cannot expose something the policy never considered. Deriving both from
+one table would make it a single opinion instead of two, which is the property
+worth keeping.
+
+So a route lives in three places — the list, the handler table, and the policy —
+plus its description in `src/openapi/paths/`. Three tests tie them together, so
+forgetting one fails immediately and names which: `router.test.ts`,
 `src/openapi/coverage.test.ts` and `docs/api-coverage.test.ts`.
 
 Coverage is partial on purpose and says so out loud. `src/openapi/operations.ts`
