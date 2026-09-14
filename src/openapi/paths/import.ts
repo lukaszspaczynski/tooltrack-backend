@@ -34,10 +34,7 @@ export const IMPORT_OPERATIONS: OperationSpec[] = [
     operationId: 'importTool',
     requestBody: IMPORT_URL_BODY,
     responses: {
-      201: jsonResponse(
-        'The card, and what came with it.',
-        object({ imported: ref('ImportOutcome'), tool: ref('ToolDetail') }),
-      ),
+      201: jsonResponse('The card, and what came with it.', ref('ImportResponse')),
       400: jsonResponse(
         'The body did not parse, or the address is from a host this server cannot read. The message names the ones it can.',
         ref('Error'),
@@ -62,7 +59,7 @@ export const IMPORT_OPERATIONS: OperationSpec[] = [
     responses: {
       200: jsonResponse(
         'The card as it now stands, and what the page changed.',
-        object({ imported: ref('ImportOutcome'), tool: ref('ToolDetail') }),
+        ref('ImportResponse'),
       ),
       ...errors(400, 401, 403, 404, 422, 503),
     },

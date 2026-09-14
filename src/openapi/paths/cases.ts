@@ -21,8 +21,9 @@ import {
   queryParam,
   ref,
 } from '../operation'
-import { LIMIT_PARAM, OFFSET_PARAM } from '../components'
+import { limitParam, OFFSET_PARAM } from '../components'
 import type { Schema } from '../types'
+import { CASE_PAGING } from '../../server/routes/paging'
 
 const CASE = jsonResponse('The case, with its label slots.', object({ case: ref('ToolCase') }))
 
@@ -41,7 +42,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
         type: 'string',
       }),
       queryParam('order', 'Direction.', { default: 'desc', enum: ['desc', 'asc'], type: 'string' }),
-      LIMIT_PARAM,
+      limitParam(CASE_PAGING),
       OFFSET_PARAM,
     ],
     responses: {

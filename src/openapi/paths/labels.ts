@@ -20,7 +20,8 @@ import {
   queryParam,
   ref,
 } from '../operation'
-import { OFFSET_PARAM } from '../components'
+import { limitParam, OFFSET_PARAM } from '../components'
+import { LABEL_PAGING } from '../../server/routes/paging'
 
 export const LABEL_OPERATIONS: OperationSpec[] = [
   {
@@ -39,12 +40,7 @@ export const LABEL_OPERATIONS: OperationSpec[] = [
         type: 'string',
       }),
       queryParam('order', 'Direction.', { default: 'desc', enum: ['desc', 'asc'], type: 'string' }),
-      queryParam(
-        'limit',
-        'How many to return.',
-        { default: 48, maximum: 200, minimum: 1, type: 'integer' },
-        48,
-      ),
+      limitParam(LABEL_PAGING),
       OFFSET_PARAM,
     ],
     responses: {
@@ -94,10 +90,7 @@ export const LABEL_OPERATIONS: OperationSpec[] = [
     responses: {
       200: jsonResponse(
         'How many were drawn, and what went wrong with the rest.',
-        object({
-          failed: arrayOf(object({ error: { type: 'string' }, id: { type: 'integer' } })),
-          refreshed: { type: 'integer' },
-        }),
+        ref('LabelRefreshResponse'),
       ),
       404: jsonResponse('None of those labels exist.', ref('Error')),
       ...errors(400, 401, 403, 503),

@@ -21,7 +21,7 @@
     "qbrick:cases": "tsx scripts/import-qbrick-cases.ts",
     "qbrick:import": "tsx scripts/import-qbrick-tools.ts",
     "start": "NODE_EXTRA_CA_CERTS=assets/certs/home-pl-dv-tls-g2-r35-ca.pem tsx src/server/index.ts",
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test": "node --import tsx --test \"src/**/*.test.ts\" \"docs/**/*.test.ts\"",
     "typecheck": "tsc --noEmit --pretty false",
     "user:admin": "tsx scripts/ensure-admin-user.ts"
   },

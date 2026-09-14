@@ -6,6 +6,7 @@
 // what it already has.
 
 import { capabilitiesFor, effectiveRole, type User } from '../../access/roles'
+import type { SessionResponse } from './responses'
 import { errorResponse } from '../error-codes'
 import {
   parseLoginInput,
@@ -88,11 +89,13 @@ export async function me(request: Request): Promise<Response> {
   // The client renders its menu from `capabilities`, never by comparing role
   // strings of its own. That keeps one definition of what a role can do, here
   // and in the guard, and a UI that hides a button the API would refuse.
-  return Response.json({
+  const body: SessionResponse = {
     capabilities: capabilitiesFor(user),
     effectiveRole: effectiveRole(user),
     user,
-  })
+  }
+
+  return Response.json(body)
 }
 
 export async function changePassword(request: Request): Promise<Response> {

@@ -1,6 +1,7 @@
 // Manual bodies. Pure; see input.ts.
 
 import { z } from 'zod'
+import { clampLimit, clampOffset, MANUAL_PAGING } from './paging'
 
 import { t } from '../i18n'
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
@@ -53,8 +54,8 @@ export function parseManualTitle(body: unknown): Parsed<string> {
   return parsed.ok ? valid(parsed.value.title) : parsed
 }
 
-export const DEFAULT_MANUAL_LIMIT = 24
-export const MAX_MANUAL_LIMIT = 200
+export const DEFAULT_MANUAL_LIMIT = MANUAL_PAGING.default
+export const MAX_MANUAL_LIMIT = MANUAL_PAGING.max
 export const MAX_DELETE_MANUALS = 50
 
 export type ManualQuery = {
@@ -68,8 +69,8 @@ export type ManualQuery = {
 // shelf — which is why it is not a schema.
 export function parseManualQuery(params: URLSearchParams): ManualQuery {
   return {
-    limit: clampInteger(params.get('limit'), DEFAULT_MANUAL_LIMIT, 1, MAX_MANUAL_LIMIT),
-    offset: clampInteger(params.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER),
+    limit: clampLimit(params.get('limit'), MANUAL_PAGING),
+    offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
   }
 }
@@ -104,10 +105,4 @@ export function parseManualIds(body: unknown): Parsed<number[]> {
   }
 
   return valid(ids)
-}
-
-function clampInteger(raw: null | string, fallback: number, min: number, max: number): number {
-  const value = Number(raw)
-  if (!raw || !Number.isFinite(value)) return fallback
-  return Math.min(Math.max(Math.trunc(value), min), max)
 }

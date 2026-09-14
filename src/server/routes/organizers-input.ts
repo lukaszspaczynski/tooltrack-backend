@@ -1,6 +1,7 @@
 // Organizer bodies and list query strings. Pure; see input.ts.
 
 import { MAX_CONTENTS_PHOTOS } from '../labels/contents-label'
+import { clampLimit, clampOffset, ORGANIZER_PAGING } from './paging'
 import { captionSource } from '../labels/generate'
 import { z } from 'zod'
 
@@ -11,8 +12,8 @@ export const MAX_NAME_LENGTH = 200
 export const MAX_DESCRIPTION_LENGTH = 4000
 export const MAX_NUMBER = 100_000
 
-export const DEFAULT_LIMIT = 50
-export const MAX_LIMIT = 200
+export const DEFAULT_LIMIT = ORGANIZER_PAGING.default
+export const MAX_LIMIT = ORGANIZER_PAGING.max
 
 export type OrganizerFields = {
   caseId: number
@@ -268,8 +269,8 @@ export function parseOrganizerQuery(params: URLSearchParams): Parsed<OrganizerQu
   return valid({
     caseId: parseId(params.get('caseId')) ?? null,
     direction: params.get('order')?.trim().toLowerCase() === 'desc' ? 'desc' : 'asc',
-    limit: clampInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT),
-    offset: clampInteger(params.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER),
+    limit: clampLimit(params.get('limit'), ORGANIZER_PAGING),
+    offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
     // By number, ascending: that is the order they are stacked in and the
     // order people read them.
@@ -288,10 +289,4 @@ function parseNumber(raw: unknown): null | number {
   if (typeof value !== 'number' || !Number.isInteger(value)) return null
   if (value <= 0 || value > MAX_NUMBER) return null
   return value
-}
-
-function clampInteger(raw: null | string, fallback: number, min: number, max: number): number {
-  const value = Number(raw)
-  if (!raw || !Number.isFinite(value)) return fallback
-  return Math.min(Math.max(Math.trunc(value), min), max)
 }

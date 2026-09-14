@@ -5,6 +5,7 @@
 // runtime and what puts `maxLength: 200` in docs/openapi.json.
 
 import { z } from 'zod'
+import { clampLimit, clampOffset, TOOL_PAGING } from './paging'
 
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 
@@ -24,8 +25,8 @@ export const MAX_ATTRIBUTE_NAME_LENGTH = 80
 export const MAX_ATTRIBUTE_VALUE_LENGTH = 200
 export const MAX_URL_LENGTH = 2000
 
-export const DEFAULT_LIMIT = 50
-export const MAX_LIMIT = 200
+export const DEFAULT_LIMIT = TOOL_PAGING.default
+export const MAX_LIMIT = TOOL_PAGING.max
 
 const CONDITION = z.enum(TOOL_CONDITIONS, {
   error: () => `condition must be one of: ${TOOL_CONDITIONS.join(', ')}`,
@@ -227,8 +228,8 @@ export function parseToolQuery(params: URLSearchParams): Parsed<ToolQuery> {
     inOrganizer: readBoolean(params.get('inOrganizer')),
     condition: conditionParam ? (conditionParam as ToolCondition) : null,
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
-    limit: clampInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT),
-    offset: clampInteger(params.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER),
+    limit: clampLimit(params.get('limit'), TOOL_PAGING),
+    offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
     sort: parseSort(params.get('sort')),
   })
@@ -245,12 +246,6 @@ function parseSort(value: null | string): ToolSort {
       // changed something in it.
       return 'updatedAt'
   }
-}
-
-function clampInteger(value: null | string, fallback: number, min: number, max: number): number {
-  const parsed = Number(value)
-  if (value === null || value.trim() === '' || !Number.isInteger(parsed)) return fallback
-  return Math.min(Math.max(parsed, min), max)
 }
 
 // Absent means "do not filter", which is not the same as false.

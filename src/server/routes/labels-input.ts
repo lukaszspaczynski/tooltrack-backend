@@ -1,11 +1,12 @@
 // The label list's query string. Pure; see input.ts.
 
 import { LABEL_TEMPLATES, type LabelTemplate } from '../labels/generate'
+import { clampLimit, clampOffset, LABEL_PAGING } from './paging'
 import { invalid, valid, type Parsed } from './input'
 import { t } from '../i18n'
 
-export const DEFAULT_LABEL_LIMIT = 48
-export const MAX_LABEL_LIMIT = 200
+export const DEFAULT_LABEL_LIMIT = LABEL_PAGING.default
+export const MAX_LABEL_LIMIT = LABEL_PAGING.max
 
 export type LabelListQuery = {
   direction: 'asc' | 'desc'
@@ -33,8 +34,8 @@ export function parseLabelListQuery(params: URLSearchParams): Parsed<LabelListQu
     // Newest first: the screen is opened to find what was printed last, and a
     // label made a year ago is the one nobody is looking for.
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
-    limit: clampInteger(params.get('limit'), DEFAULT_LABEL_LIMIT, 1, MAX_LABEL_LIMIT),
-    offset: clampInteger(params.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER),
+    limit: clampLimit(params.get('limit'), LABEL_PAGING),
+    offset: clampOffset(params.get('offset')),
     organizerId: organizerId ? parseId(organizerId) : null,
     // A label has no name of its own, so the search is about the arrangement
     // and the box it belongs to — the same words the organizer list matches.
@@ -84,10 +85,4 @@ function parseId(raw: string): null | number {
   const value = Number(raw)
   if (!Number.isSafeInteger(value) || value <= 0) return null
   return value
-}
-
-function clampInteger(raw: null | string, fallback: number, min: number, max: number): number {
-  const value = Number(raw)
-  if (!raw || !Number.isFinite(value)) return fallback
-  return Math.min(Math.max(Math.trunc(value), min), max)
 }

@@ -18,8 +18,9 @@ import {
   queryParam,
   ref,
 } from '../operation'
-import { OFFSET_PARAM } from '../components'
+import { limitParam, OFFSET_PARAM } from '../components'
 import type { Schema } from '../types'
+import { BRAND_PAGING } from '../../server/routes/paging'
 
 const BRAND = jsonResponse('The maker.', object({ brand: ref('Brand') }))
 
@@ -36,12 +37,7 @@ export const BRAND_OPERATIONS: OperationSpec[] = [
         type: 'string',
       }),
       queryParam('order', 'Direction.', { default: 'asc', enum: ['asc', 'desc'], type: 'string' }),
-      queryParam(
-        'limit',
-        'How many to return.',
-        { default: 100, maximum: 500, minimum: 1, type: 'integer' },
-        100,
-      ),
+      limitParam(BRAND_PAGING),
       OFFSET_PARAM,
     ],
     responses: {

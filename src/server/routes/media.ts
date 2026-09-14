@@ -13,6 +13,7 @@
 // list in it.
 
 import { ImageConversionError, toStoredPng } from '../image-convert'
+import type { PhotoDeleteResponse } from './responses'
 import { errorResponse } from '../error-codes'
 import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch'
 import { readPhotoBytes, savePhotoBytes } from '../photo-storage'
@@ -167,14 +168,16 @@ export async function deletePOST(request: Request, _context: RouteContext): Prom
   // `deleted` can be lower than the number asked for: someone else may have
   // removed a photo between the screen loading and the button being pressed.
   // The client shows what actually happened rather than what was requested.
-  return Response.json({
+  const body: PhotoDeleteResponse = {
     deleted: result.deleted,
     // Which cards now show a different main photo, and what kind of card each
     // one is: deleting the main picture of a case changes the shelf as much as
     // deleting a tool's changes the catalog.
     promoted: result.promoted,
     requested: parsed.value.length,
-  })
+  }
+
+  return Response.json(body)
 }
 
 async function readJson(request: Request): Promise<unknown> {

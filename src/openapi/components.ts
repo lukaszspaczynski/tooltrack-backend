@@ -2,6 +2,7 @@
 // back, and the query parameters that mean the same thing on every list.
 
 import { ERROR_CODES } from '../server/error-codes'
+import { TOOL_PAGING, type Paging } from '../server/routes/paging'
 import { jsonResponse, object, queryParam, ref } from './operation'
 import type { Parameter, Response, Schema } from './types'
 
@@ -70,13 +71,19 @@ export const ERROR_RESPONSES: Record<string, Response> = Object.fromEntries(
   ]),
 )
 
-// Paging, which every list route spells the same way.
-export const LIMIT_PARAM: Parameter = queryParam(
-  'limit',
-  'How many records to return.',
-  { default: 50, maximum: 200, minimum: 1, type: 'integer' },
-  50,
-)
+// Paging, built from the object the parser clamps with, so the ceiling the
+// contract publishes is the ceiling the server enforces. `TOOL_PAGING` and its
+// neighbours live in src/server/routes/paging.ts.
+export function limitParam(paging: Paging): Parameter {
+  return queryParam(
+    'limit',
+    'How many records to return. A value above the maximum is clamped rather than refused.',
+    { default: paging.default, maximum: paging.max, minimum: 1, type: 'integer' },
+    paging.default,
+  )
+}
+
+export const LIMIT_PARAM: Parameter = limitParam(TOOL_PAGING)
 
 export const OFFSET_PARAM: Parameter = queryParam(
   'offset',

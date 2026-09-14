@@ -35,8 +35,9 @@ import {
   queryParam,
   ref,
 } from '../operation'
-import { LIMIT_PARAM, OFFSET_PARAM } from '../components'
+import { limitParam, OFFSET_PARAM } from '../components'
 import type { Schema } from '../types'
+import { ORGANIZER_PAGING } from '../../server/routes/paging'
 
 const ORGANIZER = jsonResponse(
   'The arrangement as it now stands, with its tools and its labels.',
@@ -65,7 +66,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
         type: 'string',
       }),
       queryParam('order', 'Direction.', { default: 'asc', enum: ['asc', 'desc'], type: 'string' }),
-      LIMIT_PARAM,
+      limitParam(ORGANIZER_PAGING),
       OFFSET_PARAM,
     ],
     responses: {
@@ -206,11 +207,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
     responses: {
       200: jsonResponse(
         'How many were drawn, what went wrong with the rest, and the arrangement.',
-        object({
-          failed: arrayOf(object({ error: { type: 'string' }, id: { type: 'integer' } })),
-          organizer: ref('Organizer'),
-          refreshed: { type: 'integer' },
-        }),
+        ref('OrganizerLabelRefreshResponse'),
       ),
       404: jsonResponse('No such arrangement, or none of those labels are its.', ref('Error')),
       ...errors(400, 401, 403, 503),

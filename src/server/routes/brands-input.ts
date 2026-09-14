@@ -1,14 +1,15 @@
 // Brand bodies and list query strings. Pure; see input.ts.
 
 import { z } from 'zod'
+import { clampLimit, clampOffset, BRAND_PAGING } from './paging'
 
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 
 export const MAX_NAME_LENGTH = 120
 export const MAX_NOTES_LENGTH = 4000
 
-export const DEFAULT_LIMIT = 100
-export const MAX_LIMIT = 500
+export const DEFAULT_LIMIT = BRAND_PAGING.default
+export const MAX_LIMIT = BRAND_PAGING.max
 
 export type BrandFields = {
   // '#rrggbb', lowercase, or '' for a maker whose colour nobody has said.
@@ -146,15 +147,9 @@ export function parseLogo(body: unknown): Parsed<number> {
 export function parseBrandQuery(params: URLSearchParams): Parsed<BrandQuery> {
   return valid({
     direction: params.get('order')?.trim().toLowerCase() === 'desc' ? 'desc' : 'asc',
-    limit: clampInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT),
-    offset: clampInteger(params.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER),
+    limit: clampLimit(params.get('limit'), BRAND_PAGING),
+    offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
     sort: params.get('sort')?.trim() === 'tools' ? 'tools' : 'name',
   })
-}
-
-function clampInteger(raw: null | string, fallback: number, min: number, max: number): number {
-  const value = Number(raw)
-  if (!raw || !Number.isFinite(value)) return fallback
-  return Math.min(Math.max(Math.trunc(value), min), max)
 }

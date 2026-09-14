@@ -31,10 +31,7 @@ export const USER_OPERATIONS: OperationSpec[] = [
       'Every account. The capability list travels with each row so the screen can show what a role actually means without repeating that table client side.',
     operationId: 'listUsers',
     responses: {
-      200: jsonResponse(
-        'Every account, with what its role allows.',
-        object({ users: arrayOf(ref('UserWithCapabilities')) }),
-      ),
+      200: jsonResponse('Every account, with what its role allows.', ref('UserListResponse')),
       ...errors(401, 403, 503),
     },
     route: 'GET /api/users',

@@ -1,6 +1,7 @@
 // Case bodies and list query strings. Pure; see input.ts.
 
 import { z } from 'zod'
+import { clampLimit, clampOffset, CASE_PAGING } from './paging'
 
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 
@@ -15,8 +16,8 @@ export const MAX_DIMENSION_MM = 5000
 export const MAX_CAPACITY_L = 10_000
 export const MAX_LOAD_KG = 10_000
 
-export const DEFAULT_LIMIT = 50
-export const MAX_LIMIT = 200
+export const DEFAULT_LIMIT = CASE_PAGING.default
+export const MAX_LIMIT = CASE_PAGING.max
 
 // Text fields that are optional and stored as '' when not filled in, the same
 // convention the tool card uses.
@@ -201,9 +202,9 @@ export function parseLabelSlot(body: unknown): Parsed<{ heightMm: number; widthM
 export function parseCaseQuery(params: URLSearchParams): Parsed<CaseQuery> {
   return valid({
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
-    limit: clampInteger(params.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT),
+    limit: clampLimit(params.get('limit'), CASE_PAGING),
     manufacturer: params.get('manufacturer')?.trim() || null,
-    offset: clampInteger(params.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER),
+    offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
     sort: parseSort(params.get('sort')),
     system: params.get('system')?.trim() || null,
@@ -221,10 +222,4 @@ function parseSort(value: null | string): CaseSort {
     default:
       return 'name'
   }
-}
-
-function clampInteger(raw: null | string, fallback: number, min: number, max: number): number {
-  const value = Number(raw)
-  if (!raw || !Number.isFinite(value)) return fallback
-  return Math.min(Math.max(Math.trunc(value), min), max)
 }

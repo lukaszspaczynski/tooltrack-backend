@@ -1,13 +1,14 @@
 // Query and body parsing for the photo library. Pure; see input.ts.
 
 import { z } from 'zod'
+import { clampLimit, clampOffset, MEDIA_PAGING } from './paging'
 
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 import { PHOTO_SOURCES, type PhotoSource } from './photos-store'
 import { t } from '../i18n'
 
-export const DEFAULT_MEDIA_LIMIT = 48
-export const MAX_MEDIA_LIMIT = 200
+export const DEFAULT_MEDIA_LIMIT = MEDIA_PAGING.default
+export const MAX_MEDIA_LIMIT = MEDIA_PAGING.max
 // A bulk delete is a form submission, not a data migration. The cap keeps one
 // mis-click from taking the whole library, and keeps the transaction short.
 export const MAX_DELETE_IDS = 200

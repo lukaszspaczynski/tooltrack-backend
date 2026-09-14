@@ -37,8 +37,9 @@ import {
   queryParam,
   ref,
 } from '../operation'
-import { LIMIT_PARAM, OFFSET_PARAM } from '../components'
+import { limitParam, OFFSET_PARAM } from '../components'
 import type { Schema } from '../types'
+import { MEDIA_PAGING } from '../../server/routes/paging'
 
 const PHOTO_SOURCES = ['upload', 'url', 'search', 'edit']
 const CUTOUT_METHODS = ['local', 'removebg', 'gemini']
@@ -175,13 +176,7 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
       pathParams: id,
       requestBody: jsonBody(ref('PhotoAttachBody')),
       responses: {
-        201: jsonResponse(
-          'At least one was attached.',
-          object({
-            failed: arrayOf(object({ id: { type: 'integer' }, reason: { type: 'string' } })),
-            photos: arrayOf(ref('CardPhoto')),
-          }),
-        ),
+        201: jsonResponse('At least one was attached.', ref('PhotoAttachResponse')),
         409: jsonResponse(
           'None of them could be attached.',
           object(
@@ -243,10 +238,7 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
       operationId: `cutout${suffix}Photo`,
       pathParams: onPhoto,
       responses: {
-        201: jsonResponse(
-          'The cutout, and which method produced it.',
-          object({ photo: ref('CardPhoto'), provider: { enum: CUTOUT_METHODS, type: 'string' } }),
-        ),
+        201: jsonResponse('The cutout, and which method produced it.', ref('CutoutResponse')),
         422: jsonResponse(
           'The picture is not one this method can cut out — too busy a background, or nothing that reads as a single object.',
           ref('Error'),
@@ -267,24 +259,7 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
         'Optional. Omit it entirely to use the configured settings.',
       ),
       responses: {
-        200: jsonResponse(
-          'The cutout, cached rather than stored.',
-          object({
-            preview: object({
-              byteSize: { type: 'integer' },
-              checksum: {
-                description: 'sha256 of the bytes. What commit names to keep them.',
-                pattern: '^[0-9a-f]{64}$',
-                type: 'string',
-              },
-              contentType: { type: 'string' },
-              height: { type: ['integer', 'null'] },
-              url: { type: 'string' },
-              width: { type: ['integer', 'null'] },
-            }),
-            provider: { enum: CUTOUT_METHODS, type: 'string' },
-          }),
-        ),
+        200: jsonResponse('The cutout, cached rather than stored.', ref('CutoutPreviewResponse')),
         422: jsonResponse('The picture is not one this method can cut out.', ref('Error')),
         ...errors(400, 401, 403, 404, 503),
       },
@@ -396,7 +371,7 @@ const LIBRARY_OPERATIONS: OperationSpec[] = [
         type: 'string',
       }),
       queryParam('order', 'Direction.', { default: 'desc', enum: ['desc', 'asc'], type: 'string' }),
-      { ...LIMIT_PARAM, schema: { default: 48, maximum: 200, minimum: 1, type: 'integer' } },
+      limitParam(MEDIA_PAGING),
       OFFSET_PARAM,
     ],
     responses: {
@@ -451,14 +426,7 @@ const LIBRARY_OPERATIONS: OperationSpec[] = [
     operationId: 'deleteLibraryPhotos',
     requestBody: jsonBody(ref('PhotoDeleteBody')),
     responses: {
-      200: jsonResponse(
-        'What was actually removed.',
-        object({
-          deleted: { type: 'integer' },
-          promoted: arrayOf(ref('PhotoOwner')),
-          requested: { type: 'integer' },
-        }),
-      ),
+      200: jsonResponse('What was actually removed.', ref('PhotoDeleteResponse')),
       ...errors(400, 401, 403, 503),
     },
     route: 'POST /api/photos/delete',

@@ -25,7 +25,8 @@ import {
   queryParam,
   ref,
 } from '../operation'
-import { OFFSET_PARAM } from '../components'
+import { limitParam, OFFSET_PARAM } from '../components'
+import { MANUAL_PAGING } from '../../server/routes/paging'
 
 // The body of a save from an address, and of a read from a product page.
 const URL_BODY = ref('ManualUrlBody')
@@ -87,13 +88,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
     pathParams: { id: 'The tool card.' },
     requestBody: jsonBody(URL_BODY, 'The product page to read.'),
     responses: {
-      201: jsonResponse(
-        'At least one document was stored.',
-        object({
-          failed: arrayOf(object({ error: { type: 'string' }, url: { type: 'string' } })),
-          manuals: arrayOf(ref('Manual')),
-        }),
-      ),
+      201: jsonResponse('At least one document was stored.', ref('ManualImportResponse')),
       400: jsonResponse(
         'The body did not parse, or the address is from a source this server cannot read — or can read but which publishes no documents. The message names the ones that do.',
         ref('Error'),
@@ -123,7 +118,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
     responses: {
       201: jsonResponse(
         'How many were newly attached, and the card’s documents as they now stand.',
-        object({ attached: { type: 'integer' }, manuals: arrayOf(ref('Manual')) }),
+        ref('ManualAttachResponse'),
       ),
       ...errors(400, 401, 403, 404, 503),
     },
@@ -170,12 +165,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
     operationId: 'listManualLibrary',
     query: [
       queryParam('q', 'Matches the document and the tools that keep it.', { type: 'string' }),
-      queryParam(
-        'limit',
-        'How many to return.',
-        { default: 24, maximum: 200, minimum: 1, type: 'integer' },
-        24,
-      ),
+      limitParam(MANUAL_PAGING),
       OFFSET_PARAM,
     ],
     responses: {
@@ -206,13 +196,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
     operationId: 'deleteManuals',
     requestBody: jsonBody(ID_LIST),
     responses: {
-      200: jsonResponse(
-        'What was removed, and from where.',
-        object({
-          deleted: { type: 'integer' },
-          tools: arrayOf(object({ id: { type: 'integer' }, name: { type: 'string' } })),
-        }),
-      ),
+      200: jsonResponse('What was removed, and from where.', ref('ManualDeleteResponse')),
       ...errors(400, 401, 403, 503),
     },
     route: 'POST /api/manuals/delete',

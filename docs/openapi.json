@@ -1848,6 +1848,417 @@
         ],
         "additionalProperties": false
       },
+      "CutoutPreviewResponse": {
+        "type": "object",
+        "properties": {
+          "preview": {
+            "$ref": "#/components/schemas/CutoutPreview"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "preview",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "CutoutPreview": {
+        "type": "object",
+        "properties": {
+          "byteSize": {
+            "type": "number"
+          },
+          "checksum": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "height": {
+            "type": [
+              "null",
+              "number"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "type": [
+              "null",
+              "number"
+            ]
+          }
+        },
+        "required": [
+          "byteSize",
+          "checksum",
+          "contentType",
+          "height",
+          "url",
+          "width"
+        ],
+        "additionalProperties": false
+      },
+      "CutoutResponse": {
+        "type": "object",
+        "properties": {
+          "photo": {
+            "$ref": "#/components/schemas/CardPhoto"
+          },
+          "provider": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "photo",
+          "provider"
+        ],
+        "additionalProperties": false
+      },
+      "ImportOutcome": {
+        "type": "object",
+        "properties": {
+          "attributes": {
+            "type": "number"
+          },
+          "attributesFailed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "manuals": {
+            "type": "number"
+          },
+          "manualsFailed": {
+            "type": "number"
+          },
+          "photos": {
+            "type": "number"
+          },
+          "photosFailed": {
+            "type": "number"
+          },
+          "sourceUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "attributes",
+          "attributesFailed",
+          "manuals",
+          "manualsFailed",
+          "photos",
+          "photosFailed",
+          "sourceUrl"
+        ],
+        "additionalProperties": false
+      },
+      "ImportResponse": {
+        "type": "object",
+        "properties": {
+          "imported": {
+            "$ref": "#/components/schemas/ImportOutcome"
+          },
+          "tool": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ToolDetail"
+              }
+            ]
+          }
+        },
+        "required": [
+          "imported",
+          "tool"
+        ],
+        "additionalProperties": false
+      },
+      "LabelRefreshResponse": {
+        "type": "object",
+        "properties": {
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FailedId"
+            }
+          },
+          "refreshed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "failed",
+          "refreshed"
+        ],
+        "additionalProperties": false
+      },
+      "FailedId": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "error",
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "ManualAttachResponse": {
+        "type": "object",
+        "properties": {
+          "attached": {
+            "type": "number"
+          },
+          "manuals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Manual"
+            }
+          }
+        },
+        "required": [
+          "attached",
+          "manuals"
+        ],
+        "additionalProperties": false
+      },
+      "ManualDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "number"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "deleted",
+          "tools"
+        ],
+        "additionalProperties": false
+      },
+      "ManualImportResponse": {
+        "type": "object",
+        "properties": {
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FailedLink"
+            }
+          },
+          "manuals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Manual"
+            }
+          }
+        },
+        "required": [
+          "failed",
+          "manuals"
+        ],
+        "additionalProperties": false
+      },
+      "FailedLink": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "OrganizerLabelRefreshResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "organizer": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Organizer"
+              }
+            ]
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FailedId"
+            }
+          },
+          "refreshed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "failed",
+          "organizer",
+          "refreshed"
+        ]
+      },
+      "PhotoAttachResponse": {
+        "type": "object",
+        "properties": {
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardPhoto"
+            }
+          }
+        },
+        "required": [
+          "failed",
+          "photos"
+        ],
+        "additionalProperties": false
+      },
+      "PhotoDeleteResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "number"
+          },
+          "promoted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhotoOwner"
+            }
+          },
+          "requested": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "deleted",
+          "promoted",
+          "requested"
+        ],
+        "additionalProperties": false
+      },
+      "PhotoImportResponse": {
+        "type": "object",
+        "properties": {
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FailedLink"
+            }
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardPhoto"
+            }
+          }
+        },
+        "required": [
+          "failed",
+          "photos"
+        ],
+        "additionalProperties": false
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            }
+          },
+          "effectiveRole": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Role"
+              }
+            ]
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "capabilities",
+          "effectiveRole",
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "UserListResponse": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserWithCapabilities"
+            }
+          }
+        },
+        "required": [
+          "users"
+        ],
+        "additionalProperties": false
+      },
       "EngineSettings": {
         "type": "object",
         "properties": {
@@ -2021,83 +2432,6 @@
           "host",
           "label",
           "manuals"
-        ],
-        "type": "object"
-      },
-      "ImportOutcome": {
-        "additionalProperties": false,
-        "properties": {
-          "attributes": {
-            "description": "Parameters written to the card.",
-            "type": "integer"
-          },
-          "attributesFailed": {
-            "description": "The names of parameters the card refused, usually a duplicate.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "manuals": {
-            "description": "Documents fetched and stored.",
-            "type": "integer"
-          },
-          "manualsFailed": {
-            "description": "Documents that would not download.",
-            "type": "integer"
-          },
-          "photos": {
-            "description": "Photographs fetched and stored. Always 0 when refreshing an existing card, whose photographs are deliberately untouched.",
-            "type": "integer"
-          },
-          "photosFailed": {
-            "description": "Photographs that would not download or decode.",
-            "type": "integer"
-          },
-          "sourceUrl": {
-            "description": "The address the card was read from, without its analytics tail.",
-            "format": "uri",
-            "type": "string"
-          }
-        },
-        "required": [
-          "attributes",
-          "attributesFailed",
-          "manuals",
-          "manualsFailed",
-          "photos",
-          "photosFailed",
-          "sourceUrl"
-        ],
-        "type": "object"
-      },
-      "SessionResponse": {
-        "additionalProperties": false,
-        "properties": {
-          "capabilities": {
-            "items": {
-              "$ref": "#/components/schemas/Capability"
-            },
-            "type": "array"
-          },
-          "effectiveRole": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Role"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          }
-        },
-        "required": [
-          "capabilities",
-          "effectiveRole",
-          "user"
         ],
         "type": "object"
       },
@@ -3350,7 +3684,7 @@
             }
           },
           {
-            "description": "How many to return.",
+            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
             "example": 100,
             "in": "query",
             "name": "limit",
@@ -3990,7 +4324,7 @@
             }
           },
           {
-            "description": "How many records to return.",
+            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
             "example": 50,
             "in": "query",
             "name": "limit",
@@ -5275,25 +5609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "photo": {
-                      "$ref": "#/components/schemas/CardPhoto"
-                    },
-                    "provider": {
-                      "enum": [
-                        "local",
-                        "removebg",
-                        "gemini"
-                      ],
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "photo",
-                    "provider"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/CutoutResponse"
                 }
               }
             },
@@ -5499,62 +5815,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "preview": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "byteSize": {
-                          "type": "integer"
-                        },
-                        "checksum": {
-                          "description": "sha256 of the bytes. What commit names to keep them.",
-                          "pattern": "^[0-9a-f]{64}$",
-                          "type": "string"
-                        },
-                        "contentType": {
-                          "type": "string"
-                        },
-                        "height": {
-                          "type": [
-                            "integer",
-                            "null"
-                          ]
-                        },
-                        "url": {
-                          "type": "string"
-                        },
-                        "width": {
-                          "type": [
-                            "integer",
-                            "null"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "byteSize",
-                        "checksum",
-                        "contentType",
-                        "height",
-                        "url",
-                        "width"
-                      ],
-                      "type": "object"
-                    },
-                    "provider": {
-                      "enum": [
-                        "local",
-                        "removebg",
-                        "gemini"
-                      ],
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "preview",
-                    "provider"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/CutoutPreviewResponse"
                 }
               }
             },
@@ -5807,39 +6068,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "failed": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "reason": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "reason"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "photos": {
-                      "items": {
-                        "$ref": "#/components/schemas/CardPhoto"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "failed",
-                    "photos"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/PhotoAttachResponse"
                 }
               }
             },
@@ -6025,7 +6254,7 @@
             }
           },
           {
-            "description": "How many to return.",
+            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
             "example": 48,
             "in": "query",
             "name": "limit",
@@ -6139,36 +6368,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "failed": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "error": {
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "integer"
-                          }
-                        },
-                        "required": [
-                          "error",
-                          "id"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "refreshed": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "failed",
-                    "refreshed"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/LabelRefreshResponse"
                 }
               }
             },
@@ -6317,7 +6517,7 @@
             }
           },
           {
-            "description": "How many to return.",
+            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
             "example": 24,
             "in": "query",
             "name": "limit",
@@ -6573,36 +6773,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "deleted": {
-                      "type": "integer"
-                    },
-                    "tools": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "deleted",
-                    "tools"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ManualDeleteResponse"
                 }
               }
             },
@@ -6829,7 +7000,7 @@
             }
           },
           {
-            "description": "How many records to return.",
+            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
             "example": 50,
             "in": "query",
             "name": "limit",
@@ -7698,40 +7869,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "failed": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "error": {
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "integer"
-                          }
-                        },
-                        "required": [
-                          "error",
-                          "id"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "organizer": {
-                      "$ref": "#/components/schemas/Organizer"
-                    },
-                    "refreshed": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "failed",
-                    "organizer",
-                    "refreshed"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/OrganizerLabelRefreshResponse"
                 }
               }
             },
@@ -8006,8 +8144,8 @@
             }
           },
           {
-            "description": "How many records to return.",
-            "example": 50,
+            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
+            "example": 48,
             "in": "query",
             "name": "limit",
             "schema": {
@@ -8310,27 +8448,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "deleted": {
-                      "type": "integer"
-                    },
-                    "promoted": {
-                      "items": {
-                        "$ref": "#/components/schemas/PhotoOwner"
-                      },
-                      "type": "array"
-                    },
-                    "requested": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "deleted",
-                    "promoted",
-                    "requested"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/PhotoDeleteResponse"
                 }
               }
             },
@@ -8827,7 +8945,7 @@
             }
           },
           {
-            "description": "How many records to return.",
+            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
             "example": 50,
             "in": "query",
             "name": "limit",
@@ -9678,20 +9796,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "imported": {
-                      "$ref": "#/components/schemas/ImportOutcome"
-                    },
-                    "tool": {
-                      "$ref": "#/components/schemas/ToolDetail"
-                    }
-                  },
-                  "required": [
-                    "imported",
-                    "tool"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportResponse"
                 }
               }
             },
@@ -10181,23 +10286,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "attached": {
-                      "type": "integer"
-                    },
-                    "manuals": {
-                      "items": {
-                        "$ref": "#/components/schemas/Manual"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "attached",
-                    "manuals"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ManualAttachResponse"
                 }
               }
             },
@@ -10277,39 +10366,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "failed": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "error": {
-                            "type": "string"
-                          },
-                          "url": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "error",
-                          "url"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "manuals": {
-                      "items": {
-                        "$ref": "#/components/schemas/Manual"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "failed",
-                    "manuals"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ManualImportResponse"
                 }
               }
             },
@@ -11109,25 +11166,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "photo": {
-                      "$ref": "#/components/schemas/CardPhoto"
-                    },
-                    "provider": {
-                      "enum": [
-                        "local",
-                        "removebg",
-                        "gemini"
-                      ],
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "photo",
-                    "provider"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/CutoutResponse"
                 }
               }
             },
@@ -11333,62 +11372,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "preview": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "byteSize": {
-                          "type": "integer"
-                        },
-                        "checksum": {
-                          "description": "sha256 of the bytes. What commit names to keep them.",
-                          "pattern": "^[0-9a-f]{64}$",
-                          "type": "string"
-                        },
-                        "contentType": {
-                          "type": "string"
-                        },
-                        "height": {
-                          "type": [
-                            "integer",
-                            "null"
-                          ]
-                        },
-                        "url": {
-                          "type": "string"
-                        },
-                        "width": {
-                          "type": [
-                            "integer",
-                            "null"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "byteSize",
-                        "checksum",
-                        "contentType",
-                        "height",
-                        "url",
-                        "width"
-                      ],
-                      "type": "object"
-                    },
-                    "provider": {
-                      "enum": [
-                        "local",
-                        "removebg",
-                        "gemini"
-                      ],
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "preview",
-                    "provider"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/CutoutPreviewResponse"
                 }
               }
             },
@@ -11641,39 +11625,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "failed": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "reason": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "reason"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "photos": {
-                      "items": {
-                        "$ref": "#/components/schemas/CardPhoto"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "failed",
-                    "photos"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/PhotoAttachResponse"
                 }
               }
             },
@@ -11911,20 +11863,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "imported": {
-                      "$ref": "#/components/schemas/ImportOutcome"
-                    },
-                    "tool": {
-                      "$ref": "#/components/schemas/ToolDetail"
-                    }
-                  },
-                  "required": [
-                    "imported",
-                    "tool"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ImportResponse"
                 }
               }
             },
@@ -12052,19 +11991,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "users": {
-                      "items": {
-                        "$ref": "#/components/schemas/UserWithCapabilities"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "users"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/UserListResponse"
                 }
               }
             },

@@ -10,6 +10,7 @@
 // writes the card and hangs the pictures on it.
 
 import { fitToCard, IMPORT_SOURCES, importerFor, type ImportedProduct } from '../importers'
+import type { ImportResponse } from './responses'
 import { errorResponse } from '../error-codes'
 import { t } from '../i18n'
 import type { RouteContext } from '../route-context'
@@ -158,7 +159,7 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
     }
   }
 
-  return Response.json({
+  const body: ImportResponse = {
     imported: {
       attributes: attributes.length,
       attributesFailed: [],
@@ -171,7 +172,9 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
       sourceUrl: product.sourceUrl,
     },
     tool: await getToolDetail(toolId),
-  })
+  }
+
+  return Response.json(body)
 }
 
 // The card, then its parameters, then its pictures — in that order, because
