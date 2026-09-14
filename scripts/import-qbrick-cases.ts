@@ -20,6 +20,7 @@ import 'dotenv/config'
 import pg from 'pg'
 
 import { parseCaseCreate } from '../src/server/routes/cases-input'
+import { addAttribute, listAttributes } from '../src/server/routes/attributes-store'
 import { createCase } from '../src/server/routes/cases-store'
 import type { PgPool } from '../src/server/db'
 
@@ -40,6 +41,10 @@ type ManifestCase = {
   sku?: string
   sourceUrl?: string
   system?: string
+  // The rows the pages state that no column holds: the weight and how many fit
+  // on a pallet. Everything else in the table is a field above, so writing it
+  // here as well would put the same fact on a case twice.
+  attributes?: { name: string; value: string }[]
 }
 
 type Manifest = {
@@ -71,10 +76,11 @@ async function main(): Promise<void> {
 
   try {
     const actorId = await resolveActor(client, argValue('--actor'))
-    const existing = await existingKeys(client)
+    const existing = await existingCases(client)
 
     let inserted = 0
     let skipped = 0
+    let written = 0
 
     for (const entry of manifest.cases) {
       // Two identical cases on the shelf are a legitimate pair of rows, so the
@@ -82,7 +88,15 @@ async function main(): Promise<void> {
       // read as "the same card" instead: the maker and the name. Re-running it
       // must not produce a second copy of the whole shelf.
       const key = caseKey(entry)
-      if (existing.has(key)) {
+      const already = existing.get(key)
+
+      if (already !== undefined) {
+        // The case is there; its spec sheet may not be. Topping it up is what
+        // makes a second run worth anything, and it is why this adds the rows
+        // that are missing rather than replacing the sheet: somebody may have
+        // typed a parameter of their own, and a seeder has no business
+        // deciding that a page knows better.
+        written += await topUpAttributes(pool, already, entry, actorId, apply)
         skipped += 1
         continue
       }
@@ -98,16 +112,17 @@ async function main(): Promise<void> {
       const parsed = parseCaseCreate(entry)
       if (!parsed.ok) throw new Error(`${entry.name}: ${parsed.error}`)
 
-      await createCase(parsed.value, actorId, pool)
-      existing.add(key)
+      const created = await createCase(parsed.value, actorId, pool)
+      written += await topUpAttributes(pool, created.id, entry, actorId, apply)
+      existing.set(key, created.id)
       inserted += 1
       console.log(`[qbrick] dodano ${entry.name}`)
     }
 
     console.log(
       apply
-        ? `[qbrick] gotowe: dodano ${inserted}, pominięto ${skipped} (już w katalogu)`
-        : `[qbrick] próba: dodałoby ${inserted}, pominęłoby ${skipped}. Uruchom z --apply, żeby zapisać.`,
+        ? `[qbrick] gotowe: dodano ${inserted}, pominięto ${skipped} (już w katalogu), parametrów zapisano ${written}`
+        : `[qbrick] próba: dodałoby ${inserted}, pominęłoby ${skipped}, zapisałoby ${written} parametrów. Uruchom z --apply, żeby zapisać.`,
     )
   } finally {
     await client.end()
@@ -185,12 +200,12 @@ async function resolveActor(client: pg.Client, email: null | string): Promise<nu
   return Number(id)
 }
 
-async function existingKeys(client: pg.Client): Promise<Set<string>> {
-  const result = await client.query<{ manufacturer: string; name: string }>(
-    `SELECT "name", "manufacturer" FROM "catalog"."tool_case"`,
+async function existingCases(client: pg.Client): Promise<Map<string, number>> {
+  const result = await client.query<{ id: string; manufacturer: string; name: string }>(
+    `SELECT "id", "name", "manufacturer" FROM "catalog"."tool_case"`,
   )
 
-  return new Set(result.rows.map(caseKey))
+  return new Map(result.rows.map((row) => [caseKey(row), Number(row.id)]))
 }
 
 function caseKey(entry: { manufacturer: string; name: string }): string {
@@ -207,3 +222,44 @@ main().catch((error) => {
   console.error('[qbrick] nie powiodło się:', error instanceof Error ? error.message : error)
   process.exitCode = 1
 })
+
+// The parameters a case is missing, added without touching the ones it has.
+//
+// `replaceAttributes` would be wrong here. It is what the live import uses,
+// where the page is the source of truth and a parameter the maker dropped
+// should leave the card — but this is a seeder, run again months later, and
+// what it must not do is delete a line somebody typed themselves.
+async function topUpAttributes(
+  pool: PgPool,
+  caseId: number,
+  entry: ManifestCase,
+  actorId: number,
+  apply: boolean,
+): Promise<number> {
+  const wanted = entry.attributes ?? []
+  if (wanted.length === 0) return 0
+
+  const present = new Set(
+    (await listAttributes('tool_case', caseId, pool)).map((attribute) =>
+      attribute.name.trim().toLowerCase(),
+    ),
+  )
+
+  const missing = wanted.filter((attribute) => !present.has(attribute.name.trim().toLowerCase()))
+  if (missing.length === 0) return 0
+
+  if (!apply) {
+    for (const attribute of missing) {
+      console.log(`[qbrick]   + ${entry.name}: ${attribute.name} = ${attribute.value}`)
+    }
+    return missing.length
+  }
+
+  for (const attribute of missing) {
+    await addAttribute('tool_case', caseId, attribute, actorId, pool)
+  }
+
+  console.log(`[qbrick] ${entry.name}: zapisano ${missing.length} parametrów`)
+
+  return missing.length
+}
