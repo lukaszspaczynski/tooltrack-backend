@@ -20,8 +20,9 @@ import 'dotenv/config'
 import pg from 'pg'
 
 import { parseCaseCreate } from '../src/server/routes/cases-input'
+import { REFERENCE_ATTRIBUTE } from '../src/server/importers'
 import { addAttribute, listAttributes } from '../src/server/routes/attributes-store'
-import { createCase } from '../src/server/routes/cases-store'
+import { createCase, updateCase } from '../src/server/routes/cases-store'
 import type { PgPool } from '../src/server/db'
 
 type ManifestCase = {
@@ -81,6 +82,7 @@ async function main(): Promise<void> {
     let inserted = 0
     let skipped = 0
     let written = 0
+    let rewritten = 0
 
     for (const entry of manifest.cases) {
       // Two identical cases on the shelf are a legitimate pair of rows, so the
@@ -97,6 +99,7 @@ async function main(): Promise<void> {
         // typed a parameter of their own, and a seeder has no business
         // deciding that a page knows better.
         written += await topUpAttributes(pool, already, entry, actorId, apply)
+        rewritten += await refreshNotes(client, pool, already, entry, actorId, apply)
         skipped += 1
         continue
       }
@@ -121,8 +124,8 @@ async function main(): Promise<void> {
 
     console.log(
       apply
-        ? `[qbrick] gotowe: dodano ${inserted}, pominięto ${skipped} (już w katalogu), parametrów zapisano ${written}`
-        : `[qbrick] próba: dodałoby ${inserted}, pominęłoby ${skipped}, zapisałoby ${written} parametrów. Uruchom z --apply, żeby zapisać.`,
+        ? `[qbrick] gotowe: dodano ${inserted}, pominięto ${skipped} (już w katalogu), parametrów zapisano ${written}, opisów poprawiono ${rewritten}`
+        : `[qbrick] próba: dodałoby ${inserted}, pominęłoby ${skipped}, zapisałoby ${written} parametrów i ${rewritten} opisów. Uruchom z --apply, żeby zapisać.`,
     )
   } finally {
     await client.end()
@@ -236,7 +239,13 @@ async function topUpAttributes(
   actorId: number,
   apply: boolean,
 ): Promise<number> {
-  const wanted = entry.attributes ?? []
+  // The address the numbers were read from, as a parameter rather than a line
+  // in the note — the same name an imported tool carries, so a person checking
+  // "where did 11 L come from" looks in the same place on both.
+  const wanted = [
+    ...(entry.attributes ?? []),
+    ...(entry.sourceUrl ? [{ name: REFERENCE_ATTRIBUTE, value: entry.sourceUrl }] : []),
+  ]
   if (wanted.length === 0) return 0
 
   const present = new Set(
@@ -262,4 +271,39 @@ async function topUpAttributes(
   console.log(`[qbrick] ${entry.name}: zapisano ${missing.length} parametrów`)
 
   return missing.length
+}
+
+// The note, brought back in line with the manifest.
+//
+// This one does overwrite, unlike the parameters, because the note is a
+// sentence the manifest owns rather than a list somebody adds to — and it has
+// to, now that the address and the weight have left it for parameters of their
+// own. A case whose note already matches is left alone, so a second run is
+// silent.
+async function refreshNotes(
+  client: pg.Client,
+  pool: PgPool,
+  caseId: number,
+  entry: ManifestCase,
+  actorId: number,
+  apply: boolean,
+): Promise<number> {
+  const wanted = (entry.notes ?? '').trim()
+
+  const current = await client.query<{ notes: string }>(
+    `SELECT "notes" FROM "catalog"."tool_case" WHERE "id" = $1`,
+    [caseId],
+  )
+
+  if ((current.rows[0]?.notes ?? '').trim() === wanted) return 0
+
+  if (!apply) {
+    console.log(`[qbrick]   ~ ${entry.name}: opis → ${wanted || '(pusty)'}`)
+    return 1
+  }
+
+  await updateCase(caseId, { notes: wanted }, actorId, pool)
+  console.log(`[qbrick] ${entry.name}: poprawiono opis`)
+
+  return 1
 }

@@ -226,17 +226,25 @@ npm run qbrick:cases              # validate and report, writes nothing
 npm run qbrick:cases -- --apply   # insert what is missing, and top up the sheets
 ```
 
-It writes **parameters** as well as cases. The pages state nine rows and seven
-of them are columns; the weight and the pallet count are not, so those two are
-frozen into the manifest as attributes and written to `catalog.attribute`. A
-case already in the catalog gets them too, which is what makes a second run
+It writes **parameters** and the **note** as well as cases. The pages state nine
+rows and seven of them are columns; the weight and the pallet count are not, so
+those two are frozen into the manifest as attributes. Beside them goes
+`Referencja`, derived from `sourceUrl` — the same name an imported tool carries,
+so "where did 11 L come from" is answered in the same place on both.
+
+A case already in the catalog gets all of it, which is what makes a second run
 worth anything.
 
-Missing rows are added rather than the sheet being replaced. That is the one
-place this differs from `POST /api/cases/:id/import`, where the page is the
-source of truth and a parameter the maker dropped should leave the card: this is
-a seeder, run again months later, and it has no business deleting a line
-somebody typed themselves.
+The two are updated differently, on purpose. **Parameters are added, never
+replaced**: this is a seeder run again months later, and it has no business
+deleting a line somebody typed themselves. **The note is overwritten**, because
+it is a sentence the manifest owns rather than a list people add to — and it has
+to be, now that the address and the weight have left it for parameters of their
+own. A note that already matches is left alone, so a second run is silent.
+
+That is the one place this differs from `POST /api/cases/:id/import`, where the
+page is the source of truth and a parameter the maker dropped should leave the
+card.
 
 The catalog keeps one value per measurement, and two of these products do not
 have one. The drawer units list a capacity and a load **per drawer**, so the
