@@ -9,6 +9,15 @@
 
 import type { RouteContext } from '../route-context'
 import { errorResponse } from '../error-codes'
+import {
+  addAttribute,
+  AttributeNameTakenError,
+  deleteAttribute,
+  deleteAttributesOf,
+  listAttributeNames,
+  listAttributes,
+  updateAttribute,
+} from './attributes-store'
 import { copyManualLinks, dropOrphanedManuals, manualIdsOf } from './manuals-store'
 import { placementsFor } from './organizers-store'
 import {
@@ -26,21 +35,15 @@ import {
   parseToolQuery,
 } from './tools-input'
 import {
-  addAttribute,
-  AttributeNameTakenError,
   createTool,
-  deleteAttribute,
   deleteTool,
   duplicateTool,
   getTool,
   getToolDetail,
-  listAttributeNames,
-  listAttributes,
   listCategories,
   listTools,
   SerialNumberTakenError,
   type ToolListPage,
-  updateAttribute,
   updateTool,
 } from './tools-store'
 
@@ -116,7 +119,7 @@ export async function detailGET(_request: Request, context: RouteContext): Promi
 // what makes the catalog answerable later.
 export async function attributeNamesGET(): Promise<Response> {
   return Response.json(
-    { names: await listAttributeNames() },
+    { names: await listAttributeNames('tool') },
     { headers: { 'cache-control': 'no-store' } },
   )
 }
@@ -134,7 +137,7 @@ export async function attributePOST(request: Request, context: RouteContext): Pr
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
-    await addAttribute(id, parsed.value, actorId(context))
+    await addAttribute('tool', id, parsed.value, actorId(context))
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -156,7 +159,7 @@ export async function attributePATCH(request: Request, context: RouteContext): P
   try {
     // Null here is a parameter that is not this tool's, which is the same
     // answer as one that never existed.
-    if (!(await updateAttribute(id, attributeId, parsed.value))) return notFound()
+    if (!(await updateAttribute('tool', id, attributeId, parsed.value))) return notFound()
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -172,7 +175,7 @@ export async function attributeDELETE(_request: Request, context: RouteContext):
   const attributeId = parseId(context.params.attributeId)
   if (id === null || attributeId === null) return notFound()
 
-  if (!(await deleteAttribute(id, attributeId))) return notFound()
+  if (!(await deleteAttribute('tool', id, attributeId))) return notFound()
 
   return Response.json({ tool: await getToolDetail(id) })
 }
@@ -188,7 +191,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
     const tool = await updateTool(id, parsed.value, actorId(context))
     if (!tool) return notFound()
 
-    return Response.json({ tool: { ...tool, attributes: await listAttributes(id) } })
+    return Response.json({ tool: { ...tool, attributes: await listAttributes('tool', id) } })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -241,6 +244,9 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   // And the documents no other card keeps. Same rule as the pictures: a manual
   // describes a model, so one that another card still uses stays.
   await dropOrphanedManuals(manualIds)
+  // The attribute table's pair is not a foreign key, so nothing cascades: the
+  // rows go because this says so.
+  await deleteAttributesOf('tool', id)
 
   return Response.json({ ok: true })
 }

@@ -16,18 +16,12 @@ import { t } from '../i18n'
 import type { RouteContext } from '../route-context'
 import { ManualRejectedError, saveManualFromUrl } from './manuals'
 import type { Manual } from './manuals-store'
+import { addAttribute, replaceAttributes } from './attributes-store'
 import { fetchPage } from './page-fetch'
 import { importPhotoLinks } from './photos'
 import { parseImportInput } from './tools-input'
 import { clearManuals } from './manuals-store'
-import {
-  addAttribute,
-  createTool,
-  getTool,
-  getToolDetail,
-  replaceAttributes,
-  updateTool,
-} from './tools-store'
+import { createTool, getTool, getToolDetail, updateTool } from './tools-store'
 
 // A gallery can run to twenty-odd shots of the same drill. Each one is
 // fetched, decoded and stored, so the ceiling is what keeps an import from
@@ -137,7 +131,7 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
     actorId,
   )
 
-  const attributes = await replaceAttributes(toolId, product.attributes, actorId)
+  const attributes = await replaceAttributes('tool', toolId, product.attributes, actorId)
   await clearManuals(toolId)
 
   const manuals: Manual[] = []
@@ -197,7 +191,7 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
 
   for (const attribute of product.attributes) {
     try {
-      await addAttribute(tool.id, attribute, actorId)
+      await addAttribute('tool', tool.id, attribute, actorId)
     } catch {
       // The page listed the same parameter twice in a way the merge did not
       // catch, or something else the card refuses. One line is not worth the

@@ -127,9 +127,49 @@ CREATE INDEX IF NOT EXISTS "catalog_manual_tool_manual_idx"
 -- system is a card that gets written on paper instead. The value carries its
 -- unit — "230 V", not 230 — because half these parameters have no unit anybody
 -- agrees on and a number without one is a number nobody can read.
-CREATE TABLE IF NOT EXISTS "catalog"."tool_attribute" (
+-- Attributes were a tool's alone once, in a table called tool_attribute keyed
+-- by tool_id. A case turned out to want the same thing — a spec sheet of names
+-- and values that nobody can agree a column list for — so the table is generic
+-- and says which kind of thing each row belongs to.
+--
+-- Renamed rather than recreated: the rows are somebody's spec sheets. These
+-- statements run before the CREATE below so that an existing database is
+-- migrated and a fresh one falls through to the CREATE, and each is guarded so
+-- that running the schema twice is the same as running it once.
+DO $$
+BEGIN
+  IF to_regclass('"catalog"."tool_attribute"') IS NOT NULL
+     AND to_regclass('"catalog"."attribute"') IS NULL THEN
+    ALTER TABLE "catalog"."tool_attribute" RENAME TO "attribute";
+  END IF;
+
+  IF to_regclass('"catalog"."attribute"') IS NOT NULL
+     AND EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'catalog' AND table_name = 'attribute' AND column_name = 'tool_id'
+     ) THEN
+    ALTER TABLE "catalog"."attribute" RENAME COLUMN "tool_id" TO "reference_id";
+    -- Every row that existed before this column did belongs to a tool, which is
+    -- why the default is there and why it is dropped again straight after: a new
+    -- row has to say what it is about.
+    ALTER TABLE "catalog"."attribute" ADD COLUMN "reference" text NOT NULL DEFAULT 'tool';
+    ALTER TABLE "catalog"."attribute" ALTER COLUMN "reference" DROP DEFAULT;
+    -- The foreign key went with the old column name and cannot survive: the row
+    -- may now point at a case. What keeps an orphan out is the delete path in
+    -- the stores, and the cascade below for tools.
+    ALTER TABLE "catalog"."attribute" DROP CONSTRAINT IF EXISTS "tool_attribute_tool_id_fkey";
+  END IF;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS "catalog"."attribute" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  "tool_id" bigint NOT NULL REFERENCES "catalog"."tool"("id") ON DELETE CASCADE,
+  -- Which kind of thing this is about, and which one. Not a foreign key: two
+  -- tables cannot both be the target of one column, and a check constraint on
+  -- the kind is what keeps the pair meaningful. The stores delete the rows when
+  -- the thing goes.
+  "reference" text NOT NULL CHECK ("reference" IN ('tool', 'tool_case')),
+  "reference_id" bigint NOT NULL,
   -- Neither is optional: a parameter with no name says nothing, and one with
   -- no value is a question rather than an answer.
   "name" text NOT NULL CHECK (btrim("name") <> ''),
@@ -139,18 +179,21 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool_attribute" (
   "updated_at" timestamp with time zone NOT NULL DEFAULT now()
 );
 
--- One tool cannot list the same parameter twice: the second "napięcie" is
--- somebody correcting the first, not a second fact about the machine. Compared
--- trimmed and case-folded, because "Napięcie" and "napięcie " are the same
--- parameter typed by two people. The name repeats freely across tools, which
--- is what makes it worth reading across the catalog.
-CREATE UNIQUE INDEX IF NOT EXISTS "catalog_tool_attribute_name_idx"
-  ON "catalog"."tool_attribute" ("tool_id", lower(btrim("name")));
+-- One thing cannot list the same parameter twice: the second "napięcie" is
+-- somebody correcting the first, not a second fact about it. Compared trimmed
+-- and case-folded, because "Napięcie" and "napięcie " are the same parameter
+-- typed by two people. The name repeats freely across things, which is what
+-- makes it worth reading across the catalog.
+DROP INDEX IF EXISTS "catalog"."catalog_tool_attribute_name_idx";
+DROP INDEX IF EXISTS "catalog"."catalog_tool_attribute_lookup_idx";
+
+CREATE UNIQUE INDEX IF NOT EXISTS "catalog_attribute_name_idx"
+  ON "catalog"."attribute" ("reference", "reference_id", lower(btrim("name")));
 
 -- Read by the parameter list the form offers as suggestions, which asks the
--- whole catalog rather than one tool.
-CREATE INDEX IF NOT EXISTS "catalog_tool_attribute_lookup_idx"
-  ON "catalog"."tool_attribute" (lower(btrim("name")));
+-- whole catalog rather than one card.
+CREATE INDEX IF NOT EXISTS "catalog_attribute_lookup_idx"
+  ON "catalog"."attribute" (lower(btrim("name")));
 
 -- Where a label goes on a case. A slot is a size and nothing else: 30 x 40 mm
 -- on the front, 200 x 60 mm on the lid. What gets printed on it is a different
@@ -175,11 +218,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS "case_label_slot_size_idx"
 COMMENT ON SCHEMA "catalog" IS 'The ToolTrack tool catalog.';
 COMMENT ON TABLE "catalog"."tool" IS 'One row per physical tool, the card shown in the app.';
 COMMENT ON TABLE "catalog"."tool_case" IS 'One row per case, box or drawer unit the tools are kept in.';
-COMMENT ON COLUMN "catalog"."tool_case"."ean" IS 'Barcode of the product, not of this box: duplicates are expected.';
 COMMENT ON TABLE "catalog"."case_label_slot" IS 'Where a label goes on a case: a size in mm, unique per case.';
 COMMENT ON TABLE "catalog"."manual" IS 'One PDF kept beside the tools: the manual, a parts diagram, a safety sheet.';
 COMMENT ON TABLE "catalog"."manual_tool" IS 'Which tools a manual belongs to. A manual describes a model, so several cards can share one file.';
-COMMENT ON TABLE "catalog"."tool_attribute" IS 'One parameter of one tool: a name and a value, both free text, unique per tool.';
+COMMENT ON COLUMN "catalog"."tool_case"."ean" IS 'Barcode of the product, not of this box: duplicates are expected.';
+COMMENT ON TABLE "catalog"."attribute" IS 'One parameter of one tool or one case: a name and a value, both free text, unique per thing.';
 `
 
 export const CATALOG_DROP_DDL = `

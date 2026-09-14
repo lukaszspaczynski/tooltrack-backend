@@ -23,7 +23,16 @@ import {
   type CaseListPage,
   updateCase,
 } from './cases-store'
+import {
+  addAttribute,
+  AttributeNameTakenError,
+  deleteAttribute,
+  deleteAttributesOf,
+  listAttributeNames,
+  updateAttribute,
+} from './attributes-store'
 import { parseOwnerId } from './photo-owner'
+import { parseAttributeCreate, parseAttributePatch } from './tools-input'
 import { dropOrphanedPhotos, photoIdsOf, photoUrl, primaryPhotoIds } from './photos-store'
 import type { RouteContext } from '../route-context'
 
@@ -107,6 +116,9 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   // The pictures no other card shows go with it. One that a tool inside the
   // case also uses stays, which is the whole point of the links.
   await dropOrphanedPhotos(photoIds)
+  // No cascade does this: the attribute table's pair is not a foreign key,
+  // because one column cannot point at two tables.
+  await deleteAttributesOf('tool_case', id)
 
   return Response.json({ ok: true })
 }
@@ -168,4 +180,72 @@ async function readJson(request: Request): Promise<unknown> {
   } catch {
     return undefined
   }
+}
+
+// The parameters under a case, on exactly the terms a tool's are: a name and a
+// value, both free text, unique per case. The columns hold what every box has —
+// a length is a length — and this holds what they do not: a stacking system, a
+// lid type, whatever the next kind of box turns out to state.
+//
+// Each answers with the whole case rather than the row that changed, the same
+// way the label slots do: a screen showing the sheet would otherwise have to
+// merge one row into a list it already holds.
+export async function attributePOST(request: Request, context: RouteContext): Promise<Response> {
+  const id = parseOwnerId(context.params.id)
+  if (id === null || !(await getCase(id))) return notFound()
+
+  const parsed = parseAttributeCreate(await readJson(request))
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
+
+  try {
+    await addAttribute('tool_case', id, parsed.value, actorId(context))
+  } catch (error) {
+    if (error instanceof AttributeNameTakenError) {
+      return errorResponse(409, error.code, error.message)
+    }
+    throw error
+  }
+
+  return Response.json({ case: await getCase(id) }, { status: 201 })
+}
+
+export async function attributePATCH(request: Request, context: RouteContext): Promise<Response> {
+  const id = parseOwnerId(context.params.id)
+  const attributeId = parseOwnerId(context.params.attributeId)
+  if (id === null || attributeId === null) return notFound()
+
+  const parsed = parseAttributePatch(await readJson(request))
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
+
+  try {
+    // Null is a parameter that is not this case's, which is the same answer as
+    // one that never existed.
+    if (!(await updateAttribute('tool_case', id, attributeId, parsed.value))) return notFound()
+  } catch (error) {
+    if (error instanceof AttributeNameTakenError) {
+      return errorResponse(409, error.code, error.message)
+    }
+    throw error
+  }
+
+  return Response.json({ case: await getCase(id) })
+}
+
+export async function attributeDELETE(_request: Request, context: RouteContext): Promise<Response> {
+  const id = parseOwnerId(context.params.id)
+  const attributeId = parseOwnerId(context.params.attributeId)
+  if (id === null || attributeId === null) return notFound()
+
+  if (!(await deleteAttribute('tool_case', id, attributeId))) return notFound()
+
+  return Response.json({ case: await getCase(id) })
+}
+
+// What the form offers while somebody types a parameter name on a case. Asked
+// per kind, because a box and a drill have nothing in common on a spec sheet.
+export async function attributeNamesGET(): Promise<Response> {
+  return Response.json(
+    { names: await listAttributeNames('tool_case') },
+    { headers: { 'cache-control': 'no-store' } },
+  )
 }

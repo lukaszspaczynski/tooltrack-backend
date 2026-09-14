@@ -69,7 +69,8 @@ import {
   unlinkPhoto,
   type CardPhoto,
 } from './photos-store'
-import { getTool, listAttributes } from './tools-store'
+import { listAttributes } from './attributes-store'
+import { getTool } from './tools-store'
 import { t } from '../i18n'
 
 // Write the picture, then put it on this card. Two steps because they are two
@@ -544,7 +545,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
 // because it is the same errand — pick the pictures worth keeping — and
 // answered in the same shape, so the screen needs no second way to show them.
 async function suggestFromPage(toolId: number): Promise<Response> {
-  const reference = (await listAttributes(toolId)).find(
+  const reference = (await listAttributes('tool', toolId)).find(
     (attribute) => attribute.name === REFERENCE_ATTRIBUTE,
   )?.value
 

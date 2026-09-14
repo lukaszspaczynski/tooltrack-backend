@@ -268,7 +268,7 @@
           "attributes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ToolAttribute"
+              "$ref": "#/components/schemas/Attribute"
             }
           },
           "brand": {
@@ -330,7 +330,7 @@
           "updatedBy"
         ]
       },
-      "ToolAttribute": {
+      "Attribute": {
         "type": "object",
         "properties": {
           "id": {
@@ -1088,6 +1088,12 @@
       "ToolCase": {
         "type": "object",
         "properties": {
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attribute"
+            }
+          },
           "capacityL": {
             "type": [
               "null",
@@ -1189,6 +1195,7 @@
           }
         },
         "required": [
+          "attributes",
           "capacityL",
           "createdAt",
           "createdBy",
@@ -1243,6 +1250,12 @@
               "string"
             ]
           },
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attribute"
+            }
+          },
           "capacityL": {
             "type": [
               "null",
@@ -1344,6 +1357,7 @@
           }
         },
         "required": [
+          "attributes",
           "capacityL",
           "createdAt",
           "createdBy",
@@ -4706,6 +4720,295 @@
         ]
       }
     },
+    "/api/cases/{id}/attributes": {
+      "post": {
+        "description": "One line off the spec sheet of a box, on exactly the terms a tool's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking system, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
+        "operationId": "addCaseAttribute",
+        "parameters": [
+          {
+            "description": "The case to add the parameter to.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttributeCreateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "case": {
+                      "$ref": "#/components/schemas/ToolCase"
+                    }
+                  },
+                  "required": [
+                    "case"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The case, with its label slots."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This case already carries a parameter with that name."
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Add a parameter to a case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/cases/{id}/attributes/{attributeId}": {
+      "patch": {
+        "description": "A typo in the name, or a value read off the box again. A parameter that is not this case's reads the same as one that never existed.",
+        "operationId": "updateCaseAttribute",
+        "parameters": [
+          {
+            "description": "The case the parameter is on.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The parameter, which must belong to this case.",
+            "in": "path",
+            "name": "attributeId",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttributePatchBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "case": {
+                      "$ref": "#/components/schemas/ToolCase"
+                    }
+                  },
+                  "required": [
+                    "case"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The case, with its label slots."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This case already carries a parameter with that name."
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Edit a parameter on a case",
+        "tags": [
+          "cases"
+        ]
+      },
+      "delete": {
+        "description": "Answers with the case, so the screen holding the sheet can redraw it whole.",
+        "operationId": "deleteCaseAttribute",
+        "parameters": [
+          {
+            "description": "The case the parameter is on.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The parameter, which must belong to this case.",
+            "in": "path",
+            "name": "attributeId",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "case": {
+                      "$ref": "#/components/schemas/ToolCase"
+                    }
+                  },
+                  "required": [
+                    "case"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The case, with its label slots."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Delete a parameter from a case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
     "/api/cases/{id}/import": {
       "post": {
         "description": "Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the system, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.",
@@ -6255,6 +6558,71 @@
         "summary": "Put existing photographs on a card",
         "tags": [
           "photos"
+        ]
+      }
+    },
+    "/api/cases/attributes": {
+      "get": {
+        "description": "What the form offers while somebody types a parameter name on a case, most used first. Asked per kind rather than across the catalog: a box and a drill have nothing in common on a spec sheet, and suggesting \"pojemność zbiornika\" to somebody labelling a case would be noise where the point of the list is a vocabulary people converge on.",
+        "operationId": "listCaseAttributeNames",
+        "parameters": [
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "names": {
+                      "items": {
+                        "$ref": "#/components/schemas/AttributeNameCount"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "names"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Every parameter name in use on a case, with how many carry it."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.read"
+            ]
+          }
+        ],
+        "summary": "The parameter names in use on cases",
+        "tags": [
+          "cases"
         ]
       }
     },

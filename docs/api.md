@@ -559,6 +559,29 @@ which would be a claim about a box with no height.
 `primaryPhotoUrl`, so a grid can show thumbnails without a request per row.
 Sorting by capacity puts the unmeasured cases last rather than first.
 
+### `GET /api/cases/attributes` — `catalog.read`
+
+`{ "names": [{ "name": "System", "count": 5 }] }`, most used first. What the
+form offers while somebody types a parameter name on a case, asked per kind
+rather than across the catalog: a box and a drill have nothing in common on a
+spec sheet.
+
+### `POST /api/cases/:id/attributes` — `catalog.write`
+
+### `PATCH /api/cases/:id/attributes/:attributeId` — `catalog.write`
+
+### `DELETE /api/cases/:id/attributes/:attributeId` — `catalog.write`
+
+One line off the spec sheet of a box. The same three routes a tool's parameters
+have, with the same rules — both halves required, whitespace collapsed to one
+space, one name per case — and each answers with the whole case rather than the
+row that changed.
+
+**Beside the columns, not instead of them.** A case keeps its measurements as
+columns, because a length is a length and every box has one. The sheet is for
+what the columns do not cover: a stacking system, a lid type, whatever the next
+kind of box turns out to state.
+
 ### `GET /api/cases/systems` — `catalog.read`
 
 `200 { systems: [{ system, count }] }` — read from the cases themselves, the

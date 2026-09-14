@@ -42,13 +42,13 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
       // `ToolListItem` and everything else with `ToolDetail` — so it is not
       // named here. It still reaches the document as the base of both.
       'ToolDetail',
-      'ToolAttribute',
       'ToolListItem',
       'ToolListPage',
       'CategoryCount',
       'AttributeNameCount',
     ],
   },
+  { path: 'src/server/routes/attributes-store.ts', types: ['Attribute', 'AttributeNameCount'] },
   { path: 'src/server/routes/manuals-store.ts', types: ['Manual', 'ManualLibraryPage'] },
   {
     path: 'src/server/routes/photos-store.ts',

@@ -4,6 +4,7 @@
 
 import { db, type PgPool } from '../db'
 import type { ErrorCode } from '../error-codes'
+import { listAttributes, type Attribute } from './attributes-store'
 import type { CaseFields, CasePatch, CaseQuery } from './cases-input'
 import { t } from '../i18n'
 
@@ -31,6 +32,11 @@ export class LabelSlotTakenError extends Error {
 }
 
 export type ToolCase = {
+  // Beside the columns, not instead of them. The measurements a box is
+  // catalogued by have a shape every case shares — a length is a length — and
+  // the sheet is for what they do not cover: a system, a lid type, whatever the
+  // next kind of box turns out to state.
+  attributes: Attribute[]
   capacityL: null | number
   createdAt: string
   createdBy: null | number
@@ -207,7 +213,12 @@ export async function getCase(id: number, pool: PgPool = db()): Promise<null | T
   )
 
   const row = result.rows[0]
-  return row ? toCase(row) : null
+  if (!row) return null
+
+  // The detail read is the one that carries everything, the way getToolDetail
+  // does: a list shows a name and a maker, and sending every box's spec sheet
+  // to draw that would be paying for what nobody reads.
+  return { ...toCase(row), attributes: await listAttributes('tool_case', Number(row.id), pool) }
 }
 
 export async function createCase(
@@ -346,6 +357,9 @@ function likePattern(search: string): string {
 
 function toCase(row: CaseRow): ToolCase {
   return {
+    // Filled in by whoever read the case; a row on its own carries no spec
+    // sheet, the same way a tool row does not.
+    attributes: [],
     // numeric(8,2) comes back from pg as a string, because a float would round
     // 4.5 litres into something almost but not quite 4.5.
     capacityL: toNumber(row.capacity_l),

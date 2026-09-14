@@ -73,7 +73,7 @@ const RULES: readonly Rule[] = [
     // at the catalog, for the same reason the tool list is.
     domain: 'cases',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/cases\/import\/sources$/,
+    pattern: /^\/api\/cases\/(?:import\/sources|attributes|systems)$/,
   },
   {
     domain: 'cases',
@@ -86,6 +86,12 @@ const RULES: readonly Rule[] = [
     domain: 'cases',
     methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/cases\/\d+\/import$/,
+  },
+  {
+    // The spec sheet of a box, on the same terms as a tool's.
+    domain: 'cases',
+    methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG, POST: WRITE_CATALOG },
+    pattern: /^\/api\/cases\/\d+\/attributes(?:\/[^/]+)?$/,
   },
   {
     // Which shops this server can read. Offered to anybody who may look at the

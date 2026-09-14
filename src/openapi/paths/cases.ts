@@ -40,6 +40,66 @@ const IMPORT_OUTCOME = object({
 export const CASE_OPERATIONS: OperationSpec[] = [
   {
     description:
+      'What the form offers while somebody types a parameter name on a case, most used first. Asked per kind rather than across the catalog: a box and a drill have nothing in common on a spec sheet, and suggesting "pojemność zbiornika" to somebody labelling a case would be noise where the point of the list is a vocabulary people converge on.',
+    operationId: 'listCaseAttributeNames',
+    responses: {
+      200: jsonResponse(
+        'Every parameter name in use on a case, with how many carry it.',
+        object({ names: arrayOf(ref('AttributeNameCount')) }),
+      ),
+      ...errors(401, 403, 503),
+    },
+    route: 'GET /api/cases/attributes',
+    summary: 'The parameter names in use on cases',
+    tag: 'cases',
+  },
+  {
+    description:
+      "One line off the spec sheet of a box, on exactly the terms a tool's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking system, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
+    operationId: 'addCaseAttribute',
+    pathParams: { id: 'The case to add the parameter to.' },
+    requestBody: jsonBody(ref('AttributeCreateBody')),
+    responses: {
+      201: CASE,
+      409: jsonResponse('This case already carries a parameter with that name.', ref('Error')),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'POST /api/cases/:id/attributes',
+    summary: 'Add a parameter to a case',
+    tag: 'cases',
+  },
+  {
+    description:
+      "A typo in the name, or a value read off the box again. A parameter that is not this case's reads the same as one that never existed.",
+    operationId: 'updateCaseAttribute',
+    pathParams: {
+      attributeId: 'The parameter, which must belong to this case.',
+      id: 'The case the parameter is on.',
+    },
+    requestBody: jsonBody(ref('AttributePatchBody')),
+    responses: {
+      200: CASE,
+      409: jsonResponse('This case already carries a parameter with that name.', ref('Error')),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'PATCH /api/cases/:id/attributes/:attributeId',
+    summary: 'Edit a parameter on a case',
+    tag: 'cases',
+  },
+  {
+    description: 'Answers with the case, so the screen holding the sheet can redraw it whole.',
+    operationId: 'deleteCaseAttribute',
+    pathParams: {
+      attributeId: 'The parameter, which must belong to this case.',
+      id: 'The case the parameter is on.',
+    },
+    responses: { 200: CASE, ...errors(401, 403, 404, 503) },
+    route: 'DELETE /api/cases/:id/attributes/:attributeId',
+    summary: 'Delete a parameter from a case',
+    tag: 'cases',
+  },
+  {
+    description:
       'What the import dialog lists before asking for an address. A shorter list than the tools one, and a different one: a page that sells drills has nothing to say about a box.',
     operationId: 'listCaseImportSources',
     responses: {
