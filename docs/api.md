@@ -1,18 +1,27 @@
 # ToolTrack API
 
-Every response is JSON. Authentication is a session cookie (`tooltrack_session`,
-HttpOnly), issued by register or login and sent by the browser automatically.
-A non-browser client keeps the cookie and sends it back on every call.
+Every response is JSON. A session is one thing presented two ways: a browser
+gets the `tooltrack_session` cookie from register or login and sends it back by
+itself, and a client without a cookie jar asks `POST /api/auth/token` and sends
+`Authorization: Bearer <token>`. Same session either way — same expiry, same
+revocation — and the header wins when both arrive.
+
+The expiry **slides**: every call pushes it out again, up to a ceiling counted
+from the day the session was issued. An app in daily use is not signed out on a
+schedule.
 
 Access is enforced centrally in `src/access/route-policy.ts`, before any
-handler runs. Two refusals are possible and they mean different things:
+handler runs. The refusals mean different things and a client acts on them
+differently:
 
-| Status | Meaning                                                 | What the client should do              |
-| ------ | ------------------------------------------------------- | -------------------------------------- |
-| `401`  | No session, or it expired                               | Send the user to the login screen      |
-| `403`  | Signed in, not allowed                                  | Say so; an admin has to grant the role |
-| `409`  | Conflict (duplicate email or serial number, last admin) | Show `error`                           |
-| `503`  | Database unavailable                                    | Retry; the request itself was fine     |
+| Status | Meaning                                                 | What the client should do                       |
+| ------ | ------------------------------------------------------- | ----------------------------------------------- |
+| `401`  | No session, or it expired                               | Send the user to the login screen               |
+| `403`  | Signed in, not allowed                                  | Say so; an admin has to grant the role          |
+| `409`  | Conflict (duplicate email or serial number, last admin) | Show `error`                                    |
+| `426`  | This build of the client is too old                     | Tell the user to update; `minimum` says to what |
+| `429`  | Too many failed sign-ins                                | Wait `Retry-After` seconds                      |
+| `503`  | Database unavailable                                    | Retry; the request itself was fine              |
 
 ## Language
 
@@ -544,6 +553,28 @@ answer as one that never existed — and `409` on a name the card already lists.
 
 `200 { tool }` or `404`. Deleting the last parameter leaves an empty list, not
 a card without the field.
+
+## Saying which build is calling
+
+```
+X-ToolTrack-Client: mobile/1.4.2
+```
+
+Optional, and every client that exists today sends nothing. Two things follow
+from sending it.
+
+Each build is **logged once**, the first time it calls. That is how this server
+answers "is anybody still on the old version", which is what decides when a
+deprecated field may finally be removed.
+
+And when `TOOLTRACK_MIN_CLIENT` names a floor for that client, a build under it
+gets **426 `CLIENT_TOO_OLD`** with `minimum` in the body — before
+authenticating, so an app that cannot be answered is told to update rather than
+sent to a login screen it will come back from and fail anyway. The `public`
+routes never answer 426: `/healthz`, `/api/version` and this contract stay
+reachable to any build.
+
+A header this server cannot read is treated as absent, not as old.
 
 ## Importing a case
 

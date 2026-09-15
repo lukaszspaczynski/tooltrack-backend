@@ -6,7 +6,9 @@
 // who is calling.
 
 import { routeRequirement, satisfiesRequirement } from '../access/route-policy'
+import { belowFloor, CLIENT_HEADER } from './client-version'
 import { errorResponse } from './error-codes'
+import { t } from './i18n'
 import type { User } from '../access/roles'
 import { authenticateRequest } from './routes/auth-store'
 
@@ -22,6 +24,31 @@ export async function enforceRoutePolicy(request: Request): Promise<GuardResult>
     // production is a rule nobody tests.
     console.warn(`[route-guard] unclassified route ${request.method} ${pathname}`)
     return { ok: false, response: errorResponse(403, 'FORBIDDEN', 'Forbidden') }
+  }
+
+  // Before authenticating, and before anything else this request wants.
+  //
+  // A client too old to be answered should be told that rather than sent to a
+  // login screen it will come back from and fail anyway — and the answer needs
+  // no session to be correct, since the version is in the request.
+  //
+  // The `public` family is exempt: /healthz, /api/version and the contract are
+  // how somebody finds out what is going on, and refusing those would make an
+  // old build harder to diagnose without making it any safer.
+  if (requirement.domain !== 'public') {
+    const stale = belowFloor(request.headers.get(CLIENT_HEADER))
+
+    if (stale) {
+      return {
+        ok: false,
+        response: errorResponse(
+          426,
+          'CLIENT_TOO_OLD',
+          t('Ta wersja aplikacji jest za stara. Zaktualizuj ją, żeby korzystać dalej.'),
+          { extra: { client: `${stale.name}/${stale.version}`, minimum: stale.minimum } },
+        ),
+      }
+    }
   }
 
   const user = await authenticateRequest(request)

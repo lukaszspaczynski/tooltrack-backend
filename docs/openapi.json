@@ -71,6 +71,16 @@
         },
         "description": "The request was well formed, but something it depends on elsewhere failed — a page that would not load, a file that would not decode."
       },
+      "426": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "This build of the client is older than the floor this server answers. The body carries `minimum`, the build to update to. Sent only to a caller that identified itself with `X-ToolTrack-Client`; the public routes never send it, so a stale build can still read /api/version and the contract."
+      },
       "429": {
         "content": {
           "application/json": {
@@ -97,13 +107,14 @@
         "additionalProperties": false,
         "properties": {
           "code": {
-            "description": "The stable name of the failure. Branch on this, not on `error`.\n\n- `INVALID_BODY` — The body did not parse, or a field is out of range.\n- `INVALID_QUERY` — A query parameter names something impossible.\n- `BODY_TOO_LARGE` — The request body is over the route’s ceiling.\n- `UNSUPPORTED_MEDIA_TYPE` — The bytes are not a format this route can read.\n- `METHOD_NOT_ALLOWED` — The path exists, but not with this method. See the Allow header.\n- `UNAUTHENTICATED` — No session, or one that has expired.\n- `FORBIDDEN` — A session, but not the capability this route needs.\n- `ACCOUNT_DISABLED` — The account exists but has been switched off.\n- `INVALID_CREDENTIALS` — The e-mail and password do not match an account.\n- `TOO_MANY_ATTEMPTS` — Too many failed sign-ins from this address, or against this e-mail. See Retry-After.\n- `NOT_FOUND` — No such record, or none this account may see.\n- `TOOL_NOT_FOUND` — No such tool card.\n- `CASE_NOT_FOUND` — No such case.\n- `ORGANIZER_NOT_FOUND` — No such organizer.\n- `BRAND_NOT_FOUND` — No such maker.\n- `USER_NOT_FOUND` — No such account.\n- `SESSION_NOT_FOUND` — No such session, or none belonging to this account.\n- `PHOTO_NOT_FOUND` — No such photograph, or its file is gone.\n- `MANUAL_NOT_FOUND` — No such document, or its file is gone.\n- `LABEL_NOT_FOUND` — No such label, or its file is gone.\n- `SEARCH_ENGINE_NOT_FOUND` — No search engine or cutout method by that name.\n- `LABEL_SLOT_NOT_FOUND` — This case has no such label slot.\n- `TOOL_NOT_IN_ORGANIZER` — That tool is not in this organizer.\n- `EMAIL_TAKEN` — An account with that e-mail already exists.\n- `SERIAL_NUMBER_TAKEN` — Another card already carries that serial number.\n- `ATTRIBUTE_NAME_TAKEN` — This card already has a parameter with that name.\n- `BRAND_NAME_TAKEN` — A maker with that name already exists.\n- `LOGO_TAKEN` — That picture is already another maker’s logo.\n- `LABEL_SLOT_TAKEN` — This case already has a slot that size.\n- `ORGANIZER_NUMBER_TAKEN` — Another organizer already has that number.\n- `TOOL_ALREADY_IN_ORGANIZER` — That tool is in another organizer already.\n- `PHOTO_ALREADY_ON_CARD` — That photograph is already on this card.\n- `MANUAL_ALREADY_ON_CARD` — That document is already on this card.\n- `LAST_ACTIVE_ADMIN` — The change would leave the installation with no admin.\n- `SELF_ROLE_CHANGE` — An account cannot change or delete itself here.\n- `PAGE_UNREACHABLE` — The product page would not load.\n- `NOT_A_PRODUCT_PAGE` — There is no product card at that address.\n- `UNSUPPORTED_SOURCE` — No importer can read that host.\n- `NO_SOURCE_PAGE` — This card was not imported, so there is no page to read.\n- `SOURCE_HAS_NO_MANUALS` — That source publishes no documents.\n- `DOWNLOAD_FAILED` — Every address in the request failed to download.\n- `IMAGE_UNREADABLE` — The bytes are not an image this server can decode.\n- `NOT_A_PDF` — The bytes are not a PDF.\n- `CUTOUT_UNSUITABLE` — The picture is not one this method can cut out.\n- `CUTOUT_UNAVAILABLE` — No cutout method is configured and enabled.\n- `PREVIEW_EXPIRED` — The preview has been swept, or is damaged.\n- `LABEL_UNDRAWABLE` — The label cannot be drawn from what the catalog says now.\n- `SEARCH_UNAVAILABLE` — No search engine is configured and enabled.\n- `ATTACH_FAILED` — None of the selected records could be attached.\n- `DATABASE_UNAVAILABLE` — Postgres is unreachable. The request was fine; retry.\n- `INTERNAL` — Something went wrong that the caller cannot act on.",
+            "description": "The stable name of the failure. Branch on this, not on `error`.\n\n- `INVALID_BODY` — The body did not parse, or a field is out of range.\n- `INVALID_QUERY` — A query parameter names something impossible.\n- `BODY_TOO_LARGE` — The request body is over the route’s ceiling.\n- `UNSUPPORTED_MEDIA_TYPE` — The bytes are not a format this route can read.\n- `METHOD_NOT_ALLOWED` — The path exists, but not with this method. See the Allow header.\n- `CLIENT_TOO_OLD` — This build of the client is older than the floor this server answers. `minimum` says which build to update to.\n- `UNAUTHENTICATED` — No session, or one that has expired.\n- `FORBIDDEN` — A session, but not the capability this route needs.\n- `ACCOUNT_DISABLED` — The account exists but has been switched off.\n- `INVALID_CREDENTIALS` — The e-mail and password do not match an account.\n- `TOO_MANY_ATTEMPTS` — Too many failed sign-ins from this address, or against this e-mail. See Retry-After.\n- `NOT_FOUND` — No such record, or none this account may see.\n- `TOOL_NOT_FOUND` — No such tool card.\n- `CASE_NOT_FOUND` — No such case.\n- `ORGANIZER_NOT_FOUND` — No such organizer.\n- `BRAND_NOT_FOUND` — No such maker.\n- `USER_NOT_FOUND` — No such account.\n- `SESSION_NOT_FOUND` — No such session, or none belonging to this account.\n- `PHOTO_NOT_FOUND` — No such photograph, or its file is gone.\n- `MANUAL_NOT_FOUND` — No such document, or its file is gone.\n- `LABEL_NOT_FOUND` — No such label, or its file is gone.\n- `SEARCH_ENGINE_NOT_FOUND` — No search engine or cutout method by that name.\n- `LABEL_SLOT_NOT_FOUND` — This case has no such label slot.\n- `TOOL_NOT_IN_ORGANIZER` — That tool is not in this organizer.\n- `EMAIL_TAKEN` — An account with that e-mail already exists.\n- `SERIAL_NUMBER_TAKEN` — Another card already carries that serial number.\n- `ATTRIBUTE_NAME_TAKEN` — This card already has a parameter with that name.\n- `BRAND_NAME_TAKEN` — A maker with that name already exists.\n- `LOGO_TAKEN` — That picture is already another maker’s logo.\n- `LABEL_SLOT_TAKEN` — This case already has a slot that size.\n- `ORGANIZER_NUMBER_TAKEN` — Another organizer already has that number.\n- `TOOL_ALREADY_IN_ORGANIZER` — That tool is in another organizer already.\n- `PHOTO_ALREADY_ON_CARD` — That photograph is already on this card.\n- `MANUAL_ALREADY_ON_CARD` — That document is already on this card.\n- `LAST_ACTIVE_ADMIN` — The change would leave the installation with no admin.\n- `SELF_ROLE_CHANGE` — An account cannot change or delete itself here.\n- `PAGE_UNREACHABLE` — The product page would not load.\n- `NOT_A_PRODUCT_PAGE` — There is no product card at that address.\n- `UNSUPPORTED_SOURCE` — No importer can read that host.\n- `NO_SOURCE_PAGE` — This card was not imported, so there is no page to read.\n- `SOURCE_HAS_NO_MANUALS` — That source publishes no documents.\n- `DOWNLOAD_FAILED` — Every address in the request failed to download.\n- `IMAGE_UNREADABLE` — The bytes are not an image this server can decode.\n- `NOT_A_PDF` — The bytes are not a PDF.\n- `CUTOUT_UNSUITABLE` — The picture is not one this method can cut out.\n- `CUTOUT_UNAVAILABLE` — No cutout method is configured and enabled.\n- `PREVIEW_EXPIRED` — The preview has been swept, or is damaged.\n- `LABEL_UNDRAWABLE` — The label cannot be drawn from what the catalog says now.\n- `SEARCH_UNAVAILABLE` — No search engine is configured and enabled.\n- `ATTACH_FAILED` — None of the selected records could be attached.\n- `DATABASE_UNAVAILABLE` — Postgres is unreachable. The request was fine; retry.\n- `INTERNAL` — Something went wrong that the caller cannot act on.",
             "enum": [
               "INVALID_BODY",
               "INVALID_QUERY",
               "BODY_TOO_LARGE",
               "UNSUPPORTED_MEDIA_TYPE",
               "METHOD_NOT_ALLOWED",
+              "CLIENT_TOO_OLD",
               "UNAUTHENTICATED",
               "FORBIDDEN",
               "ACCOUNT_DISABLED",
@@ -3396,6 +3407,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3438,6 +3459,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -3464,6 +3488,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -3494,6 +3528,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "429": {
             "$ref": "#/components/responses/429"
@@ -3526,6 +3563,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3547,6 +3594,9 @@
               }
             },
             "description": "Signed out, and the cookie cleared."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [],
@@ -3571,6 +3621,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -3631,6 +3691,9 @@
               }
             },
             "description": "No session. The body is `{ \"user\": null }` rather than an error, so a client can ask this on load without treating a signed-out visitor as a failure."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [],
@@ -3655,6 +3718,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -3695,6 +3768,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -3721,6 +3797,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -3752,6 +3838,9 @@
           "409": {
             "$ref": "#/components/responses/409"
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -3778,6 +3867,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -3807,6 +3906,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -3846,6 +3948,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3857,6 +3969,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -3884,6 +3999,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -3939,6 +4064,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "429": {
             "$ref": "#/components/responses/429"
@@ -4028,6 +4156,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4049,6 +4187,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -4085,6 +4226,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -4138,6 +4289,9 @@
             },
             "description": "A maker with that name already exists."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -4187,6 +4341,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4217,6 +4381,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -4263,6 +4430,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -4320,6 +4497,9 @@
             },
             "description": "Another maker already has that name."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -4367,6 +4547,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4398,6 +4588,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -4446,6 +4639,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -4510,6 +4713,9 @@
             },
             "description": "That picture is already another maker’s logo."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -4557,6 +4763,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4587,6 +4803,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -4703,6 +4922,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4724,6 +4953,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -4760,6 +4992,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -4802,6 +5044,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -4852,6 +5097,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -4882,6 +5137,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -4930,6 +5188,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4974,6 +5242,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5022,6 +5293,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5053,6 +5334,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5101,6 +5385,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -5156,6 +5450,9 @@
               }
             },
             "description": "This case already carries a parameter with that name."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5216,6 +5513,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5269,6 +5576,9 @@
               }
             },
             "description": "This case already carries a parameter with that name."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5327,6 +5637,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5357,6 +5677,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5405,6 +5728,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -5480,6 +5813,9 @@
           "422": {
             "$ref": "#/components/responses/422"
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -5527,6 +5863,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -5582,6 +5928,9 @@
               }
             },
             "description": "This case already has a slot that size."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5642,6 +5991,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5672,6 +6031,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5741,6 +6103,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5788,6 +6160,9 @@
               }
             },
             "description": "There is no product page to read: the card was not imported, or its address is from a source this server cannot read."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "content": {
@@ -5873,6 +6248,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5906,6 +6291,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -5952,6 +6340,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -6172,6 +6570,9 @@
             },
             "description": "Every address failed. `failed` says what happened to each."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -6231,6 +6632,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6284,6 +6695,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -6342,6 +6756,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6373,6 +6797,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -6433,6 +6860,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6464,6 +6901,9 @@
               }
             },
             "description": "The picture is not one this method can cut out — too busy a background, or nothing that reads as a single object."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -6524,6 +6964,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6578,6 +7028,9 @@
               }
             },
             "description": "The preview has expired or is damaged, or that cutout is already on this card."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -6638,6 +7091,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -6683,6 +7146,9 @@
               }
             },
             "description": "The picture is not one this method can cut out."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -6752,6 +7218,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6781,6 +7257,9 @@
               }
             },
             "description": "No such preview, or it has expired."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -6838,6 +7317,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6860,6 +7349,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -6905,6 +7397,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -6980,6 +7482,9 @@
             },
             "description": "None of them could be attached."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -7019,6 +7524,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7049,6 +7564,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -7087,6 +7605,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -7166,6 +7694,9 @@
           "422": {
             "$ref": "#/components/responses/422"
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -7203,6 +7734,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -7248,6 +7789,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -7285,6 +7829,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7315,6 +7869,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -7353,6 +7910,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -7400,6 +7967,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -7520,6 +8097,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7548,6 +8135,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -7586,6 +8176,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -7629,6 +8229,9 @@
               }
             },
             "description": "None of those labels exist."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -7676,6 +8279,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -7727,6 +8340,9 @@
               }
             },
             "description": "Not one of them could be drawn."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -7798,6 +8414,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7816,6 +8442,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -7866,6 +8495,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -7909,6 +8548,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -7959,6 +8601,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -7981,6 +8633,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -8018,6 +8673,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -8049,6 +8714,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -8102,6 +8770,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -8163,6 +8841,9 @@
             },
             "description": "No engine by that name."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -8200,6 +8881,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -8306,6 +8997,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8327,6 +9028,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -8363,6 +9067,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -8426,6 +9140,9 @@
             },
             "description": "That number is taken, or one of the tools is already in another arrangement."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -8475,6 +9192,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8505,6 +9232,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -8551,6 +9281,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -8615,6 +9355,9 @@
             },
             "description": "That number is taken."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -8662,6 +9405,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8693,6 +9446,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -8743,6 +9499,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8776,6 +9542,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -8824,6 +9593,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -8876,6 +9655,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -8936,6 +9718,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8966,6 +9758,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9026,6 +9821,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9048,6 +9853,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -9105,6 +9913,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9127,6 +9945,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -9174,6 +9995,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -9215,6 +10046,9 @@
               }
             },
             "description": "No such arrangement, or none of those labels are its."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9263,6 +10097,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -9318,6 +10162,9 @@
               }
             },
             "description": "One of the tools is already in another arrangement."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9378,6 +10225,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9409,6 +10266,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9515,6 +10375,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9543,6 +10413,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9579,6 +10452,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -9675,6 +10558,9 @@
           "422": {
             "$ref": "#/components/responses/422"
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -9724,6 +10610,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9746,6 +10642,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -9783,6 +10682,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -9814,6 +10723,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9854,6 +10766,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9872,6 +10794,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9910,6 +10835,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -9941,6 +10876,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -9995,6 +10933,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -10044,6 +10992,9 @@
             },
             "description": "No method by that name."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -10083,6 +11034,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -10118,6 +11079,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -10171,6 +11135,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -10231,6 +11205,9 @@
               }
             },
             "description": "No engine by that name."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -10361,6 +11338,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -10389,6 +11376,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -10425,6 +11415,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -10479,6 +11479,9 @@
             },
             "description": "Another card already carries that serial number."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -10528,6 +11531,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -10558,6 +11571,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -10604,6 +11620,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -10661,6 +11687,9 @@
             },
             "description": "Another card already carries that serial number."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -10708,6 +11737,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -10739,6 +11778,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -10787,6 +11829,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -10861,6 +11913,9 @@
             },
             "description": "This card already carries a parameter with that name."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -10918,6 +11973,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -10988,6 +12053,9 @@
             },
             "description": "This card already carries a parameter with that name."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -11045,6 +12113,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11075,6 +12153,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -11125,6 +12206,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11155,6 +12246,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -11205,6 +12299,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -11243,6 +12347,9 @@
           },
           "422": {
             "$ref": "#/components/responses/422"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -11293,6 +12400,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11326,6 +12443,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -11381,6 +12501,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -11480,6 +12610,9 @@
             },
             "description": "The address would not download."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -11539,6 +12672,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -11582,6 +12725,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -11640,6 +12786,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -11671,6 +12827,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -11721,6 +12880,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -11755,6 +12924,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -11803,6 +12975,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -11886,6 +13068,9 @@
             },
             "description": "The page would not load, is not a product page, publishes no documents, or every one of them failed to download."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -11954,6 +13139,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12001,6 +13196,9 @@
               }
             },
             "description": "There is no product page to read: the card was not imported, or its address is from a source this server cannot read."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "content": {
@@ -12086,6 +13284,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12119,6 +13327,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -12165,6 +13376,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -12385,6 +13606,9 @@
             },
             "description": "Every address failed. `failed` says what happened to each."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -12444,6 +13668,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -12497,6 +13731,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -12555,6 +13792,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12586,6 +13833,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -12646,6 +13896,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12677,6 +13937,9 @@
               }
             },
             "description": "The picture is not one this method can cut out — too busy a background, or nothing that reads as a single object."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -12737,6 +14000,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -12791,6 +14064,9 @@
               }
             },
             "description": "The preview has expired or is damaged, or that cutout is already on this card."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -12851,6 +14127,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -12896,6 +14182,9 @@
               }
             },
             "description": "The picture is not one this method can cut out."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -12965,6 +14254,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -12994,6 +14293,9 @@
               }
             },
             "description": "No such preview, or it has expired."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -13051,6 +14353,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -13073,6 +14385,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -13118,6 +14433,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -13193,6 +14518,9 @@
             },
             "description": "None of them could be attached."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -13232,6 +14560,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -13262,6 +14600,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -13302,6 +14643,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -13332,6 +14683,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -13370,6 +14724,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -13415,6 +14779,9 @@
           "422": {
             "$ref": "#/components/responses/422"
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -13454,6 +14821,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -13484,6 +14861,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           }
         },
         "security": [
@@ -13521,6 +14901,16 @@
               ],
               "type": "string"
             }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -13539,6 +14929,9 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
           },
           "503": {
             "$ref": "#/components/responses/503"
@@ -13587,6 +14980,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -13651,6 +15054,9 @@
             },
             "description": "This is the last active admin, and the change would leave none."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -13696,6 +15102,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -13747,6 +15163,9 @@
             },
             "description": "This is the last active admin."
           },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
           "503": {
             "$ref": "#/components/responses/503"
           }
@@ -13784,6 +15203,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }
@@ -13840,6 +15269,16 @@
                 "pl",
                 "en"
               ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
               "type": "string"
             }
           }

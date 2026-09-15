@@ -707,6 +707,37 @@ That is the whole ceremony — it makes a break a line in the history rather tha
 something found later by somebody holding a phone. Nothing else writes that
 file, and the build deliberately does not keep it level with the code.
 
+### When adding is not enough
+
+Expand and contract covers a field that moves. It does not cover a field whose
+**meaning** changes under a name that stays — and no amount of adding does.
+
+For that, a client says which build it is:
+
+```
+X-ToolTrack-Client: mobile/1.4.2
+```
+
+`client-version.ts` reads it, and two things follow. The first needs no
+configuration at all: **every build is logged the first time it calls**, once,
+so "is anybody still on 1.4" is answered by the log rather than by guessing —
+which is what decides when the old field may finally go.
+
+The second is `TOOLTRACK_MIN_CLIENT`, a floor per client. Under it the guard
+answers **426** with the minimum in the body, before authenticating: a stale
+build should be told to update rather than sent to a login screen it will come
+back from and fail anyway. The `public` family is exempt, because `/healthz`,
+`/api/version` and the contract are how somebody finds out what is wrong with
+a build that is too old.
+
+Three things it deliberately does not do. A caller that sends **no header**, or
+one it cannot parse, passes — that is every client alive today, and a floor
+that refused the unrecognised would take the catalog off the web the moment it
+was set. A client **not named** in the floor list has no floor. And the 426 is
+derived in `document.ts` from the same policy call the guard makes, rather than
+written into eighty-odd operation specs, so the contract cannot claim a route
+is exempt when the guard disagrees.
+
 ## Adding a route
 
 1. Write the handler in `src/server/routes/`, and its SQL in the matching

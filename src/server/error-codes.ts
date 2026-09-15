@@ -23,6 +23,8 @@ export const ERROR_CODES = {
   BODY_TOO_LARGE: 'The request body is over the route’s ceiling.',
   UNSUPPORTED_MEDIA_TYPE: 'The bytes are not a format this route can read.',
   METHOD_NOT_ALLOWED: 'The path exists, but not with this method. See the Allow header.',
+  CLIENT_TOO_OLD:
+    'This build of the client is older than the floor this server answers. `minimum` says which build to update to.',
 
   // Who is asking
   UNAUTHENTICATED: 'No session, or one that has expired.',

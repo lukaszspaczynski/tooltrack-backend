@@ -16,14 +16,15 @@ import { sampleOf } from '../server/route-list'
 import { APP_VERSION } from '../version'
 import {
   ACCEPT_LANGUAGE_PARAM,
+  CLIENT_PARAM,
   ERROR_RESPONSES,
   ERROR_SCHEMA,
   SECURITY_SCHEMES,
   TAGS,
 } from './components'
 import { OPERATIONS } from './operations'
-import type { OperationSpec } from './operation'
-import type { Document, Method, Operation, Parameter, PathItem, Schema } from './types'
+import { errors, type OperationSpec } from './operation'
+import type { Document, Method, Operation, Parameter, PathItem, Response, Schema } from './types'
 
 export function buildDocument(entitySchemas: Record<string, Schema>): Document {
   const paths: Record<string, PathItem> = {}
@@ -70,18 +71,36 @@ export function buildDocument(entitySchemas: Record<string, Schema>): Document {
 }
 
 function operationFor(spec: OperationSpec, method: Method, path: string): Operation {
-  const parameters = [...pathParameters(spec, path), ...(spec.query ?? []), ACCEPT_LANGUAGE_PARAM]
+  const parameters = [
+    ...pathParameters(spec, path),
+    ...(spec.query ?? []),
+    ACCEPT_LANGUAGE_PARAM,
+    CLIENT_PARAM,
+  ]
 
   return {
     description: spec.description,
     operationId: spec.operationId,
     parameters,
     requestBody: spec.requestBody,
-    responses: spec.responses,
+    responses: { ...spec.responses, ...staleClientResponse(path, method) },
     security: securityFor(path, method),
     summary: spec.summary,
     tags: [spec.tag],
   }
+}
+
+// The 426 every route can answer, derived rather than written into eighty-odd
+// operation specs — and derived from the same policy call the guard makes, so
+// the document cannot claim a route is exempt when the guard does not think so.
+//
+// The `public` family is the exemption: the guard lets /healthz, /api/version
+// and the contract through whatever build is asking, because those are how
+// somebody works out what is wrong with a build that is too old.
+function staleClientResponse(path: string, method: Method): Record<string, Response> {
+  const requirement = routeRequirement(sampleOf(path), method.toUpperCase())
+
+  return requirement.domain === 'public' ? {} : errors(426)
 }
 
 // The path parameters, read off the route. Every one has to be described: a

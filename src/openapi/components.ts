@@ -69,6 +69,7 @@ const FAILURE: Record<number, string> = {
   409: 'The write conflicts with one already stored — a serial number, an e-mail or a parameter name that is taken.',
   413: 'The request body is larger than this route accepts.',
   422: 'The request was well formed, but something it depends on elsewhere failed — a page that would not load, a file that would not decode.',
+  426: 'This build of the client is older than the floor this server answers. The body carries `minimum`, the build to update to. Sent only to a caller that identified itself with `X-ToolTrack-Client`; the public routes never send it, so a stale build can still read /api/version and the contract.',
   429: 'Too many failed sign-ins from this address, or against this e-mail. `Retry-After` carries the seconds to wait; the same answer is given whether or not an account by that name exists.',
   503: 'The database is unreachable. The request itself was fine; retry it.',
 }
@@ -110,6 +111,19 @@ export const ACCEPT_LANGUAGE_PARAM: Parameter = {
   in: 'header',
   name: 'Accept-Language',
   schema: { enum: ['pl', 'en'], type: 'string' },
+}
+
+// Sent by a client that can be too old to be answered, which is a client that
+// ships on its own schedule rather than with the server. Optional and always
+// has been: every build that exists today sends nothing, and a server that
+// refused those would be refusing its own web client.
+export const CLIENT_PARAM: Parameter = {
+  description:
+    'Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how "may the old field go yet" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.',
+  example: 'mobile/1.4.2',
+  in: 'header',
+  name: 'X-ToolTrack-Client',
+  schema: { pattern: '^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$', type: 'string' },
 }
 
 export const TAGS = [

@@ -16,6 +16,7 @@ import { errorResponse } from './error-codes'
 import { routeErrorResponse } from './pg-error-response'
 import { startPreviewSweeping } from './photo-storage'
 import { clientAddress } from './client-address'
+import { CLIENT_HEADER, noteClient } from './client-version'
 import { readRequestBody, requestUrl } from './request-body-limit'
 import { parseAcceptLanguage, withLanguage } from './i18n'
 import { enforceRoutePolicy } from './route-guard'
@@ -50,6 +51,11 @@ async function answer(req: IncomingMessage, res: ServerResponse): Promise<void> 
     }
 
     request = toRequest(req, url, body.body)
+
+    // One line the first time each build calls, and nothing after. Before any
+    // floor is set this is the whole point of the header: "can the old field go
+    // yet" is a question the log answers and guessing does not.
+    noteClient(req.headers[CLIENT_HEADER])
 
     // Preflight is answered before routing: the browser sends OPTIONS to a
     // path it has not been allowed to call yet, and the answer is about CORS,
