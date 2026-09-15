@@ -4,7 +4,7 @@
 
 import { db, type PgPool } from '../db'
 import type { ErrorCode } from '../error-codes'
-import { listAttributes, type Attribute } from './attributes-store'
+import type { Attribute } from './attributes-store'
 import type { ItemBrand } from './items-store'
 import type { CaseFields, CasePatch, CaseQuery } from './cases-input'
 import { t } from '../i18n'
@@ -84,6 +84,7 @@ export type SystemCount = {
 type RawSlot = { heightMm: number | string; id: number | string; widthMm: number | string }
 
 type CaseRow = {
+  attributes?: null | { id: number | string; name: string; value: string }[]
   brand_color: null | string
   brand_id: null | number | string
   brand_name: null | string
@@ -104,6 +105,27 @@ const CASE_COLUMNS = `
   "c"."id", "c"."name", "c"."system", "c"."notes", "c"."reference_url",
   "c"."created_by", "c"."updated_by", "c"."created_at", "c"."updated_at",
   "b"."id" AS "brand_id", "b"."name" AS "brand_name", "b"."color" AS "brand_color"
+`
+
+// The sheet comes with the list, unlike an item's.
+//
+// A grid of item cards shows a name, a maker and a condition, and sending every
+// card's parameters to draw that would be paying for what nobody reads. A grid
+// of boxes is different: what somebody is choosing between is how much goes in
+// and whether it fits where it has to stand, and those are parameters now. A
+// card without them is a card nobody can pick from.
+const CASE_ATTRIBUTES = `
+  COALESCE(
+    (
+      SELECT jsonb_agg(
+               jsonb_build_object('id', "a"."id", 'name', "a"."name", 'value', "a"."value")
+               ORDER BY "a"."id"
+             )
+      FROM "catalog"."attribute" AS "a"
+      WHERE "a"."reference" = 'tool_case' AND "a"."reference_id" = "c"."id"
+    ),
+    '[]'::jsonb
+  ) AS "attributes"
 `
 
 // LEFT, because a box whose maker nobody has recorded is still a box.
@@ -143,7 +165,7 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
   // once, so the total can never describe a different set than the rows.
   const result = await pool.query<CaseRow>(
     `
-      SELECT ${CASE_COLUMNS}, count(*) OVER () AS "total_count"
+      SELECT ${CASE_COLUMNS}, ${CASE_ATTRIBUTES}, count(*) OVER () AS "total_count"
       ${CASE_FROM}
       WHERE ($1::text IS NULL OR (
               "c"."name" ILIKE $1 OR "b"."name" ILIKE $1 OR "c"."system" ILIKE $1
@@ -181,7 +203,7 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
 export async function getCase(id: number, pool: PgPool = db()): Promise<null | ToolCase> {
   const result = await pool.query<CaseRow>(
     `
-      SELECT ${CASE_COLUMNS},
+      SELECT ${CASE_COLUMNS}, ${CASE_ATTRIBUTES},
         COALESCE(
           (
             SELECT jsonb_agg(
@@ -203,10 +225,9 @@ export async function getCase(id: number, pool: PgPool = db()): Promise<null | T
   const row = result.rows[0]
   if (!row) return null
 
-  // The detail read is the one that carries everything, the way getItemDetail
-  // does: a list shows a name and a maker, and sending every box's spec sheet
-  // to draw that would be paying for what nobody reads.
-  return { ...toCase(row), attributes: await listAttributes('tool_case', Number(row.id), pool) }
+  // The sheet came with the row, in the same statement as the label slots. A
+  // second query for it would be a second answer to the same question.
+  return toCase(row)
 }
 
 export async function createCase(
@@ -351,9 +372,11 @@ function likePattern(search: string): string {
 
 function toCase(row: CaseRow): ToolCase {
   return {
-    // Filled in by whoever read the case; a row on its own carries no spec
-    // sheet, the same way an item row does not.
-    attributes: [],
+    attributes: (row.attributes ?? []).map((attribute) => ({
+      id: Number(attribute.id),
+      name: attribute.name,
+      value: attribute.value,
+    })),
     brand:
       row.brand_id === null
         ? null
