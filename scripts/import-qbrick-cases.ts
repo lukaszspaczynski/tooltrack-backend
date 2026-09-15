@@ -21,30 +21,20 @@ import pg from 'pg'
 
 import { parseCaseCreate } from '../src/server/routes/cases-input'
 import { addAttribute, listAttributes } from '../src/server/routes/attributes-store'
+import { brandIdForImportedName } from '../src/server/routes/brands-store'
 import { createCase, updateCase } from '../src/server/routes/cases-store'
 import type { PgPool } from '../src/server/db'
 
 type ManifestCase = {
-  capacityL?: null | number
-  diagonalMm?: null | number
-  ean?: string
-  innerHeightMm?: null | number
-  innerLengthMm?: null | number
-  innerWidthMm?: null | number
-  loadKg?: null | number
+  // Everything the page states about the box, in the order somebody reads one
+  // in. These were eleven typed fields until a box stopped being eleven
+  // columns; the unit travels in the value, as it does for every parameter.
+  attributes?: { name: string; value: string }[]
   manufacturer: string
   name: string
   notes?: string
-  outerHeightMm?: null | number
-  outerLengthMm?: null | number
-  outerWidthMm?: null | number
-  sku?: string
   sourceUrl?: string
   system?: string
-  // The rows the pages state that no column holds: the weight and how many fit
-  // on a pallet. Everything else in the table is a field above, so writing it
-  // here as well would put the same fact on a case twice.
-  attributes?: { name: string; value: string }[]
 }
 
 type Manifest = {
@@ -117,7 +107,11 @@ async function main(): Promise<void> {
       // case calls it. One name for the page a row was read from would be
       // nicer, but the manifest is frozen data and renaming a key in it is a
       // rewrite of the file rather than of the code.
-      const parsed = parseCaseCreate({ ...entry, referenceUrl: entry.sourceUrl ?? '' })
+      const parsed = parseCaseCreate({
+        ...entry,
+        brandId: await brandIdForImportedName(entry.manufacturer, actorId, pool),
+        referenceUrl: entry.sourceUrl ?? '',
+      })
       if (!parsed.ok) throw new Error(`${entry.name}: ${parsed.error}`)
 
       const created = await createCase(parsed.value, actorId, pool)
@@ -166,16 +160,21 @@ function validate(manifest: Manifest): string[] {
   return problems
 }
 
+// A decimal point that moved while somebody was copying a table. The check
+// survives the move to parameters by reading them back: frozen data nobody
+// re-derives is exactly the data worth checking.
 function fitsInside(entry: ManifestCase): null | string {
-  const pairs: [string, null | number | undefined, null | number | undefined][] = [
-    ['długość', entry.innerLengthMm, entry.outerLengthMm],
-    ['szerokość', entry.innerWidthMm, entry.outerWidthMm],
-    ['wysokość', entry.innerHeightMm, entry.outerHeightMm],
-  ]
+  const mm = (name: string) => {
+    const raw = entry.attributes?.find((one) => one.name === name)?.value
+    const parsed = Number((raw ?? '').replace(' mm', '').replace(',', '.'))
+    return Number.isFinite(parsed) ? parsed : null
+  }
 
-  for (const [label, inner, outer] of pairs) {
-    if (typeof inner === 'number' && typeof outer === 'number' && inner > outer) {
-      return `${label} wewnętrzna (${inner}) większa niż zewnętrzna (${outer})`
+  for (const axis of ['Długość', 'Szerokość', 'Wysokość']) {
+    const inner = mm(`${axis} wewnętrzna`)
+    const outer = mm(`${axis} zewnętrzna`)
+    if (inner !== null && outer !== null && inner > outer) {
+      return `${axis.toLowerCase()} wewnętrzna (${inner}) większa niż zewnętrzna (${outer})`
     }
   }
 
@@ -209,8 +208,15 @@ async function resolveActor(client: pg.Client, email: null | string): Promise<nu
 }
 
 async function existingCases(client: pg.Client): Promise<Map<string, number>> {
+  // The maker is a row the box points at, so "the same case" is read through
+  // the join. COALESCE keeps a box with no maker comparable with a manifest
+  // entry that names none.
   const result = await client.query<{ id: string; manufacturer: string; name: string }>(
-    `SELECT "id", "name", "manufacturer" FROM "catalog"."tool_case"`,
+    `
+      SELECT "c"."id", "c"."name", coalesce("b"."name", '') AS "manufacturer"
+      FROM "catalog"."tool_case" AS "c"
+      LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "c"."brand_id"
+    `,
   )
 
   return new Map(result.rows.map((row) => [caseKey(row), Number(row.id)]))

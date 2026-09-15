@@ -67,8 +67,10 @@ test('a product page becomes a case', () => {
   assert.ok(found)
   assert.equal(found.manufacturer, 'Qbrick')
   assert.equal(found.system, 'PRO')
-  assert.equal(found.ean, '5901238254232')
-  assert.equal(found.sku, 'SKRQTCPROFCZAPG001')
+  // The barcode and the catalogue number are parameters now, like every other
+  // row the table states.
+  assert.equal(valueOf(found.attributes, 'EAN'), '5901238254232')
+  assert.equal(valueOf(found.attributes, 'SKU'), 'SKRQTCPROFCZAPG001')
   assert.equal(found.sourceUrl, PAGE_URL)
 })
 
@@ -103,17 +105,20 @@ test('the unit is written into the value, with a space or without', () => {
 })
 
 test('the measurements land in the right corners of the box', () => {
+  // Three numbers on one row of the page become three parameters. A length and
+  // a width are two facts, and a screen showing them as one string cannot
+  // compare two boxes.
   const found = parseQbrickCase(page(), PAGE_URL)
 
-  assert.equal(found?.outerLengthMm, 450)
-  assert.equal(found?.outerWidthMm, 322)
-  assert.equal(found?.outerHeightMm, 126)
-  assert.equal(found?.innerLengthMm, 408)
-  assert.equal(found?.innerWidthMm, 226)
-  assert.equal(found?.innerHeightMm, 100)
-  assert.equal(found?.diagonalMm, 495)
-  assert.equal(found?.capacityL, 11)
-  assert.equal(found?.loadKg, 15)
+  assert.ok(found)
+  assert.equal(valueOf(found.attributes, 'Długość zewnętrzna'), '450 mm')
+  assert.equal(valueOf(found.attributes, 'Szerokość zewnętrzna'), '322 mm')
+  assert.equal(valueOf(found.attributes, 'Wysokość zewnętrzna'), '126 mm')
+  assert.equal(valueOf(found.attributes, 'Długość wewnętrzna'), '408 mm')
+  assert.equal(valueOf(found.attributes, 'Przekątna'), '495 mm')
+  // The unit travels in the value, as it does for every other parameter.
+  assert.equal(valueOf(found.attributes, 'Pojemność'), '11 L')
+  assert.equal(valueOf(found.attributes, 'Ładowność'), '15 kg')
 })
 
 test('the note is what the maker writes about the box', () => {
@@ -144,34 +149,37 @@ test('only the product’s own paragraphs are the description', () => {
   assert.equal(descriptionOf('<html><body><p>Cokolwiek</p></body></html>'), '')
 })
 
-test('the two rows that are not columns go on the sheet', () => {
-  // Nine rows, seven of them columns. The weight and the pallet count are what
-  // the page states and the catalog has no field for.
-  assert.deepEqual(attributesOf(specifications(page())), [
-    { name: 'Ilość na palecie', value: '94' },
-    { name: 'Waga', value: '1.4kg' },
-  ])
-
-  // A row nobody has decided where to put stays off the sheet: the EAN has a
-  // column, and printing it twice is worse than not at all.
+test('the whole table goes on the sheet, in the order a box is read in', () => {
+  // Nine rows on the page, thirteen parameters on the card: the two dimension
+  // rows are three numbers each. Outside, inside, diagonal, what goes in, what
+  // it carries, then the numbers that identify the product.
   assert.deepEqual(
     attributesOf(specifications(page())).map((one) => one.name),
-    ['Ilość na palecie', 'Waga'],
+    [
+      'Długość zewnętrzna',
+      'Szerokość zewnętrzna',
+      'Wysokość zewnętrzna',
+      'Długość wewnętrzna',
+      'Szerokość wewnętrzna',
+      'Wysokość wewnętrzna',
+      'Przekątna',
+      'Pojemność',
+      'Ładowność',
+      'Waga',
+      'Ilość na palecie',
+      'EAN',
+      'SKU',
+    ],
   )
 })
 
 test('an imported case carries the address it was read from', () => {
   // The same field an item card gets, and what the "update from the page"
-  // button on a case looks for. The analytics tail is not part of it: it says
-  // nothing about the box, and the card would show it as its source for ever.
+  // button on a case looks for. The analytics tail is not part of it.
   const fitted = fitCaseToCard(parseQbrickCase(page(), `${PAGE_URL}?utm_source=nl`)!)
 
   assert.equal(fitted.sourceUrl, PAGE_URL)
-  // The sheet stays the two rows the page states and no column holds.
-  assert.deepEqual(
-    fitted.attributes.map((one) => one.name),
-    ['Ilość na palecie', 'Waga'],
-  )
+  assert.equal(fitted.attributes.length, 13)
 })
 
 test('a photograph comes at the size it was uploaded', () => {
@@ -190,13 +198,19 @@ test('a page with no table is not a product', () => {
 })
 
 test('a measurement nobody could have taken is dropped, not stored', () => {
-  // A number typed in micrometres looks like a fact once it is on a card.
+  // These were columns with a CHECK on them; free text has no CHECK, so the
+  // reading is where it happens. A page stating 495000 mm has a decimal point
+  // in the wrong place, and a card repeating it is worse than a card silent
+  // about it.
   const absurd = parseQbrickCase(
     page({ rows: '<tr><td>Przekątna</td><td>495000 mm</td></tr><tr><td>EAN</td><td>1</td></tr>' }),
     PAGE_URL,
   )
 
-  assert.equal(fitCaseToCard(absurd!).diagonalMm, null)
+  assert.ok(absurd)
+  assert.equal(valueOf(fitCaseToCard(absurd).attributes, 'Przekątna'), undefined)
+  // What is plausible stays, so the check cannot be "drop everything".
+  assert.equal(valueOf(fitCaseToCard(absurd).attributes, 'EAN'), '1')
 })
 
 test('a case source is its own registry, not the item one', () => {
@@ -210,3 +224,7 @@ test('a case source is its own registry, not the item one', () => {
     ['qbricksystem.com'],
   )
 })
+
+function valueOf(attributes: { name: string; value: string }[], name: string) {
+  return attributes.find((attribute) => attribute.name === name)?.value
+}

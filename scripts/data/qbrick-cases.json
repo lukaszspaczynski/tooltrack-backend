@@ -1,26 +1,59 @@
 {
   "generatedAt": "2026-09-11",
   "source": "https://qbricksystem.com/product/ — product pages, attribute tables",
-  "note": "Frozen from the pages listed in each entry's sourceUrl. Dimensions and capacities are the manufacturer's, converted to the single-value columns the catalog keeps: where a page lists a value per drawer, the capacity and load are the sum and the internal dimensions are the largest compartment, with the breakdown kept in notes. Attributes are the rows the pages state that no column holds — the weight and the pallet count. The page each entry was read from is sourceUrl, which the script writes into the case's own referenceUrl, the way an imported tool carries one. Everything else in the table is a field above.",
+  "note": "Frozen from the pages listed in each entry's sourceUrl. Everything the page states about a box is an attribute now, in the order somebody reads one in: outside, inside, diagonal, what goes in, what it carries, then the numbers that identify the product. The unit travels in the value. Where a page lists a value per drawer, the capacity and the load are the sum and the internal dimensions are the largest compartment, with the breakdown kept in notes. sourceUrl is written into the case's own referenceUrl, and manufacturer into a brand row it points at.",
   "cases": [
     {
       "name": "Qbrick System PRO Technician Case 2.0",
       "manufacturer": "Qbrick",
       "system": "PRO",
-      "outerLengthMm": 450,
-      "outerWidthMm": 332,
-      "outerHeightMm": 171,
-      "innerLengthMm": 360,
-      "innerWidthMm": 246,
-      "innerHeightMm": 120,
-      "diagonalMm": 497,
-      "capacityL": 12,
-      "loadKg": 20,
-      "ean": "5901238255499",
-      "sku": "SKRQSPTC2CZAPG001",
       "notes": "",
       "sourceUrl": "https://qbricksystem.com/product/qbrick-system-pro-technician-case-2-0/",
       "attributes": [
+        {
+          "name": "Długość zewnętrzna",
+          "value": "450 mm"
+        },
+        {
+          "name": "Szerokość zewnętrzna",
+          "value": "332 mm"
+        },
+        {
+          "name": "Wysokość zewnętrzna",
+          "value": "171 mm"
+        },
+        {
+          "name": "Długość wewnętrzna",
+          "value": "360 mm"
+        },
+        {
+          "name": "Szerokość wewnętrzna",
+          "value": "246 mm"
+        },
+        {
+          "name": "Wysokość wewnętrzna",
+          "value": "120 mm"
+        },
+        {
+          "name": "Przekątna",
+          "value": "497 mm"
+        },
+        {
+          "name": "Pojemność",
+          "value": "12 L"
+        },
+        {
+          "name": "Ładowność",
+          "value": "20 kg"
+        },
+        {
+          "name": "EAN",
+          "value": "5901238255499"
+        },
+        {
+          "name": "SKU",
+          "value": "SKRQSPTC2CZAPG001"
+        },
         {
           "name": "Waga",
           "value": "2.52kg"
@@ -35,20 +68,53 @@
       "name": "Qbrick System PRO Toolbox 2.0",
       "manufacturer": "Qbrick",
       "system": "PRO",
-      "outerLengthMm": 450,
-      "outerWidthMm": 331,
-      "outerHeightMm": 240,
-      "innerLengthMm": 331,
-      "innerWidthMm": 245,
-      "innerHeightMm": 189,
-      "diagonalMm": 497,
-      "capacityL": 19,
-      "loadKg": 20,
-      "ean": "5901238254249",
-      "sku": "SKRQTBPRO2CZAPG001",
       "notes": "",
       "sourceUrl": "https://qbricksystem.com/product/qbrick-system-pro-toolbox-2-0/",
       "attributes": [
+        {
+          "name": "Długość zewnętrzna",
+          "value": "450 mm"
+        },
+        {
+          "name": "Szerokość zewnętrzna",
+          "value": "331 mm"
+        },
+        {
+          "name": "Wysokość zewnętrzna",
+          "value": "240 mm"
+        },
+        {
+          "name": "Długość wewnętrzna",
+          "value": "331 mm"
+        },
+        {
+          "name": "Szerokość wewnętrzna",
+          "value": "245 mm"
+        },
+        {
+          "name": "Wysokość wewnętrzna",
+          "value": "189 mm"
+        },
+        {
+          "name": "Przekątna",
+          "value": "497 mm"
+        },
+        {
+          "name": "Pojemność",
+          "value": "19 L"
+        },
+        {
+          "name": "Ładowność",
+          "value": "20 kg"
+        },
+        {
+          "name": "EAN",
+          "value": "5901238254249"
+        },
+        {
+          "name": "SKU",
+          "value": "SKRQTBPRO2CZAPG001"
+        },
         {
           "name": "Waga",
           "value": "2.8kg"
@@ -63,20 +129,53 @@
       "name": "Qbrick System PRO Toolcase",
       "manufacturer": "Qbrick",
       "system": "PRO",
-      "outerLengthMm": 450,
-      "outerWidthMm": 322,
-      "outerHeightMm": 126,
-      "innerLengthMm": 408,
-      "innerWidthMm": 226,
-      "innerHeightMm": 100,
-      "diagonalMm": 495,
-      "capacityL": 11,
-      "loadKg": 15,
-      "ean": "5901238254232",
-      "sku": "SKRQTCPROFCZAPG001",
       "notes": "Wariant z pianką ochronną (protective foam, SKU …PROF…).",
       "sourceUrl": "https://qbricksystem.com/product/qbrick-system-pro-toolcase-protective-foam/",
       "attributes": [
+        {
+          "name": "Długość zewnętrzna",
+          "value": "450 mm"
+        },
+        {
+          "name": "Szerokość zewnętrzna",
+          "value": "322 mm"
+        },
+        {
+          "name": "Wysokość zewnętrzna",
+          "value": "126 mm"
+        },
+        {
+          "name": "Długość wewnętrzna",
+          "value": "408 mm"
+        },
+        {
+          "name": "Szerokość wewnętrzna",
+          "value": "226 mm"
+        },
+        {
+          "name": "Wysokość wewnętrzna",
+          "value": "100 mm"
+        },
+        {
+          "name": "Przekątna",
+          "value": "495 mm"
+        },
+        {
+          "name": "Pojemność",
+          "value": "11 L"
+        },
+        {
+          "name": "Ładowność",
+          "value": "15 kg"
+        },
+        {
+          "name": "EAN",
+          "value": "5901238254232"
+        },
+        {
+          "name": "SKU",
+          "value": "SKRQTCPROFCZAPG001"
+        },
         {
           "name": "Waga",
           "value": "1.4kg"
@@ -91,20 +190,53 @@
       "name": "Qbrick System PRO Drawer 2 Toolbox 2.0 Basic",
       "manufacturer": "Qbrick",
       "system": "PRO",
-      "outerLengthMm": 450,
-      "outerWidthMm": 310,
-      "outerHeightMm": 244,
-      "innerLengthMm": 331,
-      "innerWidthMm": 234,
-      "innerHeightMm": 115,
-      "diagonalMm": 410,
-      "capacityL": 14,
-      "loadKg": 12,
-      "ean": "5901238257479",
-      "sku": "SKRQPROD2B2CZAPG001",
       "notes": "Dwie szuflady: 331 x 234 x 115 mm (4,5 L, 4 kg) i 331 x 234 x 53 mm (9,5 L, 8 kg). Wymiary wewnętrzne w karcie to większa szuflada, pojemność i ładowność to suma.",
       "sourceUrl": "https://qbricksystem.com/product/qbrick-system-pro-drawer-2-toolbox-2-0-basic/",
       "attributes": [
+        {
+          "name": "Długość zewnętrzna",
+          "value": "450 mm"
+        },
+        {
+          "name": "Szerokość zewnętrzna",
+          "value": "310 mm"
+        },
+        {
+          "name": "Wysokość zewnętrzna",
+          "value": "244 mm"
+        },
+        {
+          "name": "Długość wewnętrzna",
+          "value": "331 mm"
+        },
+        {
+          "name": "Szerokość wewnętrzna",
+          "value": "234 mm"
+        },
+        {
+          "name": "Wysokość wewnętrzna",
+          "value": "115 mm"
+        },
+        {
+          "name": "Przekątna",
+          "value": "410 mm"
+        },
+        {
+          "name": "Pojemność",
+          "value": "14 L"
+        },
+        {
+          "name": "Ładowność",
+          "value": "12 kg"
+        },
+        {
+          "name": "EAN",
+          "value": "5901238257479"
+        },
+        {
+          "name": "SKU",
+          "value": "SKRQPROD2B2CZAPG001"
+        },
         {
           "name": "Waga",
           "value": "4.91kg"
@@ -119,20 +251,53 @@
       "name": "Qbrick System PRO Drawer 3 Toolbox 2.0 Expert",
       "manufacturer": "Qbrick",
       "system": "PRO",
-      "outerLengthMm": 450,
-      "outerWidthMm": 310,
-      "outerHeightMm": 244,
-      "innerLengthMm": 331,
-      "innerWidthMm": 234,
-      "innerHeightMm": 53,
-      "diagonalMm": 410,
-      "capacityL": 13.5,
-      "loadKg": 12,
-      "ean": "5901238257325",
-      "sku": "SKRQPROD3E2CZAPG001",
       "notes": "Trzy szuflady 331 x 234 x 53 mm po 4,5 L; pojemność w karcie to suma, ładowność 12 kg jest łączna (producent podaje ją tak).",
       "sourceUrl": "https://qbricksystem.com/product/qbrick-system-pro-drawer-3-toolbox-2-0-expert/",
       "attributes": [
+        {
+          "name": "Długość zewnętrzna",
+          "value": "450 mm"
+        },
+        {
+          "name": "Szerokość zewnętrzna",
+          "value": "310 mm"
+        },
+        {
+          "name": "Wysokość zewnętrzna",
+          "value": "244 mm"
+        },
+        {
+          "name": "Długość wewnętrzna",
+          "value": "331 mm"
+        },
+        {
+          "name": "Szerokość wewnętrzna",
+          "value": "234 mm"
+        },
+        {
+          "name": "Wysokość wewnętrzna",
+          "value": "53 mm"
+        },
+        {
+          "name": "Przekątna",
+          "value": "410 mm"
+        },
+        {
+          "name": "Pojemność",
+          "value": "13.5 L"
+        },
+        {
+          "name": "Ładowność",
+          "value": "12 kg"
+        },
+        {
+          "name": "EAN",
+          "value": "5901238257325"
+        },
+        {
+          "name": "SKU",
+          "value": "SKRQPROD3E2CZAPG001"
+        },
         {
           "name": "Waga",
           "value": "6.69kg"

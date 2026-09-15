@@ -40,21 +40,12 @@ const DIMENSION_FIELDS = [
 ] as const
 
 export type CaseFields = {
-  capacityL: null | number
-  diagonalMm: null | number
-  ean: string
-  innerHeightMm: null | number
-  innerLengthMm: null | number
-  innerWidthMm: null | number
-  loadKg: null | number
-  manufacturer: string
+  // The maker, as the row it is. It was free text, for the same reason an item
+  // card's was: the table came later.
+  brandId: null | number
   name: string
   notes: string
   referenceUrl: string
-  outerHeightMm: null | number
-  outerLengthMm: null | number
-  outerWidthMm: null | number
-  sku: string
   system: string
 }
 
@@ -63,7 +54,7 @@ export type CaseFields = {
 // number copied off the wrong spec sheet has to be removable.
 export type CasePatch = Partial<CaseFields>
 
-export type CaseSort = 'capacityL' | 'createdAt' | 'name' | 'updatedAt'
+export type CaseSort = 'createdAt' | 'name' | 'updatedAt'
 
 export type CaseQuery = {
   direction: 'asc' | 'desc'
@@ -112,26 +103,28 @@ const text = (max: number, field: string) =>
 const required = (max: number, field: string) =>
   text(max, field).min(1, { error: () => `${field} must be a non-empty string` })
 
+// The id of a row this one points at, or null for "nobody has said".
+const reference = (field: string) =>
+  z
+    .union([z.number(), z.string(), z.null()])
+    .transform((raw) => {
+      if (raw === null) return null
+      if (typeof raw === 'string') return raw.trim() === '' ? null : Number(raw.trim())
+      return raw
+    })
+    .refine((value) => value === null || (Number.isSafeInteger(value) && value > 0), {
+      error: () => `${field} must be the id of a record, or null`,
+    })
+
 const mm = (field: string) => measurement(MAX_DIMENSION_MM, 0, field).optional()
 
 export const CASE_PATCH_SCHEMA = z
   .object(
     {
-      capacityL: measurement(MAX_CAPACITY_L, 2, 'capacityL').optional(),
-      diagonalMm: mm('diagonalMm'),
-      ean: text(MAX_FIELD_LENGTH, 'ean').optional(),
-      innerHeightMm: mm('innerHeightMm'),
-      innerLengthMm: mm('innerLengthMm'),
-      innerWidthMm: mm('innerWidthMm'),
-      loadKg: measurement(MAX_LOAD_KG, 2, 'loadKg').optional(),
-      manufacturer: required(MAX_NAME_LENGTH, 'manufacturer').optional(),
+      brandId: reference('brandId').optional(),
       name: required(MAX_NAME_LENGTH, 'name').optional(),
       notes: text(MAX_NOTES_LENGTH, 'notes').optional(),
       referenceUrl: text(MAX_URL_LENGTH, 'referenceUrl').optional(),
-      outerHeightMm: mm('outerHeightMm'),
-      outerLengthMm: mm('outerLengthMm'),
-      outerWidthMm: mm('outerWidthMm'),
-      sku: text(MAX_FIELD_LENGTH, 'sku').optional(),
       system: text(MAX_FIELD_LENGTH, 'system').optional(),
     },
     NOT_AN_OBJECT,
@@ -139,9 +132,8 @@ export const CASE_PATCH_SCHEMA = z
   .strip()
 
 export const CASE_CREATE_SCHEMA = CASE_PATCH_SCHEMA.extend({
-  // The two required fields. A case with no name cannot be pointed at in a van,
-  // and without a maker the name alone ("Toolbox 2.0") does not say what it is.
-  manufacturer: required(MAX_NAME_LENGTH, 'manufacturer'),
+  // The one required field. A case with no name cannot be pointed at in a van,
+  // and everything else a box states is a parameter now.
   name: required(MAX_NAME_LENGTH, 'name'),
 })
 
@@ -168,25 +160,12 @@ export function parseCaseCreate(body: unknown): Parsed<CaseFields> {
   const parsed = parseWith(CASE_CREATE_SCHEMA, body)
   if (!parsed.ok) return parsed
 
-  const patch = parsed.value
-
   return valid({
-    capacityL: patch.capacityL ?? null,
-    diagonalMm: patch.diagonalMm ?? null,
-    ean: patch.ean ?? '',
-    innerHeightMm: patch.innerHeightMm ?? null,
-    innerLengthMm: patch.innerLengthMm ?? null,
-    innerWidthMm: patch.innerWidthMm ?? null,
-    loadKg: patch.loadKg ?? null,
-    manufacturer: patch.manufacturer,
-    name: patch.name,
-    notes: patch.notes ?? '',
-    referenceUrl: patch.referenceUrl ?? '',
-    outerHeightMm: patch.outerHeightMm ?? null,
-    outerLengthMm: patch.outerLengthMm ?? null,
-    outerWidthMm: patch.outerWidthMm ?? null,
-    sku: patch.sku ?? '',
-    system: patch.system ?? '',
+    brandId: parsed.value.brandId ?? null,
+    name: parsed.value.name,
+    notes: parsed.value.notes ?? '',
+    referenceUrl: parsed.value.referenceUrl ?? '',
+    system: parsed.value.system ?? '',
   })
 }
 
@@ -217,10 +196,11 @@ export function parseCaseQuery(params: URLSearchParams): Parsed<CaseQuery> {
   })
 }
 
+// `capacityL` is gone and falls through to the name, rather than being refused:
+// a link somebody saved before capacity became a parameter should still show
+// the shelf.
 function parseSort(value: null | string): CaseSort {
   switch (value?.trim()) {
-    case 'capacityL':
-      return 'capacityL'
     case 'createdAt':
       return 'createdAt'
     case 'updatedAt':

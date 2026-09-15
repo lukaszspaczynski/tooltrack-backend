@@ -46,6 +46,46 @@ ALTER TABLE "catalog"."item"
 
 CREATE INDEX IF NOT EXISTS "catalog_item_brand_id_idx" ON "catalog"."item" ("brand_id");
 
+-- A case names its maker too, and named it as free text for the same reason a
+-- card did: the table came later. The same repair, and the same ending — one
+-- pointer, and the string gone rather than kept in step with it.
+ALTER TABLE "catalog"."tool_case"
+  ADD COLUMN IF NOT EXISTS "brand_id" bigint
+  REFERENCES "catalog"."brand"("id") ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS "catalog_tool_case_brand_id_idx"
+  ON "catalog"."tool_case" ("brand_id");
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'catalog' AND table_name = 'tool_case' AND column_name = 'manufacturer'
+  ) THEN
+    INSERT INTO "catalog"."brand" ("name", "created_by")
+    SELECT DISTINCT ON (lower(btrim("manufacturer"))) btrim("manufacturer"), NULL
+    FROM "catalog"."tool_case"
+    WHERE btrim("manufacturer") <> ''
+      AND NOT EXISTS (
+        SELECT 1 FROM "catalog"."brand" AS "b"
+        WHERE lower("b"."name") = lower(btrim("catalog"."tool_case"."manufacturer"))
+      )
+    ORDER BY lower(btrim("manufacturer")), "manufacturer";
+
+    UPDATE "catalog"."tool_case" AS "c"
+    SET "brand_id" = "b"."id"
+    FROM "catalog"."brand" AS "b"
+    WHERE "c"."brand_id" IS NULL
+      AND btrim("c"."manufacturer") <> ''
+      AND lower("b"."name") = lower(btrim("c"."manufacturer"));
+
+    ALTER TABLE "catalog"."tool_case" DROP COLUMN "manufacturer";
+  END IF;
+END
+$$;
+
+COMMENT ON COLUMN "catalog"."tool_case"."brand_id" IS 'Who makes this box. The only place a case records one.';
+
 -- Databases that predate the colour.
 ALTER TABLE "catalog"."brand" ADD COLUMN IF NOT EXISTS "color" text NOT NULL DEFAULT '';
 ALTER TABLE "catalog"."brand" DROP CONSTRAINT IF EXISTS "brand_color_check";

@@ -60,28 +60,20 @@ export type Importer = {
 // Null is "not stated on the page", which is not zero: a case nobody has
 // measured is normal, and a case with no height does not exist.
 export type ImportedCase = {
-  // What the page states and the columns cannot hold: the weight, the number
-  // that fit on a pallet. Nine rows on a Qbrick page and seven of them are
-  // columns, so the sheet is where the other two go rather than into the note,
-  // which is prose about the box.
+  // Everything the page states about the box, as a spec sheet.
+  //
+  // The measurements were typed fields here until a box stopped being eleven
+  // columns. They are still **parsed as numbers** on the way through — that is
+  // what lets fitCaseToCard throw out a diagonal nobody could have measured —
+  // and only then written as "450 mm", with the unit in the value the way
+  // every other parameter carries one.
   attributes: ImportedAttribute[]
-  capacityL: null | number
-  diagonalMm: null | number
-  ean: string
-  innerHeightMm: null | number
-  innerLengthMm: null | number
-  innerWidthMm: null | number
-  loadKg: null | number
   manufacturer: string
   name: string
   notes: string
-  outerHeightMm: null | number
-  outerLengthMm: null | number
-  outerWidthMm: null | number
   // Full-size, in the order the page lists them. The first becomes the case's
   // own picture, which is why the order is kept.
   photoUrls: string[]
-  sku: string
   sourceUrl: string
   system: string
 }

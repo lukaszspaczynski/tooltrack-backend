@@ -171,25 +171,44 @@ export function fitCaseToCard(imported: ImportedCase): ImportedCase {
   return {
     ...imported,
     sourceUrl,
+    // A measurement that reads outside what a box can be is dropped rather
+    // than stored: a number nobody can have measured looks like a fact once it
+    // is on a card. The importer parses each one before writing it as a
+    // string, so the check is on the number and what reaches here is already
+    // "450 mm" — what is left to do is throw out the absurd ones.
     attributes: imported.attributes
       .map((attribute) => ({
         name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
         value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
       }))
-      .filter((attribute) => attribute.name && attribute.value),
-    capacityL: withinRange(imported.capacityL, MAX_CAPACITY_L, 2),
-    diagonalMm: withinRange(imported.diagonalMm, MAX_DIMENSION_MM, 0),
-    ean: clamp(imported.ean, MAX_CASE_FIELD_LENGTH),
-    innerHeightMm: withinRange(imported.innerHeightMm, MAX_DIMENSION_MM, 0),
-    innerLengthMm: withinRange(imported.innerLengthMm, MAX_DIMENSION_MM, 0),
-    innerWidthMm: withinRange(imported.innerWidthMm, MAX_DIMENSION_MM, 0),
-    loadKg: withinRange(imported.loadKg, MAX_LOAD_KG, 2),
+      .filter((attribute) => attribute.name && attribute.value)
+      .filter(plausible),
     manufacturer: clamp(imported.manufacturer, MAX_CASE_NAME_LENGTH),
     name: clamp(imported.name, MAX_CASE_NAME_LENGTH),
     notes: clamp(imported.notes, MAX_CASE_NOTES_LENGTH),
-    sku: clamp(imported.sku, MAX_CASE_FIELD_LENGTH),
     system: clamp(imported.system, MAX_CASE_FIELD_LENGTH),
   }
+}
+
+// The ceilings a box cannot be above. They were CHECK constraints while these
+// were columns; free text has no CHECK, so the reading is where it happens —
+// a page that states 495000 mm is a page with a decimal point in the wrong
+// place, and a card saying so is worse than a card saying nothing.
+const CEILINGS: [suffix: string, most: number][] = [
+  [' mm', MAX_DIMENSION_MM],
+  [' L', MAX_CAPACITY_L],
+  [' kg', MAX_LOAD_KG],
+]
+
+function plausible(attribute: { name: string; value: string }): boolean {
+  for (const [suffix, most] of CEILINGS) {
+    if (!attribute.value.endsWith(suffix)) continue
+
+    const measured = Number(attribute.value.slice(0, -suffix.length).replace(',', '.'))
+    return Number.isFinite(measured) && measured > 0 && measured <= most
+  }
+
+  return true
 }
 
 // The same range the body parser enforces, applied here so that an import and

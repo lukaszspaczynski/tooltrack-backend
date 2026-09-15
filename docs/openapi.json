@@ -1326,10 +1326,14 @@
               "$ref": "#/components/schemas/Attribute"
             }
           },
-          "capacityL": {
-            "type": [
-              "null",
-              "number"
+          "brand": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ItemBrand"
+              }
             ]
           },
           "createdAt": {
@@ -1341,44 +1345,14 @@
               "number"
             ]
           },
-          "diagonalMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "ean": {
-            "type": "string"
-          },
           "id": {
             "type": "number"
           },
-          "innerHeightMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "innerLengthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "innerWidthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "loadKg": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "manufacturer": {
-            "type": "string"
+          "labelSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabelSlot"
+            }
           },
           "name": {
             "type": "string"
@@ -1387,33 +1361,6 @@
             "type": "string"
           },
           "referenceUrl": {
-            "type": "string"
-          },
-          "outerHeightMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "outerLengthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "outerWidthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "labelSlots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LabelSlot"
-            }
-          },
-          "sku": {
             "type": "string"
           },
           "system": {
@@ -1431,25 +1378,14 @@
         },
         "required": [
           "attributes",
-          "capacityL",
+          "brand",
           "createdAt",
           "createdBy",
-          "diagonalMm",
-          "ean",
           "id",
-          "innerHeightMm",
-          "innerLengthMm",
-          "innerWidthMm",
-          "loadKg",
-          "manufacturer",
+          "labelSlots",
           "name",
           "notes",
           "referenceUrl",
-          "outerHeightMm",
-          "outerLengthMm",
-          "outerWidthMm",
-          "labelSlots",
-          "sku",
           "system",
           "updatedAt",
           "updatedBy"
@@ -1492,10 +1428,14 @@
               "$ref": "#/components/schemas/Attribute"
             }
           },
-          "capacityL": {
-            "type": [
-              "null",
-              "number"
+          "brand": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ItemBrand"
+              }
             ]
           },
           "createdAt": {
@@ -1507,44 +1447,14 @@
               "number"
             ]
           },
-          "diagonalMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "ean": {
-            "type": "string"
-          },
           "id": {
             "type": "number"
           },
-          "innerHeightMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "innerLengthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "innerWidthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "loadKg": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "manufacturer": {
-            "type": "string"
+          "labelSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabelSlot"
+            }
           },
           "name": {
             "type": "string"
@@ -1553,33 +1463,6 @@
             "type": "string"
           },
           "referenceUrl": {
-            "type": "string"
-          },
-          "outerHeightMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "outerLengthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "outerWidthMm": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "labelSlots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LabelSlot"
-            }
-          },
-          "sku": {
             "type": "string"
           },
           "system": {
@@ -1597,26 +1480,15 @@
         },
         "required": [
           "attributes",
-          "capacityL",
+          "brand",
           "createdAt",
           "createdBy",
-          "diagonalMm",
-          "ean",
           "id",
-          "innerHeightMm",
-          "innerLengthMm",
-          "innerWidthMm",
           "labelSlots",
-          "loadKg",
-          "manufacturer",
           "name",
           "notes",
-          "outerHeightMm",
-          "outerLengthMm",
-          "outerWidthMm",
           "primaryPhotoUrl",
           "referenceUrl",
-          "sku",
           "system",
           "updatedAt",
           "updatedBy"
@@ -2873,56 +2745,12 @@
       "CaseCreateBody": {
         "type": "object",
         "properties": {
-          "capacityL": {
+          "brandId": {
             "type": [
               "number",
               "string",
               "null"
             ]
-          },
-          "diagonalMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "ean": {
-            "type": "string",
-            "maxLength": 120
-          },
-          "innerHeightMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "innerLengthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "innerWidthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "loadKg": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "manufacturer": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
           },
           "name": {
             "type": "string",
@@ -2937,38 +2765,12 @@
             "type": "string",
             "maxLength": 2000
           },
-          "outerHeightMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "outerLengthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "outerWidthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "sku": {
-            "type": "string",
-            "maxLength": 120
-          },
           "system": {
             "type": "string",
             "maxLength": 120
           }
         },
         "required": [
-          "manufacturer",
           "name"
         ]
       },
@@ -2998,56 +2800,12 @@
       "CasePatchBody": {
         "type": "object",
         "properties": {
-          "capacityL": {
+          "brandId": {
             "type": [
               "number",
               "string",
               "null"
             ]
-          },
-          "diagonalMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "ean": {
-            "type": "string",
-            "maxLength": 120
-          },
-          "innerHeightMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "innerLengthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "innerWidthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "loadKg": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "manufacturer": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
           },
           "name": {
             "type": "string",
@@ -3061,31 +2819,6 @@
           "referenceUrl": {
             "type": "string",
             "maxLength": 2000
-          },
-          "outerHeightMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "outerLengthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "outerWidthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "sku": {
-            "type": "string",
-            "maxLength": 120
           },
           "system": {
             "type": "string",

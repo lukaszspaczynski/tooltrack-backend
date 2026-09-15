@@ -19,6 +19,7 @@ import { errorResponse } from '../error-codes'
 import { t } from '../i18n'
 import type { RouteContext } from '../route-context'
 import { replaceAttributes } from './attributes-store'
+import { brandIdForImportedName } from './brands-store'
 import { createCase, getCase, updateCase } from './cases-store'
 import { fetchPage } from './page-fetch'
 import { importPhotoLinks } from './photos'
@@ -45,21 +46,10 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
 
   const created = await createCase(
     {
-      capacityL: imported.capacityL,
-      diagonalMm: imported.diagonalMm,
-      ean: imported.ean,
-      innerHeightMm: imported.innerHeightMm,
-      innerLengthMm: imported.innerLengthMm,
-      innerWidthMm: imported.innerWidthMm,
-      loadKg: imported.loadKg,
-      manufacturer: imported.manufacturer,
+      brandId: await brandIdForImportedName(imported.manufacturer, actorId),
       name: imported.name,
       notes: imported.notes,
       referenceUrl: imported.sourceUrl,
-      outerHeightMm: imported.outerHeightMm,
-      outerLengthMm: imported.outerLengthMm,
-      outerWidthMm: imported.outerWidthMm,
-      sku: imported.sku,
       system: imported.system,
     },
     actorId,
@@ -95,28 +85,18 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
   if ('response' in read) return read.response
 
   const imported = fitCaseToCard(read.imported)
+  const actorId = context.user?.id ?? 0
 
   const updated = await updateCase(
     id,
     {
-      capacityL: imported.capacityL,
-      diagonalMm: imported.diagonalMm,
-      ean: imported.ean,
-      innerHeightMm: imported.innerHeightMm,
-      innerLengthMm: imported.innerLengthMm,
-      innerWidthMm: imported.innerWidthMm,
-      loadKg: imported.loadKg,
-      manufacturer: imported.manufacturer,
+      brandId: await brandIdForImportedName(imported.manufacturer, actorId),
       name: imported.name,
       notes: imported.notes,
       referenceUrl: imported.sourceUrl,
-      outerHeightMm: imported.outerHeightMm,
-      outerLengthMm: imported.outerLengthMm,
-      outerWidthMm: imported.outerWidthMm,
-      sku: imported.sku,
       system: imported.system,
     },
-    context.user?.id ?? 0,
+    actorId,
   )
 
   if (!updated) return errorResponse(404, 'CASE_NOT_FOUND', t('Nie ma takiej skrzynki'))

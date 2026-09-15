@@ -178,31 +178,14 @@ CREATE INDEX IF NOT EXISTS "catalog_item_name_idx" ON "catalog"."item" (lower("n
 -- dimensions and its own photo — not an attribute of a tool.
 CREATE TABLE IF NOT EXISTS "catalog"."tool_case" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  -- The two facts a case cannot be catalogued without. Everything below comes
-  -- off a spec sheet and is missing far more often than it is present.
+  -- The one fact a case cannot be catalogued without. The maker is a row it
+  -- points at (see brand-schema.ts), and everything a spec sheet states is a
+  -- parameter rather than a column.
   "name" text NOT NULL CHECK (btrim("name") <> ''),
-  "manufacturer" text NOT NULL CHECK (btrim("manufacturer") <> ''),
   -- Which modular system it stacks with: PRO, ONE, Systainer, none. Free text
-  -- for the same reason brands are: the list is not ours to close.
+  -- for the same reason a category is: the list is not ours to close.
   "system" text NOT NULL DEFAULT '',
-  -- Millimetres, integers, and NULL when nobody has measured. Zero would be a
-  -- claim about a box with no height, so the CHECK keeps the two apart.
-  "outer_length_mm" integer CHECK ("outer_length_mm" IS NULL OR "outer_length_mm" > 0),
-  "outer_width_mm" integer CHECK ("outer_width_mm" IS NULL OR "outer_width_mm" > 0),
-  "outer_height_mm" integer CHECK ("outer_height_mm" IS NULL OR "outer_height_mm" > 0),
-  "inner_length_mm" integer CHECK ("inner_length_mm" IS NULL OR "inner_length_mm" > 0),
-  "inner_width_mm" integer CHECK ("inner_width_mm" IS NULL OR "inner_width_mm" > 0),
-  "inner_height_mm" integer CHECK ("inner_height_mm" IS NULL OR "inner_height_mm" > 0),
-  "diagonal_mm" integer CHECK ("diagonal_mm" IS NULL OR "diagonal_mm" > 0),
-  "capacity_l" numeric(8, 2) CHECK ("capacity_l" IS NULL OR "capacity_l" > 0),
-  "load_kg" numeric(8, 2) CHECK ("load_kg" IS NULL OR "load_kg" > 0),
-  -- A barcode and a catalogue number identify the product, not this box. Two
-  -- identical cases on the shelf are two rows with the same EAN, so neither is
-  -- unique — unlike a tool's serial number, which is one machine.
-  "ean" text NOT NULL DEFAULT '',
-  "sku" text NOT NULL DEFAULT '',
   "notes" text NOT NULL DEFAULT '',
-  -- The same field a tool has, for the same reason.
   "reference_url" text NOT NULL DEFAULT '',
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "updated_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
@@ -211,8 +194,6 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool_case" (
 );
 
 CREATE INDEX IF NOT EXISTS "catalog_tool_case_name_idx" ON "catalog"."tool_case" (lower("name"));
-CREATE INDEX IF NOT EXISTS "catalog_tool_case_manufacturer_idx"
-  ON "catalog"."tool_case" (lower("manufacturer"));
 CREATE INDEX IF NOT EXISTS "catalog_tool_case_system_idx"
   ON "catalog"."tool_case" (lower("system"));
 
@@ -370,6 +351,72 @@ BEGIN
 END
 $$;
 
+-- Everything a spec sheet states about a box becomes a parameter.
+--
+-- A case had eleven columns of measurements, and they were columns because a
+-- box is mostly measurements — until the next kind of box states something
+-- else, and a twelfth column is a migration rather than a row. The spec sheet
+-- already exists, already takes a name and a value with its unit, and already
+-- holds the two rows a Qbrick page states that no column covered.
+--
+-- The unit travels in the value, as it does for every other parameter: "450
+-- mm" rather than 450 beside a unit column nobody agrees on. The order is the
+-- order somebody reads a box in — outside, inside, diagonal, what goes in,
+-- what it carries, then the numbers that identify the product.
+--
+-- One-time: it runs while the columns are still there and drops them after, so
+-- a second run has nothing to find.
+DO $$
+DECLARE
+  "moved_column" text;
+  "label" text;
+  "unit" text;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'catalog' AND table_name = 'tool_case' AND column_name = 'outer_length_mm'
+  ) THEN
+    RETURN;
+  END IF;
+
+  FOR "moved_column", "label", "unit" IN
+    SELECT * FROM (VALUES
+      ('outer_length_mm',  'Długość zewnętrzna',  ' mm'),
+      ('outer_width_mm',   'Szerokość zewnętrzna', ' mm'),
+      ('outer_height_mm',  'Wysokość zewnętrzna', ' mm'),
+      ('inner_length_mm',  'Długość wewnętrzna',  ' mm'),
+      ('inner_width_mm',   'Szerokość wewnętrzna', ' mm'),
+      ('inner_height_mm',  'Wysokość wewnętrzna', ' mm'),
+      ('diagonal_mm',      'Przekątna',           ' mm'),
+      ('capacity_l',       'Pojemność',           ' L'),
+      ('load_kg',          'Ładowność',           ' kg'),
+      ('ean',              'EAN',                 ''),
+      ('sku',              'SKU',                 '')
+    ) AS "moved"("name", "label", "unit")
+  LOOP
+    -- trim_scale drops the trailing zeros numeric(8,2) carries, so 11.00 reads
+    -- as "11 L" the way the page writes it rather than as "11.00 L".
+    EXECUTE format(
+      $sql$
+        INSERT INTO "catalog"."attribute" ("reference", "reference_id", "name", "value", "created_by")
+        SELECT 'tool_case', "id", %L,
+               CASE WHEN pg_typeof(%I) = 'numeric'::regtype
+                    THEN trim_scale(%I::numeric)::text
+                    ELSE %I::text END || %L,
+               "created_by"
+        FROM "catalog"."tool_case"
+        WHERE %I IS NOT NULL AND btrim(%I::text) <> ''
+        ON CONFLICT DO NOTHING
+      $sql$,
+      "label", "moved_column", "moved_column", "moved_column", "unit",
+      "moved_column", "moved_column"
+    );
+
+    EXECUTE format('ALTER TABLE "catalog"."tool_case" DROP COLUMN %I', "moved_column");
+  END LOOP;
+END
+$$;
+
 -- Where a label goes on a case. A slot is a size and nothing else: 30 x 40 mm
 -- on the front, 200 x 60 mm on the lid. What gets printed on it is a different
 -- question, and not one this table answers.
@@ -396,7 +443,6 @@ COMMENT ON TABLE "catalog"."tool_case" IS 'One row per case, box or drawer unit 
 COMMENT ON TABLE "catalog"."case_label_slot" IS 'Where a label goes on a case: a size in mm, unique per case.';
 COMMENT ON TABLE "catalog"."manual" IS 'One PDF kept beside the tools: the manual, a parts diagram, a safety sheet.';
 COMMENT ON TABLE "catalog"."manual_item" IS 'Which items a manual belongs to. A manual describes a model, so several cards can share one file.';
-COMMENT ON COLUMN "catalog"."tool_case"."ean" IS 'Barcode of the product, not of this box: duplicates are expected.';
 COMMENT ON TABLE "catalog"."attribute" IS 'One parameter of one tool or one case: a name and a value, both free text, unique per thing.';
 `
 

@@ -42,21 +42,10 @@ export function parseQbrickCase(html: string, pageUrl: string): null | ImportedC
 
   return {
     attributes: attributesOf(rows),
-    capacityL: measurement(rows.get('pojemność')),
-    diagonalMm: measurement(rows.get('przekątna')),
-    ean: rows.get('ean') ?? '',
-    innerHeightMm: inner[2],
-    innerLengthMm: inner[0],
-    innerWidthMm: inner[1],
-    loadKg: measurement(rows.get('ładowność')),
     manufacturer: MANUFACTURER,
     name: nameOf(heading, system),
     notes: descriptionOf(html),
-    outerHeightMm: outer[2],
-    outerLengthMm: outer[0],
-    outerWidthMm: outer[1],
     photoUrls: photosOf(html),
-    sku: rows.get('sku') ?? '',
     sourceUrl: pageUrl,
     system,
   }
@@ -164,17 +153,55 @@ export function descriptionOf(html: string): string {
 // Named rather than "everything left over" on purpose: a row this list does
 // not know is a row nobody has decided where to put, and guessing would put the
 // EAN on the sheet as well as in its column.
-const SHEET_ROWS: Record<string, string> = {
-  'ilość na palecie': 'Ilość na palecie',
-  waga: 'Waga',
-}
+// Every row of the table, as a parameter, in the order somebody reads a box in.
+//
+// The dimension rows arrive as one string each — "450 [L] x 322 [W] x 126 [H]
+// mm" — and become three parameters, because a length and a width are two
+// facts and a screen showing them as one cannot compare two boxes.
+//
+// Named rather than "whatever the table says": a row nobody has decided about
+// is a row nobody has decided about, and a page that grows a twelfth would
+// otherwise arrive unlabelled.
+const SHEET_ROWS: [label: string, row: string, unit: string][] = [
+  ['przekątna', 'Przekątna', ' mm'],
+  ['pojemność', 'Pojemność', ' L'],
+  ['ładowność', 'Ładowność', ' kg'],
+  ['waga', 'Waga', ''],
+  ['ilość na palecie', 'Ilość na palecie', ''],
+  ['ean', 'EAN', ''],
+  ['sku', 'SKU', ''],
+]
+
+// The two rows the page writes as three numbers each.
+const DIMENSIONS: [row: string, prefix: string][] = [
+  ['wymiary zewnętrzne', 'zewnętrzna'],
+  ['wymiary wewnętrzne', 'wewnętrzna'],
+]
+
+const AXES = ['Długość', 'Szerokość', 'Wysokość']
 
 export function attributesOf(rows: Map<string, string>): ImportedAttribute[] {
   const attributes: ImportedAttribute[] = []
 
-  for (const [label, name] of Object.entries(SHEET_ROWS)) {
-    const value = rows.get(label)
-    if (value) attributes.push({ name, value })
+  for (const [row, prefix] of DIMENSIONS) {
+    const sides = dimensions(rows.get(row))
+    sides.forEach((side, index) => {
+      if (side === null) return
+      attributes.push({ name: `${AXES[index]} ${prefix}`, value: `${side} mm` })
+    })
+  }
+
+  for (const [row, label, unit] of SHEET_ROWS) {
+    const raw = rows.get(row)
+    if (!raw) continue
+
+    // A measurement is read as a number first and written back with its unit,
+    // which is what keeps "212 cm 3" and a diagonal in micrometres out: the
+    // number is checked, the string is derived from it.
+    const measured = unit ? measurement(raw) : null
+    if (unit && measured === null) continue
+
+    attributes.push({ name: label, value: unit ? `${measured}${unit}` : raw })
   }
 
   return attributes

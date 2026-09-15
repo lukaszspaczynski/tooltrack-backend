@@ -652,22 +652,48 @@ always 0 here.
 
 ## Cases
 
-A case is the box the items live in. Name and manufacturer are required;
-everything else comes off a spec sheet, and a spec sheet is something you have
-or you do not. Measurements are `null` when nobody has taken them — never `0`,
-which would be a claim about a box with no height.
+A case is the box the items live in. **Only the name is required.**
+
+Everything a spec sheet states about a box is a **parameter**, not a column. A
+case had eleven of those columns — three outside measurements, three inside, a
+diagonal, a capacity, a load, a barcode, a catalogue number — and they were
+columns because a box is mostly measurements, until the next kind of box states
+something else and a twelfth column is a migration rather than a row. The sheet
+already took a name and a value with its unit:
+
+```json
+"attributes": [
+  { "id": 41, "name": "Długość zewnętrzna", "value": "450 mm" },
+  { "id": 48, "name": "Pojemność", "value": "11 L" },
+  { "id": 51, "name": "EAN", "value": "5901238254232" }
+]
+```
+
+The unit travels in the value, as it does everywhere else. The order is the
+order somebody reads a box in: outside, inside, diagonal, what goes in, what it
+carries, then the numbers that identify the product.
+
+Two consequences. **`sort=capacityL` is gone** — sorting free text with a unit
+in it would mean a regular expression and a cast, for a question about a shelf
+of six boxes; an old link falls through to sorting by name rather than being
+refused. And `q=` **searches the sheet as well as the card**, because the
+barcode and the catalogue number are exactly what somebody types with the box
+in their hands.
+
+The **maker** is the row it is, like an item's: `brand` is
+`{ id, name, color }` or `null`, and writing it is `brandId`.
 
 ### `GET /api/cases` — `catalog.read`
 
-| Parameter      | Meaning                                       | Default |
-| -------------- | --------------------------------------------- | ------- |
-| `q`            | Name, manufacturer, system, EAN, SKU, notes   | —       |
-| `manufacturer` | Exact match, case-insensitive                 | —       |
-| `system`       | Exact match, case-insensitive                 | —       |
-| `sort`         | `name`, `capacityL`, `createdAt`, `updatedAt` | `name`  |
-| `order`        | `asc` or `desc`                               | `desc`  |
-| `limit`        | 1–200                                         | 50      |
-| `offset`       | ≥ 0                                           | 0       |
+| Parameter      | Meaning                                                  | Default |
+| -------------- | -------------------------------------------------------- | ------- |
+| `q`            | Name, maker, system, notes — and every parameter's value | —       |
+| `manufacturer` | Exact match, case-insensitive                            | —       |
+| `system`       | Exact match, case-insensitive                            | —       |
+| `sort`         | `name`, `createdAt`, `updatedAt`                         | `name`  |
+| `order`        | `asc` or `desc`                                          | `desc`  |
+| `limit`        | 1–200                                                    | 50      |
+| `offset`       | ≥ 0                                                      | 0       |
 
 `200 { items, total, limit, offset }`. Each item is a case plus
 `primaryPhotoUrl`, so a grid can show thumbnails without a request per row.

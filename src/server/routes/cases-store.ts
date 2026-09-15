@@ -5,6 +5,7 @@
 import { db, type PgPool } from '../db'
 import type { ErrorCode } from '../error-codes'
 import { listAttributes, type Attribute } from './attributes-store'
+import type { ItemBrand } from './items-store'
 import type { CaseFields, CasePatch, CaseQuery } from './cases-input'
 import { t } from '../i18n'
 
@@ -32,32 +33,21 @@ export class LabelSlotTakenError extends Error {
 }
 
 export type ToolCase = {
-  // Beside the columns, not instead of them. The measurements a box is
-  // catalogued by have a shape every case shares — a length is a length — and
-  // the sheet is for what they do not cover: a system, a lid type, whatever the
-  // next kind of box turns out to state.
+  // Not beside the columns any more — instead of them. A box was eleven columns
+  // of measurements because a box is mostly measurements, until the next kind
+  // of box states something else and a twelfth column is a migration rather
+  // than a row. The sheet already took a name and a value with its unit.
   attributes: Attribute[]
-  capacityL: null | number
+  brand: null | ItemBrand
   createdAt: string
   createdBy: null | number
-  diagonalMm: null | number
-  ean: string
   id: number
-  innerHeightMm: null | number
-  innerLengthMm: null | number
-  innerWidthMm: null | number
-  loadKg: null | number
-  manufacturer: string
+  labelSlots: LabelSlot[]
   name: string
   notes: string
   // Where an import read this box from, empty when nobody imported it. The
   // same field an item card has, and it was the same parameter before that.
   referenceUrl: string
-  outerHeightMm: null | number
-  outerLengthMm: null | number
-  outerWidthMm: null | number
-  labelSlots: LabelSlot[]
-  sku: string
   system: string
   updatedAt: string
   updatedBy: null | number
@@ -94,25 +84,16 @@ export type SystemCount = {
 type RawSlot = { heightMm: number | string; id: number | string; widthMm: number | string }
 
 type CaseRow = {
-  capacity_l: null | number | string
+  brand_color: null | string
+  brand_id: null | number | string
+  brand_name: null | string
   created_at: Date | string
   created_by: null | number | string
-  diagonal_mm: null | number | string
-  ean: string
   id: number | string
-  inner_height_mm: null | number | string
-  inner_length_mm: null | number | string
-  inner_width_mm: null | number | string
   label_slots?: null | RawSlot[]
-  load_kg: null | number | string
-  manufacturer: string
   name: string
   notes: string
-  outer_height_mm: null | number | string
-  outer_length_mm: null | number | string
-  outer_width_mm: null | number | string
   reference_url: string
-  sku: string
   system: string
   total_count?: number | string
   updated_at: Date | string
@@ -120,42 +101,38 @@ type CaseRow = {
 }
 
 const CASE_COLUMNS = `
-  "id", "name", "manufacturer", "system",
-  "outer_length_mm", "outer_width_mm", "outer_height_mm",
-  "inner_length_mm", "inner_width_mm", "inner_height_mm",
-  "diagonal_mm", "capacity_l", "load_kg", "ean", "sku", "notes", "reference_url",
-  "created_by", "updated_by", "created_at", "updated_at"
+  "c"."id", "c"."name", "c"."system", "c"."notes", "c"."reference_url",
+  "c"."created_by", "c"."updated_by", "c"."created_at", "c"."updated_at",
+  "b"."id" AS "brand_id", "b"."name" AS "brand_name", "b"."color" AS "brand_color"
+`
+
+// LEFT, because a box whose maker nobody has recorded is still a box.
+const CASE_FROM = `
+  FROM "catalog"."tool_case" AS "c"
+  LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "c"."brand_id"
 `
 
 // Every field that can be written, and the column it lands in. Create and
 // patch both read this, so a new property cannot reach one and be forgotten by
 // the other.
 const WRITABLE_COLUMNS: Record<keyof CaseFields, string> = {
-  capacityL: 'capacity_l',
-  diagonalMm: 'diagonal_mm',
-  ean: 'ean',
-  innerHeightMm: 'inner_height_mm',
-  innerLengthMm: 'inner_length_mm',
-  innerWidthMm: 'inner_width_mm',
-  loadKg: 'load_kg',
-  manufacturer: 'manufacturer',
+  brandId: 'brand_id',
   name: 'name',
   notes: 'notes',
   referenceUrl: 'reference_url',
-  outerHeightMm: 'outer_height_mm',
-  outerLengthMm: 'outer_length_mm',
-  outerWidthMm: 'outer_width_mm',
-  sku: 'sku',
   system: 'system',
 }
 
 // The only place a sort key becomes SQL. A value that is not in this map
 // cannot reach the query, whatever arrives in the query string.
+// Capacity is gone from here, and deliberately. It is a parameter now, which
+// means free text with its unit in it — "11 L" — and sorting a shelf by that
+// would mean a regular expression and a cast in the ORDER BY, for a question
+// about six boxes. A shelf is read alphabetically.
 const SORT_COLUMNS: Record<CaseQuery['sort'], string> = {
-  capacityL: '"capacity_l"',
-  createdAt: '"created_at"',
-  name: 'lower("name")',
-  updatedAt: '"updated_at"',
+  createdAt: '"c"."created_at"',
+  name: 'lower("c"."name")',
+  updatedAt: '"c"."updated_at"',
 }
 
 export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<CasePage> {
@@ -167,15 +144,21 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
   const result = await pool.query<CaseRow>(
     `
       SELECT ${CASE_COLUMNS}, count(*) OVER () AS "total_count"
-      FROM "catalog"."tool_case"
+      ${CASE_FROM}
       WHERE ($1::text IS NULL OR (
-              "name" ILIKE $1 OR "manufacturer" ILIKE $1 OR "system" ILIKE $1
-              OR "ean" ILIKE $1 OR "sku" ILIKE $1 OR "notes" ILIKE $1))
-        AND ($2::text IS NULL OR lower("manufacturer") = lower($2))
-        AND ($3::text IS NULL OR lower("system") = lower($3))
-      -- NULLS LAST so that sorting by capacity puts the cases nobody has
-      -- measured at the end rather than at the top of the shelf.
-      ORDER BY ${column} ${direction} NULLS LAST, "id" DESC
+              "c"."name" ILIKE $1 OR "b"."name" ILIKE $1 OR "c"."system" ILIKE $1
+              OR "c"."notes" ILIKE $1
+              -- The barcode and the catalogue number are parameters now, and
+              -- they are exactly what somebody types into a search box when
+              -- they have the box in their hands. So the sheet is searched too.
+              OR EXISTS (
+                   SELECT 1 FROM "catalog"."attribute" AS "s"
+                   WHERE "s"."reference" = 'tool_case' AND "s"."reference_id" = "c"."id"
+                     AND "s"."value" ILIKE $1
+                 )))
+        AND ($2::text IS NULL OR lower("b"."name") = lower($2))
+        AND ($3::text IS NULL OR lower("c"."system") = lower($3))
+      ORDER BY ${column} ${direction}, "c"."id" DESC
       LIMIT $4 OFFSET $5
     `,
     [
@@ -207,12 +190,12 @@ export async function getCase(id: number, pool: PgPool = db()): Promise<null | T
                      ORDER BY "s"."width_mm", "s"."height_mm"
                    )
             FROM "catalog"."case_label_slot" AS "s"
-            WHERE "s"."case_id" = "catalog"."tool_case"."id"
+            WHERE "s"."case_id" = "c"."id"
           ),
           '[]'::jsonb
         ) AS "label_slots"
-      FROM "catalog"."tool_case"
-      WHERE "id" = $1
+      ${CASE_FROM}
+      WHERE "c"."id" = $1
     `,
     [id],
   )
@@ -242,16 +225,22 @@ export async function createCase(
     placeholders.push(`$${params.length}`)
   }
 
-  const result = await pool.query<CaseRow>(
+  // RETURNING cannot reach the maker: it answers with the row that was written
+  // and the name lives in another table. So the insert answers with an id and
+  // the box is read back through the same join every other read uses.
+  const result = await pool.query<{ id: string }>(
     `
       INSERT INTO "catalog"."tool_case" (${columns.join(', ')}, "created_by", "updated_by")
       VALUES (${placeholders.join(', ')}, $1, $1)
-      RETURNING ${CASE_COLUMNS}
+      RETURNING "id"
     `,
     params,
   )
 
-  return toCase(result.rows[0])
+  const created = await getCase(Number(result.rows[0].id), pool)
+  if (!created) throw new Error('case written but cannot be read back')
+
+  return created
 }
 
 export async function updateCase(
@@ -276,18 +265,18 @@ export async function updateCase(
   // caller inside the server calling it directly.
   if (assignments.length === 0) return getCase(id, pool)
 
-  const result = await pool.query<CaseRow>(
+  const result = await pool.query<{ id: string }>(
     `
       UPDATE "catalog"."tool_case"
       SET ${assignments.join(', ')}, "updated_by" = $2, "updated_at" = now()
       WHERE "id" = $1
-      RETURNING ${CASE_COLUMNS}
+      RETURNING "id"
     `,
     params,
   )
 
-  const row = result.rows[0]
-  return row ? toCase(row) : null
+  // Read back for the maker, as on create.
+  return result.rows[0] ? getCase(id, pool) : null
 }
 
 export async function deleteCase(id: number, pool: PgPool = db()): Promise<boolean> {
@@ -365,31 +354,21 @@ function toCase(row: CaseRow): ToolCase {
     // Filled in by whoever read the case; a row on its own carries no spec
     // sheet, the same way an item row does not.
     attributes: [],
-    // numeric(8,2) comes back from pg as a string, because a float would round
-    // 4.5 litres into something almost but not quite 4.5.
-    capacityL: toNumber(row.capacity_l),
+    brand:
+      row.brand_id === null
+        ? null
+        : { color: row.brand_color ?? '', id: Number(row.brand_id), name: row.brand_name ?? '' },
     createdAt: toIsoString(row.created_at),
     createdBy: row.created_by === null ? null : Number(row.created_by),
-    diagonalMm: toNumber(row.diagonal_mm),
-    ean: row.ean,
     id: Number(row.id),
-    innerHeightMm: toNumber(row.inner_height_mm),
-    innerLengthMm: toNumber(row.inner_length_mm),
-    innerWidthMm: toNumber(row.inner_width_mm),
     labelSlots: (row.label_slots ?? []).map((slot) => ({
       heightMm: Number(slot.heightMm),
       id: Number(slot.id),
       widthMm: Number(slot.widthMm),
     })),
-    loadKg: toNumber(row.load_kg),
-    manufacturer: row.manufacturer,
     name: row.name,
     notes: row.notes,
     referenceUrl: row.reference_url,
-    outerHeightMm: toNumber(row.outer_height_mm),
-    outerLengthMm: toNumber(row.outer_length_mm),
-    outerWidthMm: toNumber(row.outer_width_mm),
-    sku: row.sku,
     system: row.system,
     updatedAt: toIsoString(row.updated_at),
     updatedBy: row.updated_by === null ? null : Number(row.updated_by),
