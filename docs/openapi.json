@@ -1082,6 +1082,9 @@
           "city": {
             "type": "string"
           },
+          "color": {
+            "type": "string"
+          },
           "createdAt": {
             "type": "string"
           },
@@ -1128,6 +1131,7 @@
         "required": [
           "building",
           "city",
+          "color",
           "createdAt",
           "createdBy",
           "id",
@@ -2651,6 +2655,12 @@
             "type": "string",
             "maxLength": 120
           },
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "name": {
             "type": "string",
             "minLength": 1,
@@ -2687,6 +2697,12 @@
           "city": {
             "type": "string",
             "maxLength": 120
+          },
+          "color": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "type": "string",

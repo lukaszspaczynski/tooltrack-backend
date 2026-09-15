@@ -3,7 +3,12 @@
 import { z } from 'zod'
 import { clampLimit, clampOffset, BRAND_PAGING } from './paging'
 
+import { COLOR_SCHEMA, parseColor } from './color'
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
+
+// Re-exported: a brand colour is the catalog's colour rule, and callers of
+// this module should not have to know it moved.
+export { parseColor } from './color'
 
 export const MAX_NAME_LENGTH = 120
 export const MAX_NOTES_LENGTH = 4000
@@ -28,51 +33,8 @@ export type BrandQuery = {
   sort: 'name' | 'tools'
 }
 
-const COLOR_ERROR = 'color must be #rrggbb, "r g b", or empty'
-
-// One colour, two spellings accepted. A leading colour is read off a logo or a
-// brand book, where it is given as three numbers; CSS wants it as hex. Both
-// arrive here and one form is stored, so a search or a comparison cannot miss
-// because somebody wrote the same colour differently.
-//
-// Null means "not a colour", which the schema turns into a 400. An empty string
-// is a colour nobody has said, and is allowed.
-export function parseColor(raw: unknown): null | string {
-  if (raw === null || raw === undefined) return ''
-
-  const value = typeof raw === 'string' ? raw.trim() : raw
-  if (typeof value !== 'string') return null
-  if (value === '') return ''
-
-  const hex = /^#?([0-9a-f]{6})$/i.exec(value)
-  if (hex) return `#${hex[1].toLowerCase()}`
-
-  // "18 36 71", "18,36,71", "rgb(18, 36, 71)" — all three turn up when the
-  // number is copied from somewhere.
-  const parts = value
-    .replace(/^rgb\s*\(/i, '')
-    .replace(/\)$/, '')
-    .split(/[\s,]+/)
-    .filter(Boolean)
-  if (parts.length !== 3) return null
-
-  const channels: number[] = []
-  for (const part of parts) {
-    const channel = Number(part)
-    if (!Number.isInteger(channel) || channel < 0 || channel > 255) return null
-    channels.push(channel)
-  }
-
-  return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`
-}
-
 // The two spellings are both strings on the wire, so that is what the contract
 // says; which of them this is gets decided by the transform, not by the type.
-const COLOR = z
-  .string()
-  .nullable()
-  .transform((raw) => parseColor(raw))
-  .refine((value): value is string => value !== null, { error: () => COLOR_ERROR })
 
 const NAME = z
   .string({ error: () => 'name must be a non-empty string' })
@@ -87,13 +49,13 @@ const NOTES = z
 
 export const BRAND_PATCH_SCHEMA = z
   .object(
-    { color: COLOR.optional(), name: NAME.optional(), notes: NOTES.optional() },
+    { color: COLOR_SCHEMA.optional(), name: NAME.optional(), notes: NOTES.optional() },
     NOT_AN_OBJECT,
   )
   .strip()
 
 export const BRAND_CREATE_SCHEMA = z
-  .object({ color: COLOR.optional(), name: NAME, notes: NOTES.optional() }, NOT_AN_OBJECT)
+  .object({ color: COLOR_SCHEMA.optional(), name: NAME, notes: NOTES.optional() }, NOT_AN_OBJECT)
   .strip()
 
 // The logo is a picture that already exists — the same library everything else

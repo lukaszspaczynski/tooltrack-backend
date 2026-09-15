@@ -29,6 +29,7 @@ function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     building: '12A',
     city: 'Warszawa',
+    color: '#d0392a',
     created_at: '2026-01-01T00:00:00.000Z',
     created_by: '3',
     id: '4',
@@ -143,6 +144,29 @@ test('only the name is required, and the rest is blank rather than absent', () =
   assert.equal(parsedFields.value.city, '')
 })
 
+test('a colour is stored one way however it was typed', () => {
+  // The same rule the makers use, and in the same module, so "is this the same
+  // colour" cannot have two answers. A place picked from a swatch sends hex; a
+  // place copied off a brand book sends three numbers.
+  for (const [typed, stored] of [
+    ['#D0392A', '#d0392a'],
+    ['d0392a', '#d0392a'],
+    ['208 57 42', '#d0392a'],
+    ['rgb(208, 57, 42)', '#d0392a'],
+  ]) {
+    const created = parseAddressCreate({ color: typed, name: 'Magazyn' })
+    assert.ok(created.ok, typed)
+    assert.equal(created.value.color, stored)
+  }
+
+  // Empty is a place nobody has coloured, and is allowed. Nonsense is a 400.
+  const uncoloured = parseAddressCreate({ color: '', name: 'Magazyn' })
+  assert.ok(uncoloured.ok)
+  assert.equal(uncoloured.value.color, '')
+  assert.equal(parseAddressCreate({ color: 'czerwony', name: 'Magazyn' }).ok, false)
+  assert.equal(parseAddressCreate({ color: '300 0 0', name: 'Magazyn' }).ok, false)
+})
+
 test('a patch with nothing in it is refused rather than answered', () => {
   // Answering 200 with the row unchanged looks to the screen like it saved.
   assert.equal(parseAddressPatch({}).ok, false)
@@ -171,6 +195,7 @@ function fields() {
   return {
     building: '',
     city: '',
+    color: '',
     name: 'Magazyn',
     notes: '',
     postalCode: '',

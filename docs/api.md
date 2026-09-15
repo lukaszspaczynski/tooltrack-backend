@@ -1229,6 +1229,7 @@ confirmation has to say out loud.
   "unit": "3",
   "postalCode": "02-566",
   "city": "Warszawa",
+  "color": "#d0392a",
   "notes": "Klucz u kierownika."
 }
 ```

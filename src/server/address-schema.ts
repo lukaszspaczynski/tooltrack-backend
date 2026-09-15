@@ -22,11 +22,22 @@ CREATE TABLE IF NOT EXISTS "catalog"."address" (
   "postal_code" text NOT NULL DEFAULT '',
   "city" text NOT NULL DEFAULT '',
   "notes" text NOT NULL DEFAULT '',
+  -- A colour to recognise the place by, as #rrggbb, or '' when nobody has
+  -- picked one. Stored in one canonical form so that CSS can use it directly
+  -- and two spellings of the same colour cannot both exist; the API accepts an
+  -- "r g b" triple as well and normalises it, exactly as a brand's does.
+  --
+  -- Empty rather than black: a place without a colour has to look different
+  -- from one somebody deliberately made black.
+  "color" text NOT NULL DEFAULT '',
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "updated_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now()
 );
+
+-- Databases that predate the colour.
+ALTER TABLE "catalog"."address" ADD COLUMN IF NOT EXISTS "color" text NOT NULL DEFAULT '';
 
 -- Two places called "Magazyn" is a list nobody can pick from. Folded and
 -- trimmed, like the brand names and the parameter names, because "Magazyn" and
@@ -61,6 +72,7 @@ CREATE INDEX IF NOT EXISTS "catalog_organizer_address_id_idx"
 
 COMMENT ON TABLE "catalog"."address" IS 'Places tools and arrangements are kept: a workshop, a yard, a site.';
 COMMENT ON COLUMN "catalog"."address"."name" IS 'What the crew calls it. The part people pick from.';
+COMMENT ON COLUMN "catalog"."address"."color" IS 'Identifying colour as #rrggbb, or empty when nobody picked one.';
 COMMENT ON COLUMN "catalog"."tool"."address_id" IS 'Where this tool is. Null when nobody has said.';
 COMMENT ON COLUMN "catalog"."organizer"."address_id" IS 'Where this arrangement is. Null when nobody has said.';
 `

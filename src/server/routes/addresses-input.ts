@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 
+import { COLOR_SCHEMA } from './color'
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 import { ADDRESS_PAGING, clampLimit, clampOffset } from './paging'
 
@@ -18,6 +19,9 @@ export const MAX_LIMIT = ADDRESS_PAGING.max
 export type AddressFields = {
   building: string
   city: string
+  // '#rrggbb', or '' when nobody has picked one. Not black — a place without a
+  // colour has to look different from one somebody made black on purpose.
+  color: string
   name: string
   notes: string
   postalCode: string
@@ -52,6 +56,7 @@ export const ADDRESS_PATCH_SCHEMA = z
     {
       building: trimmed(MAX_FIELD_LENGTH, 'building').optional(),
       city: trimmed(MAX_FIELD_LENGTH, 'city').optional(),
+      color: COLOR_SCHEMA.optional(),
       name: NAME.optional(),
       notes: trimmed(MAX_NOTES_LENGTH, 'notes').optional(),
       postalCode: trimmed(MAX_FIELD_LENGTH, 'postalCode').optional(),
@@ -75,6 +80,7 @@ export function parseAddressCreate(body: unknown): Parsed<AddressFields> {
   return valid({
     building: parsed.value.building ?? '',
     city: parsed.value.city ?? '',
+    color: parsed.value.color ?? '',
     name: parsed.value.name,
     notes: parsed.value.notes ?? '',
     postalCode: parsed.value.postalCode ?? '',

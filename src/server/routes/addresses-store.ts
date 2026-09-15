@@ -15,6 +15,9 @@ import type { AddressFields, AddressPatch, AddressQuery } from './addresses-inpu
 export type Address = {
   building: string
   city: string
+  // '#rrggbb', or '' when nobody has picked one. What the screens draw a dot
+  // with, so a place is recognised without reading its name.
+  color: string
   createdAt: string
   createdBy: null | number
   id: number
@@ -52,6 +55,7 @@ export class AddressNameTakenError extends Error {
 type AddressRow = {
   building: string
   city: string
+  color: string
   created_at: Date | string
   created_by: null | number | string
   id: number | string
@@ -72,6 +76,7 @@ type AddressRow = {
 const WRITABLE_COLUMNS: Record<keyof AddressFields, string> = {
   building: 'building',
   city: 'city',
+  color: 'color',
   name: 'name',
   notes: 'notes',
   postalCode: 'postal_code',
@@ -81,7 +86,7 @@ const WRITABLE_COLUMNS: Record<keyof AddressFields, string> = {
 
 const ADDRESS_COLUMNS = `
   "a"."id", "a"."name", "a"."street", "a"."building", "a"."unit",
-  "a"."postal_code", "a"."city", "a"."notes",
+  "a"."postal_code", "a"."city", "a"."notes", "a"."color",
   "a"."created_by", "a"."updated_by", "a"."created_at", "a"."updated_at"
 `
 
@@ -254,6 +259,7 @@ function toAddress(row: AddressRow): Address {
   return {
     building: row.building,
     city: row.city,
+    color: row.color,
     createdAt: toIsoString(row.created_at),
     createdBy: row.created_by === null ? null : Number(row.created_by),
     id: Number(row.id),
