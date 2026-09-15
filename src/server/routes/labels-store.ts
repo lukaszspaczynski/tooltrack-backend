@@ -46,7 +46,7 @@ export type LabelToRedraw = {
 type LabelRow = {
   byte_size: number | string
   case_id: number | string
-  case_manufacturer: string
+  case_manufacturer: null | string
   case_name: string
   created_at: Date | string
   created_by: null | number | string
@@ -70,7 +70,7 @@ const LABEL_COLUMNS = `
     "o"."id" AS "organizer_id", "o"."name" AS "organizer_name",
     "o"."number" AS "organizer_number",
     "c"."id" AS "case_id", "c"."name" AS "case_name",
-    "c"."manufacturer" AS "case_manufacturer"
+    (SELECT "name" FROM "catalog"."brand" WHERE "id" = "c"."brand_id") AS "case_manufacturer"
 `
 
 // Split from the columns for the same reason the organizer list splits them:
@@ -79,7 +79,7 @@ const LABEL_COLUMNS = `
 const LABEL_FROM = `
   FROM "catalog"."organizer_label" AS "l"
   JOIN "catalog"."organizer" AS "o" ON "o"."id" = "l"."organizer_id"
-  JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "o"."case_id"
+  JOIN "catalog"."item" AS "c" ON "c"."id" = "o"."case_id"
 `
 
 export async function listAllLabels(
@@ -226,7 +226,7 @@ function toLabelListItem(row: LabelRow): LabelListItem {
     byteSize: Number(row.byte_size),
     case: {
       id: Number(row.case_id),
-      manufacturer: row.case_manufacturer,
+      manufacturer: row.case_manufacturer ?? '',
       name: row.case_name,
     },
     createdAt: toIsoString(row.created_at),

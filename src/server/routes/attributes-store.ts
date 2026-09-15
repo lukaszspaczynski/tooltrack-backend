@@ -17,7 +17,11 @@ import type { ErrorCode } from '../error-codes'
 import { t } from '../i18n'
 
 // Which kind of thing a row is about. The same two words the column checks.
-export const ATTRIBUTE_REFERENCES = ['item', 'tool_case'] as const
+// One kind of thing carries a spec sheet now: a card. It was two while a box
+// was a table of its own, and the column stayed rather than being dropped —
+// the day something that is not a card wants parameters, this is where it
+// says so.
+export const ATTRIBUTE_REFERENCES = ['item'] as const
 
 export type AttributeReference = (typeof ATTRIBUTE_REFERENCES)[number]
 

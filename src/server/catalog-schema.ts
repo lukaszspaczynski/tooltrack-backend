@@ -192,30 +192,6 @@ CREATE INDEX IF NOT EXISTS "catalog_item_name_idx" ON "catalog"."item" (lower("n
 -- The boxes the tools live in. A crew talks about "skrzynka 04" as often as
 -- about the drill inside it, and a case is a thing with its own price, its own
 -- dimensions and its own photo — not an attribute of a tool.
-CREATE TABLE IF NOT EXISTS "catalog"."tool_case" (
-  "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  -- The one fact a case cannot be catalogued without. The maker is a row it
-  -- points at (see brand-schema.ts), and everything a spec sheet states is a
-  -- parameter rather than a column.
-  "name" text NOT NULL CHECK (btrim("name") <> ''),
-  -- What the maker calls this box: PRO, ONE, Systainer. Free text for the same
-  -- reason an item's model is: the list is not ours to close.
-  --
-  -- It was called a system, because a Qbrick box stacks with a range rather
-  -- than being a model on its own. A model is what the same fact is called on
-  -- an item card, and a box is one card away from being an item.
-  "model" text NOT NULL DEFAULT '',
-  "notes" text NOT NULL DEFAULT '',
-  "reference_url" text NOT NULL DEFAULT '',
-  "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
-  "updated_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
-  "created_at" timestamp with time zone NOT NULL DEFAULT now(),
-  "updated_at" timestamp with time zone NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS "catalog_tool_case_name_idx" ON "catalog"."tool_case" (lower("name"));
-CREATE INDEX IF NOT EXISTS "catalog_tool_case_model_idx"
-  ON "catalog"."tool_case" (lower("model"));
 
 -- The manuals: the PDF that came in the box, and whatever else is worth
 -- keeping beside a tool — a parts diagram, a safety sheet.
@@ -342,8 +318,14 @@ CREATE INDEX IF NOT EXISTS "catalog_attribute_lookup_idx"
 -- rather than by a flag: once they are gone there is nothing to move, which is
 -- what makes running the schema twice the same as running it once.
 ALTER TABLE "catalog"."item" ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
-ALTER TABLE "catalog"."tool_case"
-  ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
+DO $$
+BEGIN
+  -- The box gained this before it became a card, and the card already has it.
+  IF to_regclass('"catalog"."tool_case"') IS NOT NULL THEN
+    ALTER TABLE "catalog"."tool_case" ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
+  END IF;
+END
+$$;
 
 DO $$
 BEGIN
@@ -442,7 +424,11 @@ $$;
 -- question, and not one this table answers.
 CREATE TABLE IF NOT EXISTS "catalog"."case_label_slot" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  "case_id" bigint NOT NULL REFERENCES "catalog"."tool_case"("id") ON DELETE CASCADE,
+  "item_id" bigint NOT NULL,
+  -- Fixed by its own CHECK and half of the key below: only a box has places
+  -- for stickers, and a drill must not be given one.
+  "kind" text NOT NULL DEFAULT 'case' CHECK ("kind" = 'case'),
+  FOREIGN KEY ("item_id", "kind") REFERENCES "catalog"."item" ("id", "kind") ON DELETE CASCADE,
   -- Millimetres, always as width x height of the outline. A label with no
   -- width is not a label, so zero is refused rather than stored as "unknown".
   "width_mm" integer NOT NULL CHECK ("width_mm" > 0),
@@ -454,16 +440,13 @@ CREATE TABLE IF NOT EXISTS "catalog"."case_label_slot" (
 -- The pair is the key: one case cannot have the same size listed twice, and
 -- adding it again is a mistake rather than a second place. Sizes repeat freely
 -- across cases, which is the point of a modular system.
-CREATE UNIQUE INDEX IF NOT EXISTS "case_label_slot_size_idx"
-  ON "catalog"."case_label_slot" ("case_id", "width_mm", "height_mm");
 
 COMMENT ON SCHEMA "catalog" IS 'The ToolTrack tool catalog.';
 COMMENT ON TABLE "catalog"."item" IS 'One row per thing somebody owns — a tool, an appliance, later a case. The card shown in the app.';
-COMMENT ON TABLE "catalog"."tool_case" IS 'One row per case, box or drawer unit the tools are kept in.';
 COMMENT ON TABLE "catalog"."case_label_slot" IS 'Where a label goes on a case: a size in mm, unique per case.';
 COMMENT ON TABLE "catalog"."manual" IS 'One PDF kept beside the tools: the manual, a parts diagram, a safety sheet.';
 COMMENT ON TABLE "catalog"."manual_item" IS 'Which items a manual belongs to. A manual describes a model, so several cards can share one file.';
-COMMENT ON TABLE "catalog"."attribute" IS 'One parameter of one tool or one case: a name and a value, both free text, unique per thing.';
+COMMENT ON TABLE "catalog"."attribute" IS 'One parameter of one card: a name and a value, both free text, unique per card.';
 `
 
 export const CATALOG_DROP_DDL = `

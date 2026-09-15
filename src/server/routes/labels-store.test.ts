@@ -39,7 +39,7 @@ test('a label carries the arrangement and the box it belongs to', async () => {
 
   assert.match(calls[0].text, /FROM "catalog"\."organizer_label"/)
   assert.match(calls[0].text, /JOIN "catalog"\."organizer"/)
-  assert.match(calls[0].text, /JOIN "catalog"\."tool_case"/)
+  assert.match(calls[0].text, /JOIN "catalog"\."item"/)
   assert.equal(calls.length, 1)
 })
 

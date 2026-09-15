@@ -42,8 +42,8 @@ test('the tile is one query: the case, its photo, and every item with its own', 
 
   await listOrganizers(query, pool)
 
-  assert.match(calls[0].text, /JOIN "catalog"\."tool_case"/)
-  assert.match(calls[0].text, /FROM "catalog"\."photo_case"/)
+  assert.match(calls[0].text, /JOIN "catalog"\."item"/)
+  assert.match(calls[0].text, /FROM "catalog"\."photo_item"/)
   assert.match(calls[0].text, /FROM "catalog"\."organizer_item"/)
   assert.match(calls[0].text, /FROM "catalog"\."photo_item"/)
   assert.equal(calls.length, 1)

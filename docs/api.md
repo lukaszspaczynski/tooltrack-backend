@@ -652,7 +652,18 @@ always 0 here.
 
 ## Cases
 
-A case is the box the items live in. **Only the name is required.**
+A case is the box the items live in — and it is **a card like any other**.
+`catalog.tool_case` is gone: a box had a name, a maker, a model, a note, the
+page it was read from and a spec sheet, which is what a card is, so it is an
+item with `kind: "case"`. `GET /api/items?kind=case` lists the same rows these
+routes do, and `GET /api/items` includes them, because the catalog holds what
+somebody owns and the boxes are part of that.
+
+These routes stay because a box has things a drill does not: label slots, and
+an importer that reads a box's page. They answer only about cards of kind
+`case` — `/api/cases/7` where 7 is a drill is a `404`.
+
+**Only the name is required.**
 
 Everything a spec sheet states about a box is a **parameter**, not a column. A
 case had eleven of those columns — three outside measurements, three inside, a

@@ -1,4 +1,4 @@
-// Everything that touches `catalog.tool_case`. The route module above it does
+// Everything that answers about a case. The route module above it does
 // no SQL, and every statement here is parameterised: the only user input that
 // reaches the query text is a column name chosen from a fixed map.
 
@@ -122,7 +122,7 @@ const CASE_ATTRIBUTES = `
                ORDER BY "a"."id"
              )
       FROM "catalog"."attribute" AS "a"
-      WHERE "a"."reference" = 'tool_case' AND "a"."reference_id" = "c"."id"
+      WHERE "a"."reference" = 'item' AND "a"."reference_id" = "c"."id"
     ),
     '[]'::jsonb
   ) AS "attributes"
@@ -130,7 +130,7 @@ const CASE_ATTRIBUTES = `
 
 // LEFT, because a box whose maker nobody has recorded is still a box.
 const CASE_FROM = `
-  FROM "catalog"."tool_case" AS "c"
+  FROM "catalog"."item" AS "c"
   LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "c"."brand_id"
 `
 
@@ -167,7 +167,10 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
     `
       SELECT ${CASE_COLUMNS}, ${CASE_ATTRIBUTES}, count(*) OVER () AS "total_count"
       ${CASE_FROM}
-      WHERE ($1::text IS NULL OR (
+      -- A card of any other kind is not a case, and /api/cases must not answer
+      -- about one. The kind is the whole difference between the two now.
+      WHERE "c"."kind" = 'case'
+        AND ($1::text IS NULL OR (
               "c"."name" ILIKE $1 OR "b"."name" ILIKE $1 OR "c"."model" ILIKE $1
               OR "c"."notes" ILIKE $1
               -- The barcode and the catalogue number are parameters now, and
@@ -175,7 +178,7 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
               -- they have the box in their hands. So the sheet is searched too.
               OR EXISTS (
                    SELECT 1 FROM "catalog"."attribute" AS "s"
-                   WHERE "s"."reference" = 'tool_case' AND "s"."reference_id" = "c"."id"
+                   WHERE "s"."reference" = 'item' AND "s"."reference_id" = "c"."id"
                      AND "s"."value" ILIKE $1
                  )))
         AND ($2::text IS NULL OR lower("b"."name") = lower($2))
@@ -212,12 +215,12 @@ export async function getCase(id: number, pool: PgPool = db()): Promise<null | T
                      ORDER BY "s"."width_mm", "s"."height_mm"
                    )
             FROM "catalog"."case_label_slot" AS "s"
-            WHERE "s"."case_id" = "c"."id"
+            WHERE "s"."item_id" = "c"."id"
           ),
           '[]'::jsonb
         ) AS "label_slots"
       ${CASE_FROM}
-      WHERE "c"."id" = $1
+      WHERE "c"."id" = $1 AND "c"."kind" = 'case'
     `,
     [id],
   )
@@ -251,8 +254,8 @@ export async function createCase(
   // the box is read back through the same join every other read uses.
   const result = await pool.query<{ id: string }>(
     `
-      INSERT INTO "catalog"."tool_case" (${columns.join(', ')}, "created_by", "updated_by")
-      VALUES (${placeholders.join(', ')}, $1, $1)
+      INSERT INTO "catalog"."item" (${columns.join(', ')}, "kind", "created_by", "updated_by")
+      VALUES (${placeholders.join(', ')}, 'case', $1, $1)
       RETURNING "id"
     `,
     params,
@@ -288,7 +291,7 @@ export async function updateCase(
 
   const result = await pool.query<{ id: string }>(
     `
-      UPDATE "catalog"."tool_case"
+      UPDATE "catalog"."item"
       SET ${assignments.join(', ')}, "updated_by" = $2, "updated_at" = now()
       WHERE "id" = $1
       RETURNING "id"
@@ -301,7 +304,10 @@ export async function updateCase(
 }
 
 export async function deleteCase(id: number, pool: PgPool = db()): Promise<boolean> {
-  const result = await pool.query(`DELETE FROM "catalog"."tool_case" WHERE "id" = $1`, [id])
+  const result = await pool.query(
+    `DELETE FROM "catalog"."item" WHERE "id" = $1 AND "kind" = 'case'`,
+    [id],
+  )
   return (result.rowCount ?? 0) > 0
 }
 
@@ -315,7 +321,7 @@ export async function addLabelSlot(
   try {
     const result = await pool.query<{ height_mm: number; id: string; width_mm: number }>(
       `
-        INSERT INTO "catalog"."case_label_slot" ("case_id", "width_mm", "height_mm", "created_by")
+        INSERT INTO "catalog"."case_label_slot" ("item_id", "width_mm", "height_mm", "created_by")
         VALUES ($1, $2, $3, $4)
         RETURNING "id", "width_mm", "height_mm"
       `,
@@ -340,7 +346,7 @@ export async function removeLabelSlot(
   pool: PgPool = db(),
 ): Promise<boolean> {
   const result = await pool.query(
-    `DELETE FROM "catalog"."case_label_slot" WHERE "case_id" = $1 AND "id" = $2`,
+    `DELETE FROM "catalog"."case_label_slot" WHERE "item_id" = $1 AND "id" = $2`,
     [caseId, slotId],
   )
 
@@ -353,8 +359,8 @@ export async function listModels(pool: PgPool = db()): Promise<ModelCount[]> {
   const result = await pool.query<{ count: string; model: string }>(
     `
       SELECT "model", count(*)::text AS "count"
-      FROM "catalog"."tool_case"
-      WHERE "model" <> ''
+      FROM "catalog"."item"
+      WHERE "kind" = 'case' AND "model" <> ''
       GROUP BY "model"
       ORDER BY lower("model") ASC
     `,

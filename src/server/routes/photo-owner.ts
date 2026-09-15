@@ -6,10 +6,14 @@
 // fixing every photo bug twice, so the photo routes and the photo store take
 // an owner instead of an item id.
 //
-// The pairing lives in a link table per kind, not on the photo row: one
-// picture legitimately illustrates several items, several cases, and an item
-// together with the case it lives in. Two tables rather than one polymorphic
-// pair of columns, so the foreign keys are real.
+// The pairing lives in a link table, not on the photo row: one picture
+// legitimately illustrates several cards, and carrying the owner on the photo
+// would mean a row per card and a copy of the attribution with it.
+//
+// There used to be two of those tables, because a case was a table of its own.
+// A case is a card now, so there is one — and the two kinds below survive for
+// what is still different about them: the segment in the URL, and the fact
+// that `/api/cases/7/photos` must refuse a drill.
 
 export const PHOTO_OWNER_KINDS = ['case', 'item'] as const
 
@@ -23,14 +27,15 @@ export type PhotoOwner = {
 // The only two places an owner becomes SQL. A value that is not a key of these
 // maps cannot reach a query, whatever arrives in the path.
 export const OWNER_COLUMNS: Record<PhotoOwnerKind, string> = {
-  case: 'case_id',
+  case: 'item_id',
   item: 'item_id',
 }
 
-// Which cards show which pictures. Two tables rather than one polymorphic
-// table, so the foreign keys are real and deleting a case takes its links.
+// Which cards show which pictures. One table now, and the maps are kept rather
+// than collapsed because the two kinds still differ in the URL — and because a
+// third kind would arrive here rather than in every query.
 export const LINK_TABLES: Record<PhotoOwnerKind, string> = {
-  case: 'photo_case',
+  case: 'photo_item',
   item: 'photo_item',
 }
 

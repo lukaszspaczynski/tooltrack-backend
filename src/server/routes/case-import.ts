@@ -55,7 +55,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
     actorId,
   )
 
-  await replaceAttributes('tool_case', created.id, imported.attributes, actorId)
+  await replaceAttributes('item', created.id, imported.attributes, actorId)
 
   const photos = await hangPhotos(created.id, imported, actorId)
 
@@ -107,7 +107,7 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
   // deliberately — a seeder run months later has no business deleting a line
   // somebody typed, while this ran because somebody pressed a button meaning
   // "what does the page say now".
-  await replaceAttributes('tool_case', id, imported.attributes, context.user?.id ?? 0)
+  await replaceAttributes('item', id, imported.attributes, context.user?.id ?? 0)
 
   return Response.json({
     case: await getCase(id),

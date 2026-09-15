@@ -2,7 +2,7 @@
 // src/server/photo-storage.ts owns the bytes; this module owns the rows.
 //
 // A photo row is one picture, once. Which cards show it lives in
-// `photo_item` and `photo_case`, so the same photograph can illustrate several
+// `photo_item`, so the same photograph can illustrate several
 // items, several cases, and an item together with the case it lives in — with
 // its attribution, its source and its cutout lineage written down a single
 // time instead of copied per card.
@@ -414,9 +414,13 @@ export async function listAllPhotos(
                jsonb_agg(jsonb_build_object('kind', 'case', 'id', "c"."id", 'name', "c"."name",
                                             'isPrimary', "l"."is_primary")
                          ORDER BY "c"."name"),
-               string_agg("c"."name" || ' ' || "c"."manufacturer", ' ')
-        FROM "catalog"."photo_case" AS "l"
-        JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "l"."case_id"
+               string_agg(
+                 "c"."name" || ' ' ||
+                 coalesce((SELECT "name" FROM "catalog"."brand" WHERE "id" = "c"."brand_id"), ''),
+                 ' '
+               )
+        FROM "catalog"."photo_item" AS "l"
+        JOIN "catalog"."item" AS "c" ON "c"."id" = "l"."item_id" AND "c"."kind" = 'case'
         GROUP BY "l"."photo_id"
       ),
       "rolled" AS (
@@ -598,7 +602,6 @@ async function dropIfUnused(
       DELETE FROM "catalog"."photo" AS "p"
       WHERE "p"."id" = ANY($1::bigint[])
         AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_item" WHERE "photo_id" = "p"."id")
-        AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_case" WHERE "photo_id" = "p"."id")
         AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_brand" WHERE "photo_id" = "p"."id")
       RETURNING "storage_key"
     `,
@@ -620,13 +623,15 @@ async function dropIfUnused(
 // The pictures this card is the only home of: what deleting it would take with
 // it, asked before the fact rather than found out after.
 //
-// The same three holds as `dropIfUnused` — another card of either kind, or a
-// maker whose logo this is — except that the card's own link is not one of
-// them, since that is the link about to disappear. A confirmation that says
-// "and its photographs" without a number is a confirmation nobody can weigh.
+// The same holds as `dropIfUnused` — another card, or a maker whose logo this
+// is — except that this card's own link is not one of them, since that is the
+// link about to disappear. A confirmation that says "and its photographs"
+// without a number is a confirmation nobody can weigh.
+//
+// It used to ask about two link tables, because a case had its own. A case is
+// a card now, so "another card" is one question rather than two — and the
+// answer no longer depends on which kind is asking.
 export async function exclusivePhotoIds(owner: PhotoOwner, pool: PgPool = db()): Promise<number[]> {
-  const other: PhotoOwnerKind = owner.kind === 'item' ? 'case' : 'item'
-
   const result = await pool.query<{ photo_id: number | string }>(
     `
       SELECT "l"."photo_id"
@@ -636,10 +641,6 @@ export async function exclusivePhotoIds(owner: PhotoOwner, pool: PgPool = db()):
           SELECT 1 FROM "catalog"."${linkTable(owner.kind)}" AS "same"
           WHERE "same"."photo_id" = "l"."photo_id"
             AND "same"."${ownerColumn(owner.kind)}" <> $1
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM "catalog"."${linkTable(other)}" AS "cross"
-          WHERE "cross"."photo_id" = "l"."photo_id"
         )
         AND NOT EXISTS (
           SELECT 1 FROM "catalog"."photo_brand" AS "logo"

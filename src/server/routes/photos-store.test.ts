@@ -76,13 +76,19 @@ test('a card reads its photos through the link table', async () => {
   assert.match(calls[0].text, /ORDER BY "l"\."is_primary" DESC, "l"\."created_at" ASC/)
 })
 
-test('a case reads from its own link table, chosen by the map and not by the caller', async () => {
-  const { calls, pool } = fakePool([[]])
+test('both kinds read the same link table, chosen by the map and not by the caller', async () => {
+  // There were two tables while a case was one. The map survived the fold, and
+  // the reason is unchanged: a kind that is not a key of it cannot reach a
+  // query, whatever arrives in the path.
+  const { calls, pool } = fakePool([[], []])
 
   await listPhotos(CASE, pool)
+  await listPhotos(TOOL, pool)
 
-  assert.match(calls[0].text, /FROM "catalog"\."photo_case"/)
-  assert.match(calls[0].text, /"l"\."case_id" = \$1/)
+  for (const call of calls) {
+    assert.match(call.text, /FROM "catalog"\."photo_item"/)
+    assert.match(call.text, /"l"\."item_id" = \$1/)
+  }
 })
 
 test('the same bytes twice are one picture, not a conflict', async () => {
@@ -134,7 +140,7 @@ test('attaching is one insert — nothing is moved and nothing is copied', async
   const result = await attachPhotosTo(CASE, [5], 1, pool)
 
   assert.equal(result.attached.length, 1)
-  assert.match(calls[1].text, /INSERT INTO "catalog"\."photo_case"/)
+  assert.match(calls[1].text, /INSERT INTO "catalog"\."photo_item"/)
   // The picture itself is untouched: no UPDATE of the photo row, no second row.
   assert.equal(
     calls.filter((call) =>
@@ -158,7 +164,6 @@ test('taking a picture off its last card deletes the picture', async () => {
   assert.match(calls[1].text, /DELETE FROM "catalog"\."photo_item"/)
   assert.match(calls[2].text, /DELETE FROM "catalog"\."photo"/)
   assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_item"/)
-  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_case"/)
 })
 
 test('what a card is the only home of is asked before it is deleted, not after', async () => {
@@ -173,19 +178,21 @@ test('what a card is the only home of is asked before it is deleted, not after',
   assert.match(text, /FROM "catalog"\."photo_item" AS "l"/)
   // Another card of the same kind, one of the other kind, or a maker's logo.
   assert.match(text, /"same"\."item_id" <> \$1/)
-  assert.match(text, /FROM "catalog"\."photo_case" AS "cross"/)
   assert.match(text, /FROM "catalog"\."photo_brand" AS "logo"/)
   assert.deepEqual(params, [TOOL.id])
 })
 
-test('a case asks the same question about its own table', async () => {
+test('a case asks exactly the same question, off the same table', () => {
+  // It used to ask about a table of its own. A case is a card now, so the
+  // question is one question and the answer cannot depend on which kind is
+  // asking — which is what this asserts by asking it the other way round.
   const { calls, pool } = fakePool([[]])
 
-  await exclusivePhotoIds(CASE, pool)
-
-  assert.match(calls[0].text, /FROM "catalog"\."photo_case" AS "l"/)
-  assert.match(calls[0].text, /"same"\."case_id" <> \$1/)
-  assert.match(calls[0].text, /FROM "catalog"\."photo_item" AS "cross"/)
+  return exclusivePhotoIds(CASE, pool).then(() => {
+    assert.match(calls[0].text, /FROM "catalog"\."photo_item" AS "l"/)
+    assert.match(calls[0].text, /"same"\."item_id" <> \$1/)
+    assert.doesNotMatch(calls[0].text, /"cross"/)
+  })
 })
 
 test('a picture that is a maker’s logo is not deleted with the card it sat on', async () => {

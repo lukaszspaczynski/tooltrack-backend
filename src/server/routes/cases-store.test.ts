@@ -128,7 +128,7 @@ test('a sort key that is not ours cannot reach the query', async () => {
       offset: 0,
       search: null,
       // The parser cannot produce this; the map is what makes it harmless.
-      sort: 'name; DROP TABLE "catalog"."tool_case"' as 'name',
+      sort: 'name; DROP TABLE "catalog"."item"' as 'name',
       model: null,
     },
     pool,

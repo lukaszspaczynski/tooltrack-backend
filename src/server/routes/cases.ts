@@ -115,7 +115,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   await dropOrphanedPhotos(photoIds)
   // No cascade does this: the attribute table's pair is not a foreign key,
   // because one column cannot point at two tables.
-  await deleteAttributesOf('tool_case', id)
+  await deleteAttributesOf('item', id)
 
   return Response.json({ ok: true })
 }
@@ -195,7 +195,7 @@ export async function attributePOST(request: Request, context: RouteContext): Pr
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
-    await addAttribute('tool_case', id, parsed.value, actorId(context))
+    await addAttribute('item', id, parsed.value, actorId(context))
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -217,7 +217,7 @@ export async function attributePATCH(request: Request, context: RouteContext): P
   try {
     // Null is a parameter that is not this case's, which is the same answer as
     // one that never existed.
-    if (!(await updateAttribute('tool_case', id, attributeId, parsed.value))) return notFound()
+    if (!(await updateAttribute('item', id, attributeId, parsed.value))) return notFound()
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -233,7 +233,7 @@ export async function attributeDELETE(_request: Request, context: RouteContext):
   const attributeId = parseOwnerId(context.params.attributeId)
   if (id === null || attributeId === null) return notFound()
 
-  if (!(await deleteAttribute('tool_case', id, attributeId))) return notFound()
+  if (!(await deleteAttribute('item', id, attributeId))) return notFound()
 
   return Response.json({ case: await getCase(id) })
 }
@@ -242,7 +242,7 @@ export async function attributeDELETE(_request: Request, context: RouteContext):
 // per kind, because a box and a drill have nothing in common on a spec sheet.
 export async function attributeNamesGET(): Promise<Response> {
   return Response.json(
-    { names: await listAttributeNames('tool_case') },
+    { names: await listAttributeNames('item') },
     { headers: { 'cache-control': 'no-store' } },
   )
 }

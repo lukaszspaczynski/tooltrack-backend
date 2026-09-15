@@ -214,8 +214,9 @@ async function existingCases(client: pg.Client): Promise<Map<string, number>> {
   const result = await client.query<{ id: string; manufacturer: string; name: string }>(
     `
       SELECT "c"."id", "c"."name", coalesce("b"."name", '') AS "manufacturer"
-      FROM "catalog"."tool_case" AS "c"
+      FROM "catalog"."item" AS "c"
       LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "c"."brand_id"
+      WHERE "c"."kind" = 'case'
     `,
   )
 
@@ -254,7 +255,7 @@ async function topUpAttributes(
   if (wanted.length === 0) return 0
 
   const present = new Set(
-    (await listAttributes('tool_case', caseId, pool)).map((attribute) =>
+    (await listAttributes('item', caseId, pool)).map((attribute) =>
       attribute.name.trim().toLowerCase(),
     ),
   )
@@ -270,7 +271,7 @@ async function topUpAttributes(
   }
 
   for (const attribute of missing) {
-    await addAttribute('tool_case', caseId, attribute, actorId, pool)
+    await addAttribute('item', caseId, attribute, actorId, pool)
   }
 
   console.log(`[qbrick] ${entry.name}: zapisano ${missing.length} parametrów`)
@@ -296,7 +297,7 @@ async function refreshNotes(
   const wanted = (entry.notes ?? '').trim()
 
   const current = await client.query<{ notes: string }>(
-    `SELECT "notes" FROM "catalog"."tool_case" WHERE "id" = $1`,
+    `SELECT "notes" FROM "catalog"."item" WHERE "id" = $1`,
     [caseId],
   )
 
@@ -332,7 +333,7 @@ async function refreshReference(
   if (!wanted) return 0
 
   const current = await client.query<{ reference_url: string }>(
-    `SELECT "reference_url" FROM "catalog"."tool_case" WHERE "id" = $1`,
+    `SELECT "reference_url" FROM "catalog"."item" WHERE "id" = $1`,
     [caseId],
   )
 

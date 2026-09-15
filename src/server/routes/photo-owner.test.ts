@@ -22,7 +22,10 @@ test('an id that is not digits is a path that does not exist', () => {
 
 test('only the two known kinds map to a column', () => {
   assert.equal(ownerColumn('item'), 'item_id')
-  assert.equal(ownerColumn('case'), 'case_id')
+  // Both, since a case became a card. The map is kept rather than collapsed
+  // because the two still differ in the URL, and because a third kind would
+  // arrive here rather than in every query.
+  assert.equal(ownerColumn('case'), 'item_id')
   // hasOwn, not `in`: `in` walks the prototype, so 'toString' would pass as an
   // owner kind and reach SQL as a column name.
   assert.equal(isPhotoOwnerKind('toString'), false)

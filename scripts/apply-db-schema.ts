@@ -21,6 +21,7 @@ import { PHOTO_DDL } from '../src/server/photo-schema'
 import { CUTOUT_SETTINGS_DDL } from '../src/server/cutout-settings-schema'
 import { SEARCH_SETTINGS_DDL } from '../src/server/search-settings-schema'
 import { ADDRESS_DDL } from '../src/server/address-schema'
+import { CASE_FOLD_DDL } from '../src/server/case-fold-schema'
 
 const BATCHES = [
   { ddl: ACCOUNT_DDL, name: 'account' },
@@ -33,6 +34,9 @@ const BATCHES = [
   { ddl: ADDRESS_DDL, name: 'addresses' },
   { ddl: SEARCH_SETTINGS_DDL, name: 'settings' },
   { ddl: CUTOUT_SETTINGS_DDL, name: 'cutout-settings' },
+  // Last: it folds the boxes into the cards, and needs the brands, the photo
+  // links and the organizers to already be there.
+  { ddl: CASE_FOLD_DDL, name: 'cases' },
 ] as const
 
 type BatchName = (typeof BATCHES)[number]['name']

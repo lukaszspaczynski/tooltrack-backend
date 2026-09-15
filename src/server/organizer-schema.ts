@@ -36,7 +36,12 @@ CREATE TABLE IF NOT EXISTS "catalog"."organizer" (
   -- several, because a Toolbox with three drawers is three arrangements of the
   -- same box. Deleting the case takes them with it — the arrangement has no
   -- meaning without the box it describes.
-  "case_id" bigint NOT NULL REFERENCES "catalog"."tool_case"("id") ON DELETE CASCADE,
+  "case_id" bigint NOT NULL,
+  -- Fixed by its own CHECK and half of the key below. An arrangement is an
+  -- arrangement of tools in a box, and the box has to be one — a drill cannot
+  -- be the thing three drawers are arranged inside.
+  "case_kind" text NOT NULL DEFAULT 'case' CHECK ("case_kind" = 'case'),
+  FOREIGN KEY ("case_id", "case_kind") REFERENCES "catalog"."item" ("id", "kind") ON DELETE CASCADE,
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "updated_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),

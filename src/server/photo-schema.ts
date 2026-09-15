@@ -103,14 +103,6 @@ CREATE TABLE IF NOT EXISTS "catalog"."photo_item" (
   PRIMARY KEY ("item_id", "photo_id")
 );
 
-CREATE TABLE IF NOT EXISTS "catalog"."photo_case" (
-  "case_id" bigint NOT NULL REFERENCES "catalog"."tool_case"("id") ON DELETE CASCADE,
-  "photo_id" bigint NOT NULL REFERENCES "catalog"."photo"("id") ON DELETE CASCADE,
-  "is_primary" boolean NOT NULL DEFAULT false,
-  "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
-  "created_at" timestamp with time zone NOT NULL DEFAULT now(),
-  PRIMARY KEY ("case_id", "photo_id")
-);
 
 -- Databases that carried the owner on the photo row: move those pairings into
 -- the link tables before the columns go. Guarded by the column's existence, so
@@ -129,48 +121,12 @@ BEGIN
     $sql$;
   END IF;
 
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema = 'catalog' AND table_name = 'photo' AND column_name = 'case_id'
-  ) THEN
-    EXECUTE $sql$
-      INSERT INTO "catalog"."photo_case" ("case_id", "photo_id", "is_primary", "created_by", "created_at")
-      SELECT "case_id", "id", "is_primary", "created_by", "created_at"
-      FROM "catalog"."photo" WHERE "case_id" IS NOT NULL
-      ON CONFLICT DO NOTHING
-    $sql$;
-  END IF;
 END $$;
 
 -- The old model stored one row per card, so the same picture could be several
 -- rows. One row per picture from here on: the links are repointed at the
 -- oldest of each group and the rest of the rows go. Nothing on disk is
 -- touched — they all pointed at the same file already.
-WITH "duplicates" AS (
-  SELECT "id", first_value("id") OVER (PARTITION BY "checksum" ORDER BY "id") AS "keep"
-  FROM "catalog"."photo"
-)
-UPDATE "catalog"."photo_item" AS "l"
-SET "photo_id" = "d"."keep"
-FROM "duplicates" AS "d"
-WHERE "l"."photo_id" = "d"."id" AND "d"."id" <> "d"."keep"
-  AND NOT EXISTS (
-    SELECT 1 FROM "catalog"."photo_item" AS "x"
-    WHERE "x"."item_id" = "l"."item_id" AND "x"."photo_id" = "d"."keep"
-  );
-
-WITH "duplicates" AS (
-  SELECT "id", first_value("id") OVER (PARTITION BY "checksum" ORDER BY "id") AS "keep"
-  FROM "catalog"."photo"
-)
-UPDATE "catalog"."photo_case" AS "l"
-SET "photo_id" = "d"."keep"
-FROM "duplicates" AS "d"
-WHERE "l"."photo_id" = "d"."id" AND "d"."id" <> "d"."keep"
-  AND NOT EXISTS (
-    SELECT 1 FROM "catalog"."photo_case" AS "x"
-    WHERE "x"."case_id" = "l"."case_id" AND "x"."photo_id" = "d"."keep"
-  );
 
 -- A cutout pointing at a row that is about to go points at the survivor.
 WITH "duplicates" AS (
@@ -210,23 +166,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS "photo_checksum_idx" ON "catalog"."photo" ("ch
 -- the old one in the same transaction, which is what the store does.
 CREATE UNIQUE INDEX IF NOT EXISTS "photo_item_primary_idx"
   ON "catalog"."photo_item" ("item_id") WHERE "is_primary";
-CREATE UNIQUE INDEX IF NOT EXISTS "photo_case_primary_idx"
-  ON "catalog"."photo_case" ("case_id") WHERE "is_primary";
 
 -- The primary keys index (card, photo); these index the other direction, for
 -- "which cards show this picture" and for the library's join.
 CREATE INDEX IF NOT EXISTS "photo_item_photo_idx" ON "catalog"."photo_item" ("photo_id");
-CREATE INDEX IF NOT EXISTS "photo_case_photo_idx" ON "catalog"."photo_case" ("photo_id");
 
 COMMENT ON TABLE "catalog"."photo" IS 'One row per picture. Bytes live in the media directory, keyed by checksum.';
 COMMENT ON TABLE "catalog"."photo_item" IS 'Which items show which pictures, and which picture heads each card.';
-COMMENT ON TABLE "catalog"."photo_case" IS 'Which cases show which pictures, and which picture heads each case.';
 COMMENT ON COLUMN "catalog"."photo"."derived_from" IS 'The picture this one was cut out from, when source = edit.';
 `
 
 export const PHOTO_DROP_DDL = `
 DROP TABLE IF EXISTS "catalog"."photo_item";
-DROP TABLE IF EXISTS "catalog"."photo_case";
 DROP TABLE IF EXISTS "catalog"."photo";
 DROP TABLE IF EXISTS "catalog"."tool_photo";
 `

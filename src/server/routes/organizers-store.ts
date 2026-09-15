@@ -120,7 +120,7 @@ export class CaseNotFoundError extends Error {
 type OrganizerRow = {
   address_id: null | number | string
   case_id: number | string
-  case_manufacturer: string
+  case_manufacturer: null | string
   case_name: string
   case_photo_id: null | number | string
   created_at: Date | string
@@ -168,9 +168,10 @@ const SORT_COLUMNS: Record<OrganizerQuery['sort'], string> = {
 const ORGANIZER_COLUMNS = `
     "o"."id", "o"."number", "o"."name", "o"."description", "o"."address_id",
     "o"."created_by", "o"."updated_by", "o"."created_at", "o"."updated_at",
-    "c"."id" AS "case_id", "c"."name" AS "case_name", "c"."manufacturer" AS "case_manufacturer",
-    (SELECT "photo_id" FROM "catalog"."photo_case"
-     WHERE "case_id" = "c"."id" AND "is_primary" LIMIT 1) AS "case_photo_id",
+    "c"."id" AS "case_id", "c"."name" AS "case_name",
+    (SELECT "name" FROM "catalog"."brand" WHERE "id" = "c"."brand_id") AS "case_manufacturer",
+    (SELECT "photo_id" FROM "catalog"."photo_item"
+     WHERE "item_id" = "c"."id" AND "is_primary" LIMIT 1) AS "case_photo_id",
     COALESCE(
       (
         SELECT jsonb_agg(
@@ -209,7 +210,7 @@ const ORGANIZER_COLUMNS = `
 // Appending it after the FROM is how the whole endpoint answered 500.
 const ORGANIZER_FROM = `
   FROM "catalog"."organizer" AS "o"
-  JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "o"."case_id"
+  JOIN "catalog"."item" AS "c" ON "c"."id" = "o"."case_id"
 `
 
 export async function listOrganizers(
@@ -407,11 +408,11 @@ export async function placementsFor(
     `
       SELECT "ot"."item_id", "o"."id" AS "organizer_id", "o"."number",
              "c"."id" AS "case_id", "c"."name" AS "case_name",
-             (SELECT "photo_id" FROM "catalog"."photo_case"
-              WHERE "case_id" = "c"."id" AND "is_primary" LIMIT 1) AS "case_photo_id"
+             (SELECT "photo_id" FROM "catalog"."photo_item"
+              WHERE "item_id" = "c"."id" AND "is_primary" LIMIT 1) AS "case_photo_id"
       FROM "catalog"."organizer_item" AS "ot"
       JOIN "catalog"."organizer" AS "o" ON "o"."id" = "ot"."organizer_id"
-      JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "o"."case_id"
+      JOIN "catalog"."item" AS "c" ON "c"."id" = "o"."case_id"
       WHERE "ot"."item_id" = ANY($1::bigint[])
     `,
     [itemIds],
@@ -644,7 +645,7 @@ function toOrganizer(row: OrganizerRow): Organizer {
   return {
     case: {
       id: Number(row.case_id),
-      manufacturer: row.case_manufacturer,
+      manufacturer: row.case_manufacturer ?? '',
       name: row.case_name,
       primaryPhotoUrl: row.case_photo_id === null ? null : photoUrl(Number(row.case_photo_id)),
     },

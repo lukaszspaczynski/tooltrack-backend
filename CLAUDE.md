@@ -399,6 +399,32 @@ the form can offer what other cards already call the same thing.
 
 ## Cases
 
+A case is an item with `kind: 'case'`. `catalog.tool_case` is gone: a box had a
+name, a maker, a model, a note, the page it was read from and a spec sheet,
+which is exactly what a card is — the table was a second description of the
+same shape.
+
+The ids could not be kept. `tool_case` and `item` were separate sequences, so
+case 2 and item 2 both existed and meant different things; the migration
+carries the old id on a column across the insert and repoints everything that
+referenced a case — the spec sheet, the pictures, the label slots, the
+organizers — before dropping it.
+
+`photo_case` went with it. Two link tables existed because a case was a table
+of its own, and one consequence is worth knowing: "is any other card the home
+of this photograph" used to be two questions and is now one, so
+`exclusivePhotoIds` no longer depends on which kind is asking.
+
+`/api/cases/*` stays, and answers **only** about cards of kind `case` — a drill
+is a 404 there. Those routes exist because a box has things a drill does not: a
+label slot, and an importer that reads a box's page.
+
+Two rules are constraints rather than checks, the way the organizer's are. A
+label slot carries a `kind` fixed to `'case'` and points at `(id, kind)`, so a
+drill cannot be given one. An organizer's `case_id` does the same through
+`case_kind`, so an arrangement cannot be put in a drill — and a box in use
+cannot quietly stop being a box.
+
 `catalog.tool_case` is the box the items live in, and it is a thing rather than
 an attribute: a case has its own dimensions, its own barcode and its own
 photograph, and a crew talks about "skrzynka 04" as often as about the drill
