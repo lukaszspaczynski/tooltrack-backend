@@ -41,6 +41,7 @@ export const ERROR_CODES = {
   ORGANIZER_NOT_FOUND: 'No such organizer.',
   BRAND_NOT_FOUND: 'No such maker.',
   USER_NOT_FOUND: 'No such account.',
+  ADDRESS_NOT_FOUND: 'No such address.',
   SESSION_NOT_FOUND: 'No such session, or none belonging to this account.',
   PHOTO_NOT_FOUND: 'No such photograph, or its file is gone.',
   MANUAL_NOT_FOUND: 'No such document, or its file is gone.',
@@ -51,6 +52,7 @@ export const ERROR_CODES = {
 
   // Already there
   EMAIL_TAKEN: 'An account with that e-mail already exists.',
+  ADDRESS_NAME_TAKEN: 'Another place is already called that.',
   SERIAL_NUMBER_TAKEN: 'Another card already carries that serial number.',
   ATTRIBUTE_NAME_TAKEN: 'This card already has a parameter with that name.',
   BRAND_NAME_TAKEN: 'A maker with that name already exists.',

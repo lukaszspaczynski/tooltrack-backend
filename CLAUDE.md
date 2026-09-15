@@ -470,6 +470,38 @@ Cases are deliberately not part of this. `tool_case.manufacturer` stays free
 text — it was asked for and declined, not overlooked, so leave it alone unless
 somebody asks again.
 
+## Where things are
+
+`catalog.address` is a place: a workshop, a yard, a site, a van. A thing of its
+own for the reason every shared thing here is one — fifty cards each carrying
+"Budowa Mokotów, ul. Puławska 12" is fifty chances to spell it differently, and
+"what is on the Mokotów site" is then a question nobody can ask.
+
+Only `name` is required, and it is the part a picker shows: a crew says
+"magazyn", not a postcode. The postal half is optional to the last field,
+because a yard on a site has a name and no street and refusing to record it
+until somebody invents one means it is not recorded at all.
+
+`tool.address_id` and `organizer.address_id` are columns rather than a link
+table: a thing is in one place, which is single-valued on this side and needs
+no row of its own. The same reasoning as `brand_id`, the opposite of the
+photos. `ON DELETE SET NULL`, so closing a site does not delete the kit that
+was on it — and every answer carries `toolCount` and `organizerCount` so the
+delete confirmation can say how many cards are about to lose their location.
+
+Two things worth knowing before changing this.
+
+**The two are independent, on purpose.** A tool in an arrangement carries its
+own address and it can disagree with the arrangement's. A drill taken to a site
+while its box stays in the workshop is genuinely two places; the catalog
+records both rather than choosing which one to call the lie. If that is ever
+made to inherit, it is a decision about the domain, not a bug fix.
+
+**23503 now means two things.** A tool points at a place as well as at a maker,
+and an organizer at a place as well as at a case, so a foreign key that matched
+nothing has to be told apart by `error.constraint` — without that, a bad
+address id reported a missing case.
+
 ## Organizer
 
 `catalog.organizer` is one arrangement — a case, a name and an ordinal number —

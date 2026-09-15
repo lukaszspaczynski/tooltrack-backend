@@ -21,6 +21,8 @@ export const CASE_PAGING: Paging = { default: 50, max: 200 }
 export const ORGANIZER_PAGING: Paging = { default: 50, max: 200 }
 // Wider, because a shelf of makers is short and read whole.
 export const BRAND_PAGING: Paging = { default: 100, max: 500 }
+// The same, and for the same reason: a workshop has a handful of places.
+export const ADDRESS_PAGING: Paging = { default: 100, max: 500 }
 // A grid of thumbnails rather than rows, so a page is what fills a screen.
 export const MEDIA_PAGING: Paging = { default: 48, max: 200 }
 export const LABEL_PAGING: Paging = { default: 48, max: 200 }

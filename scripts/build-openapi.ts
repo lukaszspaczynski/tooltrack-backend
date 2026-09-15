@@ -58,6 +58,7 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
     path: 'src/server/routes/photos-store.ts',
     types: ['Photo', 'CardPhoto', 'LibraryPhoto', 'LibraryPage', 'PhotoOwner'],
   },
+  { path: 'src/server/routes/addresses-store.ts', types: ['Address', 'AddressPage'] },
   { path: 'src/server/routes/brands-store.ts', types: ['Brand', 'BrandPage'] },
   {
     path: 'src/server/routes/cases-store.ts',

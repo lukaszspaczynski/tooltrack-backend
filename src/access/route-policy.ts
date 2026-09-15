@@ -10,7 +10,15 @@
 import { hasCapability, isActiveUser, type Capability, type User } from './roles'
 
 export type RouteDomain =
-  'auth' | 'brands' | 'cases' | 'organizers' | 'public' | 'settings' | 'tools' | 'users'
+  | 'addresses'
+  | 'auth'
+  | 'brands'
+  | 'cases'
+  | 'organizers'
+  | 'public'
+  | 'settings'
+  | 'tools'
+  | 'users'
 
 export type RouteCheck =
   // Reachable without a session. The handler still decides what it answers.
@@ -123,6 +131,22 @@ const RULES: readonly Rule[] = [
     domain: 'tools',
     methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/tools\/\d+\/import$/,
+  },
+  {
+    // Places the kit is kept. Part of the catalog like everything else:
+    // looking is read, changing is write.
+    domain: 'addresses',
+    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
+    pattern: /^\/api\/addresses$/,
+  },
+  {
+    // Deliberately `[^/]+` where the router matches `\d+`. The policy
+    // classifies a family of paths rather than the exact ones the router
+    // happens to serve, so a mistake there cannot reach a handler the policy
+    // never considered.
+    domain: 'addresses',
+    methods: { DELETE: WRITE_CATALOG, GET: READ_CATALOG, PATCH: WRITE_CATALOG },
+    pattern: /^\/api\/addresses\/[^/]+$/,
   },
   {
     // Makers. Part of the catalog like everything else: looking is read,

@@ -12,6 +12,7 @@
 
 import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
+import * as addresses from './routes/addresses'
 import * as brands from './routes/brands'
 import * as caseImport from './routes/case-import'
 import * as cases from './routes/cases'
@@ -172,6 +173,12 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
     handler: photos.suggestionsGET,
     params: { owner: 'cases' },
   },
+  'GET /api/addresses': addresses.GET,
+  'POST /api/addresses': addresses.POST,
+  'GET /api/addresses/:id': addresses.detailGET,
+  'PATCH /api/addresses/:id': addresses.detailPATCH,
+  'DELETE /api/addresses/:id': addresses.detailDELETE,
+
   'GET /api/brands': brands.GET,
   'POST /api/brands': brands.POST,
   'GET /api/brands/:id': brands.detailGET,

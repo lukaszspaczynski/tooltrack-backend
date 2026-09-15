@@ -178,6 +178,8 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
 async function createCard(product: ImportedProduct, actorId: number): Promise<Response> {
   const tool = await createTool(
     {
+      // A product page says what a machine is, never where it will be kept.
+      addressId: null,
       brand: product.brand,
       category: product.category,
       condition: 'new',

@@ -82,6 +82,12 @@ export const ROUTES = [
   'GET /api/cases/:id/photos/:photoId/cutout/preview/:checksum',
   'POST /api/cases/:id/photos/:photoId/cutout/commit',
   'GET /api/cases/:id/photo-suggestions',
+  'GET /api/addresses',
+  'POST /api/addresses',
+  'GET /api/addresses/:id',
+  'PATCH /api/addresses/:id',
+  'DELETE /api/addresses/:id',
+
   'GET /api/brands',
   'POST /api/brands',
   'GET /api/brands/:id',

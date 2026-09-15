@@ -25,6 +25,9 @@ export type Tool = {
   createdBy: null | number
   id: number
   model: string
+  // Where this tool is kept, or null when nobody has said. A column rather
+  // than a link table: a tool is in one place.
+  addressId: null | number
   name: string
   notes: string
   // Where an import read this card from, empty when nobody imported it. It was
@@ -91,6 +94,7 @@ type ToolRow = {
   created_by: null | number | string
   id: number | string
   model: string
+  address_id: null | number | string
   name: string
   notes: string
   reference_url: string
@@ -102,7 +106,7 @@ type ToolRow = {
 
 const TOOL_COLUMNS = `
   "id", "name", "category", "brand", "model", "serial_number", "condition", "notes",
-  "reference_url", "created_by", "updated_by", "created_at", "updated_at"
+  "reference_url", "address_id", "created_by", "updated_by", "created_at", "updated_at"
 `
 
 // The only place a sort key becomes SQL. A value that is not in this map
@@ -133,6 +137,11 @@ export async function listTools(query: ToolQuery, pool: PgPool = db()): Promise<
         AND ($6::boolean IS NULL OR EXISTS (
               SELECT 1 FROM "catalog"."organizer_tool" WHERE "tool_id" = "catalog"."tool"."id"
             ) = $6)
+        -- What is at this place. addressId=none is the other half of the
+        -- question and a different one: the tools nobody has said a place for,
+        -- which is what a tidy-up starts from.
+        AND ($7::bigint IS NULL OR "address_id" = $7)
+        AND ($8::boolean IS NULL OR ("address_id" IS NULL) = $8)
       ORDER BY ${column} ${direction}, "id" DESC
       LIMIT $4 OFFSET $5
     `,
@@ -143,6 +152,8 @@ export async function listTools(query: ToolQuery, pool: PgPool = db()): Promise<
       query.limit,
       query.offset,
       query.inOrganizer,
+      typeof query.addressId === 'number' ? query.addressId : null,
+      query.addressId === 'none' ? true : null,
     ],
   )
 
@@ -186,8 +197,8 @@ export async function createTool(
       `
         INSERT INTO "catalog"."tool"
           ("name", "category", "brand", "model", "serial_number", "condition", "notes",
-           "reference_url", "created_by", "updated_by", "brand_id")
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10)
+           "reference_url", "address_id", "created_by", "updated_by", "brand_id")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10, $11)
         RETURNING ${TOOL_COLUMNS}
       `,
       [
@@ -199,6 +210,7 @@ export async function createTool(
         fields.condition,
         fields.notes,
         fields.referenceUrl,
+        fields.addressId,
         actorId,
         // The maker is typed as text on the card. When it names a brand we
         // know, the row points at it too; when it does not, it points at
@@ -225,6 +237,7 @@ export async function updateTool(
     condition: 'condition',
     model: 'model',
     name: 'name',
+    addressId: 'address_id',
     notes: 'notes',
     referenceUrl: 'reference_url',
     serialNumber: 'serial_number',
@@ -286,9 +299,9 @@ export async function duplicateTool(
     `
       INSERT INTO "catalog"."tool"
         ("name", "category", "brand", "model", "serial_number", "condition", "notes",
-         "reference_url", "created_by", "updated_by")
+         "reference_url", "address_id", "created_by", "updated_by")
       SELECT "name", "category", "brand", "model", '', "condition", "notes",
-             "reference_url", $2, $2
+             "reference_url", "address_id", $2, $2
       FROM "catalog"."tool"
       WHERE "id" = $1
       RETURNING ${TOOL_COLUMNS}
@@ -339,7 +352,24 @@ export async function listCategories(pool: PgPool = db()): Promise<CategoryCount
   return result.rows.map((row) => ({ category: row.category, count: Number(row.count) }))
 }
 
+export class AddressNotFoundError extends Error {
+  readonly code: ErrorCode
+
+  constructor() {
+    super(t('Nie ma takiego adresu'))
+    this.name = 'AddressNotFoundError'
+    this.code = 'ADDRESS_NOT_FOUND'
+  }
+}
+
 function translateWriteError(error: unknown, serialNumber: string): unknown {
+  const failure = error as { code?: string; constraint?: string }
+
+  // A tool now points at a place as well as at a maker, so a foreign key that
+  // matched nothing is a 404 about the address rather than an unexplained 500.
+  if (failure.code === '23503' && failure.constraint === 'tool_address_id_fkey') {
+    return new AddressNotFoundError()
+  }
   // 23505 on catalog_tool_serial_number_idx: the same physical machine already
   // has a card. That is a 409 the client can act on, not a 500.
   if ((error as { code?: string }).code === '23505') {
@@ -365,6 +395,7 @@ function toTool(row: ToolRow): Tool {
     id: Number(row.id),
     model: row.model,
     name: row.name,
+    addressId: row.address_id === null ? null : Number(row.address_id),
     notes: row.notes,
     referenceUrl: row.reference_url,
     serialNumber: row.serial_number,

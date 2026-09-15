@@ -43,9 +43,26 @@ const trimmed = (max: number, field: string) =>
 const required = (max: number, field: string) =>
   trimmed(max, field).min(1, { error: () => `${field} must be a non-empty string` })
 
+// The id of a row this one points at, or null for "nobody has said". A form
+// sends "4" and an emptied select sends "", so both reach the same null the
+// column holds — a screen should not have to know the difference between
+// clearing a field and never setting it.
+const reference = (field: string) =>
+  z
+    .union([z.number(), z.string(), z.null()])
+    .transform((raw) => {
+      if (raw === null) return null
+      if (typeof raw === 'string') return raw.trim() === '' ? null : Number(raw.trim())
+      return raw
+    })
+    .refine((value) => value === null || (Number.isSafeInteger(value) && value > 0), {
+      error: () => `${field} must be the id of a record, or null`,
+    })
+
 export const TOOL_PATCH_SCHEMA = z
   .object(
     {
+      addressId: reference('addressId').optional(),
       brand: trimmed(MAX_FIELD_LENGTH, 'brand').optional(),
       category: trimmed(MAX_FIELD_LENGTH, 'category').optional(),
       condition: CONDITION.optional(),
@@ -68,6 +85,9 @@ export const TOOL_CREATE_SCHEMA = TOOL_PATCH_SCHEMA.extend({
 })
 
 export type ToolFields = {
+  // Where the tool is kept. Null is "nobody has said", which is not the same
+  // as a place called nothing.
+  addressId: null | number
   brand: string
   category: string
   condition: ToolCondition
@@ -93,6 +113,10 @@ export type AttributePatch = Partial<AttributeFields>
 export type ToolSort = 'createdAt' | 'name' | 'updatedAt'
 
 export type ToolQuery = {
+  // A place id, or 'none' for the tools nobody has located, or null for "do
+  // not filter". Three states rather than two, because "not at this address"
+  // and "at no address" are different questions and a screen asks both.
+  addressId: 'none' | null | number
   category: null | string
   // true: only tools that are in no organizer — what the organizer wizard
   // offers. null: everything, which is what every other screen wants.
@@ -117,6 +141,7 @@ export function parseToolCreate(body: unknown): Parsed<ToolFields> {
   // a card always has the same columns and a screen never has to tell "not
   // filled in" from "not sent".
   return valid({
+    addressId: parsed.value.addressId ?? null,
     brand: parsed.value.brand ?? '',
     category: parsed.value.category ?? '',
     condition: parsed.value.condition ?? DEFAULT_CONDITION,
@@ -228,6 +253,7 @@ export function parseToolQuery(params: URLSearchParams): Parsed<ToolQuery> {
 
   return valid({
     category: params.get('category')?.trim() || null,
+    addressId: readAddressFilter(params.get('addressId')),
     inOrganizer: readBoolean(params.get('inOrganizer')),
     condition: conditionParam ? (conditionParam as ToolCondition) : null,
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
@@ -257,4 +283,16 @@ function readBoolean(value: null | string): boolean | null {
   if (trimmed === 'true') return true
   if (trimmed === 'false') return false
   return null
+}
+
+// Clamped rather than refused, like every other list filter: a pasted link with
+// `?addressId=banana` should still show the catalog rather than an error about
+// a parameter nobody typed on purpose.
+function readAddressFilter(raw: null | string): 'none' | null | number {
+  const value = raw?.trim()
+  if (!value) return null
+  if (value === 'none') return 'none'
+
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
 }

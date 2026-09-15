@@ -27,6 +27,7 @@ import {
 } from './organizers-input'
 import {
   addTools,
+  AddressNotFoundError,
   CaseNotFoundError,
   createOrganizer,
   deleteLabel,
@@ -332,7 +333,7 @@ function writeError(error: unknown): Response {
   if (error instanceof NumberTakenError || error instanceof ToolAlreadyInOrganizerError) {
     return errorResponse(409, error.code, error.message)
   }
-  if (error instanceof CaseNotFoundError) {
+  if (error instanceof AddressNotFoundError || error instanceof CaseNotFoundError) {
     return errorResponse(404, error.code, error.message)
   }
   throw error

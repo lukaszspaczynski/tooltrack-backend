@@ -37,6 +37,11 @@ export type OrganizerLabel = {
 }
 
 export type Organizer = {
+  // Where this arrangement is kept, or null when nobody has said. The tools in
+  // it carry an address of their own: a tool taken out to a site while its box
+  // stays in the workshop is two places, and the catalog records both rather
+  // than deciding which is the lie.
+  addressId: null | number
   case: {
     id: number
     manufacturer: string
@@ -82,6 +87,16 @@ export class ToolAlreadyInOrganizerError extends Error {
   }
 }
 
+export class AddressNotFoundError extends Error {
+  readonly code: ErrorCode
+
+  constructor() {
+    super(t('Nie ma takiego adresu'))
+    this.name = 'AddressNotFoundError'
+    this.code = 'ADDRESS_NOT_FOUND'
+  }
+}
+
 export class CaseNotFoundError extends Error {
   readonly code: ErrorCode
 
@@ -93,6 +108,7 @@ export class CaseNotFoundError extends Error {
 }
 
 type OrganizerRow = {
+  address_id: null | number | string
   case_id: number | string
   case_manufacturer: string
   case_name: string
@@ -140,7 +156,7 @@ const SORT_COLUMNS: Record<OrganizerQuery['sort'], string> = {
 // in one statement: a screen of twenty organizers would otherwise be forty-one
 // queries.
 const ORGANIZER_COLUMNS = `
-    "o"."id", "o"."number", "o"."name", "o"."description",
+    "o"."id", "o"."number", "o"."name", "o"."description", "o"."address_id",
     "o"."created_by", "o"."updated_by", "o"."created_at", "o"."updated_at",
     "c"."id" AS "case_id", "c"."name" AS "case_name", "c"."manufacturer" AS "case_manufacturer",
     (SELECT "photo_id" FROM "catalog"."photo_case"
@@ -239,17 +255,17 @@ export async function createOrganizer(
       const inserted = await client.query<{ id: string }>(
         `
           INSERT INTO "catalog"."organizer" ("number", "name", "description", "case_id",
-                                             "created_by", "updated_by")
+                                             "address_id", "created_by", "updated_by")
           VALUES (
             -- The next free number when the caller did not pick one. Inside the
             -- transaction, so two people creating at once cannot both read the
             -- same maximum.
             COALESCE($1::integer, (SELECT COALESCE(max("number"), 0) + 1 FROM "catalog"."organizer")),
-            $2, $3, $4, $5, $5
+            $2, $3, $4, $5, $6, $6
           )
           RETURNING "id"
         `,
-        [fields.number, fields.name, fields.description, fields.caseId, actorId],
+        [fields.number, fields.name, fields.description, fields.caseId, fields.addressId, actorId],
       )
 
       const organizerId = Number(inserted.rows[0].id)
@@ -274,6 +290,7 @@ export async function updateOrganizer(
   pool: PgPool = db(),
 ): Promise<null | Organizer> {
   const columns: Record<keyof OrganizerPatch, string> = {
+    addressId: 'address_id',
     caseId: 'case_id',
     description: 'description',
     name: 'name',
@@ -585,10 +602,18 @@ async function linkTools(
 }
 
 function translateWriteError(error: unknown, number: null | number): unknown {
-  const code = (error as { code?: string }).code
-  if (code === '23505') return new NumberTakenError(number ?? 0)
-  // 23503: the case id does not exist. A 404 answer, not a 500.
-  if (code === '23503') return new CaseNotFoundError()
+  const failure = error as { code?: string; constraint?: string }
+  if (failure.code === '23505') return new NumberTakenError(number ?? 0)
+
+  // 23503 is a foreign key that matched nothing, and an organizer has two of
+  // them now. Which one is in the constraint name — without reading it, adding
+  // the address would have made every bad address id report a missing case.
+  if (failure.code === '23503') {
+    return failure.constraint === 'organizer_address_id_fkey'
+      ? new AddressNotFoundError()
+      : new CaseNotFoundError()
+  }
+
   return error
 }
 
@@ -600,6 +625,7 @@ function toOrganizer(row: OrganizerRow): Organizer {
       name: row.case_name,
       primaryPhotoUrl: row.case_photo_id === null ? null : photoUrl(Number(row.case_photo_id)),
     },
+    addressId: row.address_id === null ? null : Number(row.address_id),
     createdAt: toIsoString(row.created_at),
     createdBy: row.created_by === null ? null : Number(row.created_by),
     description: row.description,

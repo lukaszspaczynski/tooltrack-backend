@@ -36,6 +36,7 @@ function fakePool(rows: unknown[] = [], error?: unknown): { calls: Call[]; pool:
 
 function toolRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
+    address_id: null,
     brand: 'Makita',
     category: 'Wiertarki',
     condition: 'good',
@@ -61,6 +62,7 @@ test('a listed row is mapped to camelCase with numeric ids', async () => {
 
   assert.equal(page.total, 1)
   assert.deepEqual(page.items[0], {
+    addressId: null,
     brand: 'Makita',
     category: 'Wiertarki',
     condition: 'good',
@@ -103,7 +105,7 @@ test('a filter that was not asked for is passed as null, not as SQL', async () =
 
   // The organizer filter is null too: "do not filter" is not the same as
   // "tools that are in no organizer".
-  assert.deepEqual(calls[0].params, [null, 'Piły', 'retired', 10, 20, null])
+  assert.deepEqual(calls[0].params, [null, 'Piły', 'retired', 10, 20, null, null, null])
 })
 
 test('the sort key is chosen from a fixed map, never interpolated', async () => {
@@ -143,6 +145,7 @@ test('a new card records its author as both creator and last editor', async () =
 
   await createTool(
     {
+      addressId: null,
       brand: 'Makita',
       category: 'Wiertarki',
       condition: 'good',
@@ -159,8 +162,11 @@ test('a new card records its author as both creator and last editor', async () =
   // The brand lookup runs first: the typed maker decides which row the card
   // points at, and an unknown one points at nothing.
   assert.match(calls[0].text, /FROM "catalog"\."brand"/)
-  assert.match(calls[1].text, /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$9, \$10\)/)
-  assert.equal(calls[1].params[8], 3)
+  assert.match(
+    calls[1].text,
+    /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9, \$10, \$10, \$11\)/,
+  )
+  assert.equal(calls[1].params[9], 3)
 })
 
 test('a typed maker points the card at that brand, and an unknown one at none', async () => {
@@ -171,6 +177,7 @@ test('a typed maker points the card at that brand, and an unknown one at none', 
 
   await createTool(
     {
+      addressId: null,
       brand: 'Makita',
       category: '',
       condition: 'good',
@@ -197,6 +204,7 @@ test('a duplicate serial number is a named error, not a raw pg failure', async (
     () =>
       createTool(
         {
+          addressId: null,
           brand: '',
           category: '',
           condition: 'good',

@@ -13,6 +13,8 @@ export const EN: Record<string, string> = {
   // Signing in
   'Nieprawidłowy e-mail lub hasło': 'Invalid email or password',
   'Nie ma takiej sesji': 'No such session',
+  'Nie ma takiego adresu': 'No such address',
+  'Adres o tej nazwie już istnieje: {name}': 'A place is already called that: {name}',
   'Ta wersja aplikacji jest za stara. Zaktualizuj ją, żeby korzystać dalej.':
     'This version of the app is too old. Update it to carry on.',
   'Za dużo nieudanych prób logowania. Spróbuj ponownie za {minutes} min.':

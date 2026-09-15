@@ -32,6 +32,7 @@ test('a card needs a name and nothing else', () => {
     category: '',
     condition: 'good',
     model: '',
+    addressId: null,
     name: 'Wiertarka udarowa',
     notes: '',
     referenceUrl: '',
@@ -100,6 +101,7 @@ test('the list query has usable defaults', () => {
 
   assert.ok(parsed.ok)
   assert.deepEqual(parsed.value, {
+    addressId: null,
     category: null,
     condition: null,
     inOrganizer: null,

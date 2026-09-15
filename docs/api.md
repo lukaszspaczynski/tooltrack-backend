@@ -1192,6 +1192,89 @@ one-to-one rule refuses rather than moving it.
 
 `200 { brand }`, with `logoUrl: null`. The picture itself stays in the library.
 
+## Addresses
+
+Where the kit is: a workshop, a yard, a site, a van. A thing of its own rather
+than a line typed on fifty cards — fifty spellings of "Budowa Mokotów" is a
+catalog where "what is on the Mokotów site" cannot be asked.
+
+Only `name` is required, and it is the part a picker shows: a crew says
+"magazyn", not a postcode. The postal half — `street`, `building`, `unit`,
+`postalCode`, `city` — is for when somebody has to drive there, and every field
+of it is optional, because a yard on a site has a name and no street.
+
+Every answer carries `toolCount` and `organizerCount`, on the list as well as
+on one address. That is what makes the list readable and what a delete
+confirmation has to say out loud.
+
+### `GET /api/addresses` — `catalog.read`
+
+| Parameter | Meaning                             | Default |
+| --------- | ----------------------------------- | ------- |
+| `q`       | Name, city, street, postcode, notes | —       |
+| `sort`    | `name`, `city`, `tools`             | `name`  |
+| `order`   | `asc` or `desc`                     | `asc`   |
+| `limit`   | 1–500                               | 100     |
+| `offset`  | Records to skip                     | 0       |
+
+`200 { items, total, limit, offset }`.
+
+### `POST /api/addresses` — `catalog.write`
+
+```json
+{
+  "name": "Magazyn",
+  "street": "Puławska",
+  "building": "12A",
+  "unit": "3",
+  "postalCode": "02-566",
+  "city": "Warszawa",
+  "notes": "Klucz u kierownika."
+}
+```
+
+`201 { address }`. `409 ADDRESS_NAME_TAKEN` when a place is already called
+that — folded and trimmed, so "Magazyn" and "magazyn " are one place.
+
+### `GET /api/addresses/:id` — `catalog.read`
+
+`200 { address }` or `404`.
+
+### `PATCH /api/addresses/:id` — `catalog.write`
+
+Any subset of the create body. `200 { address }`, `404`, `409`.
+
+### `DELETE /api/addresses/:id` — `catalog.write`
+
+`200 { ok: true, cleared: { tools, organizers } }`.
+
+The tools and arrangements that were there **stay in the catalog** and stop
+pointing at anything — closing a site must not take the kit with it. `cleared`
+says how many lost their place, because "delete" on a list of places reads as
+tidying up and forty cards quietly losing their location does not.
+
+### Saying where something is
+
+There is no endpoint for it. A tool is at one place and an arrangement is at
+one place, so it is **`addressId`** on each — set by the `PATCH` that already
+edits them, cleared with `null`.
+
+```
+PATCH /api/tools/7        { "addressId": 3 }
+PATCH /api/organizers/2   { "addressId": null }
+```
+
+`404 ADDRESS_NOT_FOUND` when the id names no place.
+
+`GET /api/tools?addressId=3` is what is at a place, and `?addressId=none` the
+tools nobody has located — a different question, and the one a tidy-up starts
+from.
+
+The two are **independent**: a tool in an arrangement carries its own address,
+and it can disagree with the arrangement's. That is on purpose — a drill taken
+to a site while its box stays in the workshop is two places, and the catalog
+records both rather than choosing which one to call the lie.
+
 ## Organizer
 
 Which tools live in which case. An organizer row is one arrangement: a case, a

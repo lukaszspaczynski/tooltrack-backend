@@ -42,6 +42,7 @@ import {
   getToolDetail,
   listCategories,
   listTools,
+  AddressNotFoundError,
   SerialNumberTakenError,
   type ToolListPage,
   updateTool,
@@ -89,6 +90,11 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return errorResponse(409, error.code, error.message)
+    }
+    // A card pointed at a place that is not there. A 404 about the address, not
+    // a 500 about a foreign key.
+    if (error instanceof AddressNotFoundError) {
+      return errorResponse(404, error.code, error.message)
     }
     throw error
   }
@@ -195,6 +201,11 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return errorResponse(409, error.code, error.message)
+    }
+    // A card pointed at a place that is not there. A 404 about the address, not
+    // a 500 about a foreign key.
+    if (error instanceof AddressNotFoundError) {
+      return errorResponse(404, error.code, error.message)
     }
     throw error
   }

@@ -91,6 +91,9 @@ async function main(): Promise<void> {
 
       await createTool(
         {
+          // The stocktake says which box a tool is in, not which yard the box
+          // is standing in. Nobody has said, so nobody says.
+          addressId: null,
           brand: entry.brand,
           category: entry.category,
           condition: entry.condition as ToolCondition,

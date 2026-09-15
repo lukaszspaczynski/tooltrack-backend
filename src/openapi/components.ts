@@ -135,6 +135,7 @@ export const TAGS = [
   { description: 'The documents that belong beside a tool.', name: 'manuals' },
   { description: 'Cases, and the slots a label goes in.', name: 'cases' },
   { description: 'Organizers, and what is placed in them.', name: 'organizers' },
+  { description: 'Where the kit is kept: a workshop, a yard, a site.', name: 'addresses' },
   { description: 'Makers, and their logos.', name: 'brands' },
   { description: 'Drawing and reprinting labels.', name: 'labels' },
   { description: 'Server-wide and per-account settings.', name: 'settings' },

@@ -16,6 +16,8 @@ export const DEFAULT_LIMIT = ORGANIZER_PAGING.default
 export const MAX_LIMIT = ORGANIZER_PAGING.max
 
 export type OrganizerFields = {
+  // Where the arrangement is kept. Null is "nobody has said".
+  addressId: null | number
   caseId: number
   description: string
   name: string
@@ -42,6 +44,20 @@ const required = (max: number, field: string) =>
     .min(1, { error: () => `${field} must be a non-empty string` })
     .max(max, { error: () => `${field} must be at most ${max} characters` })
 
+// The id of a row this one points at, or null for "nobody has said". A select
+// that was emptied sends '', which is the same null as never having chosen.
+const reference = (field: string) =>
+  z
+    .union([z.number(), z.string(), z.null()])
+    .transform((raw) => {
+      if (raw === null) return null
+      if (typeof raw === 'string') return raw.trim() === '' ? null : Number(raw.trim())
+      return raw
+    })
+    .refine((value) => value === null || (Number.isSafeInteger(value) && value > 0), {
+      error: () => `${field} must be the id of a record, or null`,
+    })
+
 // A form sends "12", so a string is taken and coerced.
 const id = (complaint: string) =>
   z
@@ -59,6 +75,9 @@ const NUMBER = z
 export const ORGANIZER_PATCH_SCHEMA = z
   .object(
     {
+      // Unlike the case, this one may be cleared: an arrangement always sits in
+      // a box, and does not always sit anywhere anybody has written down.
+      addressId: reference('addressId').optional(),
       // Null would leave an arrangement of nothing, so moving an organizer to
       // another case is allowed but emptying it is not.
       caseId: id('caseId must be the id of a case').optional(),
@@ -92,6 +111,7 @@ export function parseOrganizerCreate(body: unknown): Parsed<OrganizerFields> {
   if (!parsed.ok) return parsed
 
   return valid({
+    addressId: parsed.value.addressId ?? null,
     caseId: parsed.value.caseId,
     description: parsed.value.description ?? '',
     name: parsed.value.name,

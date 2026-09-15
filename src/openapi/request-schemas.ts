@@ -22,6 +22,7 @@ import {
   REGISTER_SCHEMA,
   TOKEN_SCHEMA,
 } from '../server/routes/auth-input'
+import { ADDRESS_CREATE_SCHEMA, ADDRESS_PATCH_SCHEMA } from '../server/routes/addresses-input'
 import { BRAND_CREATE_SCHEMA, BRAND_PATCH_SCHEMA, LOGO_SCHEMA } from '../server/routes/brands-input'
 import {
   CASE_CREATE_SCHEMA,
@@ -59,6 +60,8 @@ import {
 import { USER_PATCH_SCHEMA } from '../server/routes/users-input'
 
 export const REQUEST_SCHEMAS: Record<string, ZodType> = {
+  AddressCreateBody: ADDRESS_CREATE_SCHEMA,
+  AddressPatchBody: ADDRESS_PATCH_SCHEMA,
   AttributeCreateBody: ATTRIBUTE_CREATE_SCHEMA,
   AttributePatchBody: ATTRIBUTE_PATCH_SCHEMA,
   BrandCreateBody: BRAND_CREATE_SCHEMA,
