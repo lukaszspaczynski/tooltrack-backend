@@ -80,7 +80,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
     return errorResponse(409, 'LAST_ACTIVE_ADMIN', 'This is the last active admin')
   }
 
-  // The tool cards they created stay, with created_by set to null (see
+  // The item cards they created stay, with created_by set to null (see
   // catalog-schema.ts). Losing the catalog because someone left is not an
   // outcome anyone would ask for.
   await deleteUser(id)

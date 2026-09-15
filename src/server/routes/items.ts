@@ -1,6 +1,6 @@
-// The tool catalog: GET/POST /api/tools, GET/PATCH/DELETE /api/tools/:id,
-// GET /api/tools/categories, and the parameters under a card —
-// POST/PATCH/DELETE /api/tools/:id/attributes.
+// The item catalog: GET/POST /api/items, GET/PATCH/DELETE /api/items/:id,
+// GET /api/items/categories, and the parameters under a card —
+// POST/PATCH/DELETE /api/items/:id/attributes.
 //
 // Reading needs catalog.read, writing needs catalog.write, and both are checked by
 // the guard before any of this runs (src/access/route-policy.ts). Nothing here
@@ -30,47 +30,49 @@ import {
 import {
   parseAttributeCreate,
   parseAttributePatch,
-  parseToolCreate,
-  parseToolPatch,
-  parseToolQuery,
-} from './tools-input'
+  parseItemCreate,
+  parseItemPatch,
+  parseItemQuery,
+} from './items-input'
 import {
-  createTool,
-  deleteTool,
-  duplicateTool,
-  getTool,
-  getToolDetail,
+  createItem,
+  deleteItem,
+  duplicateItem,
+  getItem,
+  getItemDetail,
   listCategories,
-  listTools,
+  listItems,
   AddressNotFoundError,
+  BrandNotFoundError,
+  InOrganizerError,
   SerialNumberTakenError,
-  type ToolListPage,
-  updateTool,
-} from './tools-store'
+  type ItemListPage,
+  updateItem,
+} from './items-store'
 
 export async function GET(request: Request): Promise<Response> {
-  const query = parseToolQuery(new URL(request.url).searchParams)
+  const query = parseItemQuery(new URL(request.url).searchParams)
   if (!query.ok) return errorResponse(400, 'INVALID_QUERY', query.error)
 
-  const page = await listTools(query.value)
+  const page = await listItems(query.value)
 
-  // The main photo of every tool on the page, in one query. The grid shows
+  // The main photo of every item on the page, in one query. The grid shows
   // thumbnails, and asking per card would be twenty-four requests for one
   // screen.
-  const ids = page.items.map((tool) => tool.id)
-  const primary = await primaryPhotoIds('tool', ids)
+  const ids = page.items.map((item) => item.id)
+  const primary = await primaryPhotoIds('item', ids)
   // Where each one lies. Two queries for a whole page rather than two per card.
   const placements = await placementsFor(ids)
 
   // Annotated rather than inferred: this is the shape the contract promises,
   // and the compiler is what keeps the promise once the schema is generated
   // from the type rather than from what this happens to return today.
-  const body: ToolListPage = {
+  const body: ItemListPage = {
     ...page,
-    items: page.items.map((tool) => ({
-      ...tool,
-      organizer: placements.get(tool.id) ?? null,
-      primaryPhotoUrl: primary.has(tool.id) ? photoUrl(primary.get(tool.id)!) : null,
+    items: page.items.map((item) => ({
+      ...item,
+      organizer: placements.get(item.id) ?? null,
+      primaryPhotoUrl: primary.has(item.id) ? photoUrl(primary.get(item.id)!) : null,
     })),
   }
 
@@ -78,22 +80,25 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
-  const parsed = parseToolCreate(await readJson(request))
+  const parsed = parseItemCreate(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
-    const tool = await createTool(parsed.value, actorId(context))
+    const item = await createItem(parsed.value, actorId(context))
 
     // A new card has no parameters yet; saying so is better than leaving the
     // client to guess whether the field is missing or empty.
-    return Response.json({ tool: { ...tool, attributes: [] } }, { status: 201 })
+    return Response.json({ item: { ...item, attributes: [] } }, { status: 201 })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return errorResponse(409, error.code, error.message)
     }
     // A card pointed at a place that is not there. A 404 about the address, not
     // a 500 about a foreign key.
-    if (error instanceof AddressNotFoundError) {
+    if (error instanceof InOrganizerError) {
+      return errorResponse(409, error.code, error.message)
+    }
+    if (error instanceof AddressNotFoundError || error instanceof BrandNotFoundError) {
       return errorResponse(404, error.code, error.message)
     }
     throw error
@@ -111,39 +116,39 @@ export async function detailGET(_request: Request, context: RouteContext): Promi
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
-  const tool = await getToolDetail(id)
-  if (!tool) return notFound()
+  const item = await getItemDetail(id)
+  if (!item) return notFound()
 
-  return Response.json({ tool }, { headers: { 'cache-control': 'no-store' } })
+  return Response.json({ item }, { headers: { 'cache-control': 'no-store' } })
 }
 
-// GET /api/tools/attributes — the parameter names already in use.
+// GET /api/items/attributes — the parameter names already in use.
 //
-// What the form offers while somebody types one, read from the tools
+// What the form offers while somebody types one, read from the items
 // themselves for the same reason the category list is: the names in use are
 // the vocabulary, and "napięcie sieciowe" typed the same way on every card is
 // what makes the catalog answerable later.
 export async function attributeNamesGET(): Promise<Response> {
   return Response.json(
-    { names: await listAttributeNames('tool') },
+    { names: await listAttributeNames('item') },
     { headers: { 'cache-control': 'no-store' } },
   )
 }
 
 // The parameters under a card: mains voltage, speed, chuck, weight. Each one
-// answers with the whole tool rather than the row that changed, the same way a
+// answers with the whole item rather than the row that changed, the same way a
 // case answers with itself when a label slot is added — a screen showing the
 // list does not then have to merge one row into a list it already holds.
 export async function attributePOST(request: Request, context: RouteContext): Promise<Response> {
   const id = parseId(context.params.id)
   if (id === null) return notFound()
-  if (!(await getTool(id))) return notFound()
+  if (!(await getItem(id))) return notFound()
 
   const parsed = parseAttributeCreate(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
-    await addAttribute('tool', id, parsed.value, actorId(context))
+    await addAttribute('item', id, parsed.value, actorId(context))
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -151,7 +156,7 @@ export async function attributePOST(request: Request, context: RouteContext): Pr
     throw error
   }
 
-  return Response.json({ tool: await getToolDetail(id) }, { status: 201 })
+  return Response.json({ item: await getItemDetail(id) }, { status: 201 })
 }
 
 export async function attributePATCH(request: Request, context: RouteContext): Promise<Response> {
@@ -163,9 +168,9 @@ export async function attributePATCH(request: Request, context: RouteContext): P
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
-    // Null here is a parameter that is not this tool's, which is the same
+    // Null here is a parameter that is not this item's, which is the same
     // answer as one that never existed.
-    if (!(await updateAttribute('tool', id, attributeId, parsed.value))) return notFound()
+    if (!(await updateAttribute('item', id, attributeId, parsed.value))) return notFound()
   } catch (error) {
     if (error instanceof AttributeNameTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -173,7 +178,7 @@ export async function attributePATCH(request: Request, context: RouteContext): P
     throw error
   }
 
-  return Response.json({ tool: await getToolDetail(id) })
+  return Response.json({ item: await getItemDetail(id) })
 }
 
 export async function attributeDELETE(_request: Request, context: RouteContext): Promise<Response> {
@@ -181,37 +186,40 @@ export async function attributeDELETE(_request: Request, context: RouteContext):
   const attributeId = parseId(context.params.attributeId)
   if (id === null || attributeId === null) return notFound()
 
-  if (!(await deleteAttribute('tool', id, attributeId))) return notFound()
+  if (!(await deleteAttribute('item', id, attributeId))) return notFound()
 
-  return Response.json({ tool: await getToolDetail(id) })
+  return Response.json({ item: await getItemDetail(id) })
 }
 
 export async function detailPATCH(request: Request, context: RouteContext): Promise<Response> {
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
-  const parsed = parseToolPatch(await readJson(request))
+  const parsed = parseItemPatch(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
-    const tool = await updateTool(id, parsed.value, actorId(context))
-    if (!tool) return notFound()
+    const item = await updateItem(id, parsed.value, actorId(context))
+    if (!item) return notFound()
 
-    return Response.json({ tool: { ...tool, attributes: await listAttributes('tool', id) } })
+    return Response.json({ item: { ...item, attributes: await listAttributes('item', id) } })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return errorResponse(409, error.code, error.message)
     }
     // A card pointed at a place that is not there. A 404 about the address, not
     // a 500 about a foreign key.
-    if (error instanceof AddressNotFoundError) {
+    if (error instanceof InOrganizerError) {
+      return errorResponse(409, error.code, error.message)
+    }
+    if (error instanceof AddressNotFoundError || error instanceof BrandNotFoundError) {
       return errorResponse(404, error.code, error.message)
     }
     throw error
   }
 }
 
-// POST /api/tools/:id/duplicate — another card just like this one.
+// POST /api/items/:id/duplicate — another card just like this one.
 //
 // Everything is copied except the serial number, which identifies one physical
 // machine: the copy starts blank there, so the person filling it in is the one
@@ -223,27 +231,27 @@ export async function duplicatePOST(_request: Request, context: RouteContext): P
   if (id === null) return notFound()
 
   const actor = actorId(context)
-  const copy = await duplicateTool(id, actor)
+  const copy = await duplicateItem(id, actor)
   if (!copy) return notFound()
 
-  await copyPhotoLinks({ id, kind: 'tool' }, { id: copy.id, kind: 'tool' }, actor)
+  await copyPhotoLinks({ id, kind: 'item' }, { id: copy.id, kind: 'item' }, actor)
   // The manuals come along as links to the same files. Two of the same model
   // read the same manual, and a link costs a row rather than a second 7 MB PDF.
   await copyManualLinks(id, copy.id, actor)
 
-  return Response.json({ tool: copy }, { status: 201 })
+  return Response.json({ item: copy }, { status: 201 })
 }
 
 export async function detailDELETE(_request: Request, context: RouteContext): Promise<Response> {
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
-  // Read before the delete: once the tool is gone its links have cascaded away
+  // Read before the delete: once the item is gone its links have cascaded away
   // and there is nothing left to say which pictures were its.
-  const photoIds = await photoIdsOf({ id, kind: 'tool' })
+  const photoIds = await photoIdsOf({ id, kind: 'item' })
   const manualIds = await manualIdsOf(id)
 
-  const deleted = await deleteTool(id)
+  const deleted = await deleteItem(id)
   // Deleting a card that is already gone is the outcome the caller wanted, but
   // it is still worth saying which of the two happened: two people clearing
   // the same row from two phones should not both be told they did it.
@@ -257,7 +265,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   await dropOrphanedManuals(manualIds)
   // The attribute table's pair is not a foreign key, so nothing cascades: the
   // rows go because this says so.
-  await deleteAttributesOf('tool', id)
+  await deleteAttributesOf('item', id)
 
   return Response.json({ ok: true })
 }
@@ -266,11 +274,11 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
 // the user is present here. The fallback is only so the types stay honest
 // without a non-null assertion.
 function actorId(context: RouteContext): number {
-  if (!context.user) throw new Error('tools write reached without an authenticated user')
+  if (!context.user) throw new Error('items write reached without an authenticated user')
   return context.user.id
 }
 
-// Ids are bigint columns; anything else in the path is a tool that does not
+// Ids are bigint columns; anything else in the path is an item that does not
 // exist rather than a bad request. Answering 400 would tell a client to fix a
 // URL it was given by a link.
 function parseId(value: string | undefined): null | number {
@@ -281,7 +289,7 @@ function parseId(value: string | undefined): null | number {
 }
 
 function notFound(): Response {
-  return errorResponse(404, 'TOOL_NOT_FOUND', 'Tool not found')
+  return errorResponse(404, 'ITEM_NOT_FOUND', 'Item not found')
 }
 
 async function readJson(request: Request): Promise<unknown> {

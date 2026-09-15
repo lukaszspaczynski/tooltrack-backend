@@ -1,19 +1,33 @@
-// Tool card bodies and list query strings. Pure; see input.ts.
+// Item card bodies and list query strings. Pure; see input.ts.
 //
 // The schemas are exported beside the parsers because the contract is generated
-// from them: `TOOL_PATCH_SCHEMA` is what refuses a name of 201 characters at
+// from them: `ITEM_PATCH_SCHEMA` is what refuses a name of 201 characters at
 // runtime and what puts `maxLength: 200` in docs/openapi.json.
 
 import { z } from 'zod'
-import { clampLimit, clampOffset, TOOL_PAGING } from './paging'
+import { clampLimit, clampOffset, ITEM_PAGING } from './paging'
 
 import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 
-export const TOOL_CONDITIONS = ['new', 'good', 'worn', 'needs_repair', 'retired'] as const
+// The sorts of thing a catalog of what somebody owns holds. 'case' has nothing
+// using it yet: the boxes are their own table and folding them in is a decision
+// for later, but a list that has to be widened on the day of is one more thing
+// to remember on the day of.
+export const ITEM_KINDS = ['tool', 'appliance', 'case'] as const
 
-export type ToolCondition = (typeof TOOL_CONDITIONS)[number]
+export type ItemKind = (typeof ITEM_KINDS)[number]
 
-export const DEFAULT_CONDITION: ToolCondition = 'good'
+export const DEFAULT_KIND: ItemKind = 'tool'
+
+export function isItemKind(value: unknown): value is ItemKind {
+  return typeof value === 'string' && (ITEM_KINDS as readonly string[]).includes(value)
+}
+
+export const ITEM_CONDITIONS = ['new', 'good', 'worn', 'needs_repair', 'retired'] as const
+
+export type ItemCondition = (typeof ITEM_CONDITIONS)[number]
+
+export const DEFAULT_CONDITION: ItemCondition = 'good'
 
 export const MAX_NAME_LENGTH = 200
 export const MAX_FIELD_LENGTH = 120
@@ -25,11 +39,11 @@ export const MAX_ATTRIBUTE_NAME_LENGTH = 80
 export const MAX_ATTRIBUTE_VALUE_LENGTH = 200
 export const MAX_URL_LENGTH = 2000
 
-export const DEFAULT_LIMIT = TOOL_PAGING.default
-export const MAX_LIMIT = TOOL_PAGING.max
+export const DEFAULT_LIMIT = ITEM_PAGING.default
+export const MAX_LIMIT = ITEM_PAGING.max
 
-const CONDITION = z.enum(TOOL_CONDITIONS, {
-  error: () => `condition must be one of: ${TOOL_CONDITIONS.join(', ')}`,
+const CONDITION = z.enum(ITEM_CONDITIONS, {
+  error: () => `condition must be one of: ${ITEM_CONDITIONS.join(', ')}`,
 })
 
 // Trimmed, because whitespace at the ends is always a typo. The length is
@@ -59,13 +73,16 @@ const reference = (field: string) =>
       error: () => `${field} must be the id of a record, or null`,
     })
 
-export const TOOL_PATCH_SCHEMA = z
+export const ITEM_PATCH_SCHEMA = z
   .object(
     {
       addressId: reference('addressId').optional(),
-      brand: trimmed(MAX_FIELD_LENGTH, 'brand').optional(),
+      brandId: reference('brandId').optional(),
       category: trimmed(MAX_FIELD_LENGTH, 'category').optional(),
       condition: CONDITION.optional(),
+      kind: z
+        .enum(ITEM_KINDS, { error: () => `kind must be one of: ${ITEM_KINDS.join(', ')}` })
+        .optional(),
       model: trimmed(MAX_FIELD_LENGTH, 'model').optional(),
       name: required(MAX_NAME_LENGTH, 'name').optional(),
       notes: trimmed(MAX_NOTES_LENGTH, 'notes').optional(),
@@ -78,19 +95,26 @@ export const TOOL_PATCH_SCHEMA = z
   // version does not know about should not be told its whole edit is wrong.
   .strip()
 
-export const TOOL_CREATE_SCHEMA = TOOL_PATCH_SCHEMA.extend({
+export const ITEM_CREATE_SCHEMA = ITEM_PATCH_SCHEMA.extend({
   // The one required field. A card with no name is not findable by the person
-  // standing in front of the tool, which is the only reason the card exists.
+  // standing in front of the item, which is the only reason the card exists.
   name: required(MAX_NAME_LENGTH, 'name'),
 })
 
-export type ToolFields = {
-  // Where the tool is kept. Null is "nobody has said", which is not the same
+export type ItemFields = {
+  // Where the item is kept. Null is "nobody has said", which is not the same
   // as a place called nothing.
   addressId: null | number
-  brand: string
+  // The maker, as the row it is. A card used to carry the name as text beside
+  // this, and keeping the two in step took three mechanisms; one pointer needs
+  // none of them.
+  brandId: null | number
   category: string
-  condition: ToolCondition
+  // What sort of thing this is: a drill, a washing machine, later a box. Not a
+  // category — a category is somebody's own word for a shelf, and this is the
+  // handful of sorts the catalog itself behaves differently about.
+  kind: ItemKind
+  condition: ItemCondition
   model: string
   name: string
   notes: string
@@ -101,7 +125,7 @@ export type ToolFields = {
 // A patch carries only the fields that were sent. `undefined` means "leave it
 // alone" and is not the same as '' — clearing the brand is a real edit, and a
 // PATCH that could not express it would force the client to resend the card.
-export type ToolPatch = Partial<ToolFields>
+export type ItemPatch = Partial<ItemFields>
 
 export type AttributeFields = {
   name: string
@@ -110,31 +134,34 @@ export type AttributeFields = {
 
 export type AttributePatch = Partial<AttributeFields>
 
-export type ToolSort = 'createdAt' | 'name' | 'updatedAt'
+export type ItemSort = 'createdAt' | 'name' | 'updatedAt'
 
-export type ToolQuery = {
-  // A place id, or 'none' for the tools nobody has located, or null for "do
+export type ItemQuery = {
+  // Which sort to list, or null for all of them. A screen shows the tools or
+  // the appliances; the catalog holds both.
+  kind: ItemKind | null
+  // A place id, or 'none' for the items nobody has located, or null for "do
   // not filter". Three states rather than two, because "not at this address"
   // and "at no address" are different questions and a screen asks both.
   addressId: 'none' | null | number
   category: null | string
-  // true: only tools that are in no organizer — what the organizer wizard
+  // true: only items that are in no organizer — what the organizer wizard
   // offers. null: everything, which is what every other screen wants.
   inOrganizer: boolean | null
-  condition: null | ToolCondition
+  condition: null | ItemCondition
   direction: 'asc' | 'desc'
   limit: number
   offset: number
   search: null | string
-  sort: ToolSort
+  sort: ItemSort
 }
 
-export function isToolCondition(value: unknown): value is ToolCondition {
-  return typeof value === 'string' && (TOOL_CONDITIONS as readonly string[]).includes(value)
+export function isItemCondition(value: unknown): value is ItemCondition {
+  return typeof value === 'string' && (ITEM_CONDITIONS as readonly string[]).includes(value)
 }
 
-export function parseToolCreate(body: unknown): Parsed<ToolFields> {
-  const parsed = parseWith(TOOL_CREATE_SCHEMA, body)
+export function parseItemCreate(body: unknown): Parsed<ItemFields> {
+  const parsed = parseWith(ITEM_CREATE_SCHEMA, body)
   if (!parsed.ok) return parsed
 
   // Everything the page did not say is stored as blank rather than absent, so
@@ -142,9 +169,10 @@ export function parseToolCreate(body: unknown): Parsed<ToolFields> {
   // filled in" from "not sent".
   return valid({
     addressId: parsed.value.addressId ?? null,
-    brand: parsed.value.brand ?? '',
+    brandId: parsed.value.brandId ?? null,
     category: parsed.value.category ?? '',
     condition: parsed.value.condition ?? DEFAULT_CONDITION,
+    kind: parsed.value.kind ?? DEFAULT_KIND,
     model: parsed.value.model ?? '',
     name: parsed.value.name,
     notes: parsed.value.notes ?? '',
@@ -153,8 +181,8 @@ export function parseToolCreate(body: unknown): Parsed<ToolFields> {
   })
 }
 
-export function parseToolPatch(body: unknown): Parsed<ToolPatch> {
-  const parsed = parseWith(TOOL_PATCH_SCHEMA, body)
+export function parseItemPatch(body: unknown): Parsed<ItemPatch> {
+  const parsed = parseWith(ITEM_PATCH_SCHEMA, body)
   if (!parsed.ok) return parsed
 
   // Refused rather than answered with the row unchanged, which would look to
@@ -166,7 +194,7 @@ export function parseToolPatch(body: unknown): Parsed<ToolPatch> {
   return parsed
 }
 
-// One parameter of a tool. Runs of whitespace collapse to one space: the unique
+// One parameter of an item. Runs of whitespace collapse to one space: the unique
 // index folds case and trims the ends, so without this "napięcie  sieciowe"
 // would be stored as a second parameter beside "napięcie sieciowe" — the same
 // accident as a trailing space, and the same answer.
@@ -238,33 +266,34 @@ export function parseImportInput(body: unknown): Parsed<{ url: string }> {
 // The list query. Unlike the bodies, a bad value here is not an error: a link
 // someone pasted with `?limit=banana` should still show the catalog. Values
 // are clamped or dropped, never refused — except a condition filter that names
-// nothing, which is refused, because silently listing every tool would look
+// nothing, which is refused, because silently listing every item would look
 // like an answer rather than a typo.
 //
 // That rule is why the query is not a schema: Zod refuses, and what this wants
 // is to forgive. A schema describing it would have to say "any string" for
 // every field, which tells a client nothing the parameter list in the contract
 // does not already say better.
-export function parseToolQuery(params: URLSearchParams): Parsed<ToolQuery> {
+export function parseItemQuery(params: URLSearchParams): Parsed<ItemQuery> {
   const conditionParam = params.get('condition')?.trim()
-  if (conditionParam && !isToolCondition(conditionParam)) {
-    return invalid(`condition must be one of: ${TOOL_CONDITIONS.join(', ')}`)
+  if (conditionParam && !isItemCondition(conditionParam)) {
+    return invalid(`condition must be one of: ${ITEM_CONDITIONS.join(', ')}`)
   }
 
   return valid({
     category: params.get('category')?.trim() || null,
     addressId: readAddressFilter(params.get('addressId')),
+    kind: readKind(params.get('kind')),
     inOrganizer: readBoolean(params.get('inOrganizer')),
-    condition: conditionParam ? (conditionParam as ToolCondition) : null,
+    condition: conditionParam ? (conditionParam as ItemCondition) : null,
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
-    limit: clampLimit(params.get('limit'), TOOL_PAGING),
+    limit: clampLimit(params.get('limit'), ITEM_PAGING),
     offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
     sort: parseSort(params.get('sort')),
   })
 }
 
-function parseSort(value: null | string): ToolSort {
+function parseSort(value: null | string): ItemSort {
   switch (value?.trim()) {
     case 'createdAt':
       return 'createdAt'
@@ -295,4 +324,11 @@ function readAddressFilter(raw: null | string): 'none' | null | number {
 
   const parsed = Number(value)
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+// Clamped rather than refused, like every other list filter: a pasted link with
+// an unknown kind should still show the catalog.
+function readKind(raw: null | string): ItemKind | null {
+  const value = raw?.trim()
+  return value && (ITEM_KINDS as readonly string[]).includes(value) ? (value as ItemKind) : null
 }

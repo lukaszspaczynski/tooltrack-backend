@@ -1,7 +1,7 @@
 // Making a card out of a shop's product page.
 //
-//   GET  /api/tools/import/sources  catalog.read
-//   POST /api/tools/import          catalog.write
+//   GET  /api/items/import/sources  catalog.read
+//   POST /api/items/import          catalog.write
 //
 // The address decides which script reads the page (src/server/importers), and
 // an address from a shop this server has never been taught to read is refused
@@ -19,16 +19,17 @@ import type { Manual } from './manuals-store'
 import { addAttribute, replaceAttributes } from './attributes-store'
 import { fetchPage } from './page-fetch'
 import { importPhotoLinks } from './photos'
-import { parseImportInput } from './tools-input'
+import { parseImportInput } from './items-input'
 import { clearManuals } from './manuals-store'
-import { createTool, getTool, getToolDetail, updateTool } from './tools-store'
+import { brandIdForImportedName } from './brands-store'
+import { createItem, getItem, getItemDetail, updateItem } from './items-store'
 
 // A gallery can run to twenty-odd shots of the same drill. Each one is
 // fetched, decoded and stored, so the ceiling is what keeps an import from
 // being a minute of somebody watching a spinner.
 const MAX_IMPORT_PHOTOS = 20
 
-// A tool has a manual, maybe a diagram, maybe a safety sheet. A page offering
+// An item has a manual, maybe a diagram, maybe a safety sheet. A page offering
 // more than this is listing somebody's whole catalogue.
 const MAX_IMPORT_MANUALS = 8
 
@@ -69,7 +70,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   return createCard(fitToCard(product), context.user?.id ?? 0)
 }
 
-// POST /api/tools/:id/import — reading the page again into a card that exists.
+// POST /api/items/:id/import — reading the page again into a card that exists.
 //
 // What a product page knows, it overwrites: the maker, the model, the
 // category, the description, the whole spec sheet and the documents. What it
@@ -82,10 +83,10 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
 // parameter the maker has dropped should leave the card; keeping the old rows
 // and adding to them would preserve exactly the ones that are wrong.
 export async function refreshPOST(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return notFound()
+  const itemId = parseId(context.params.id)
+  if (itemId === null) return notFound()
 
-  const existing = await getTool(toolId)
+  const existing = await getItem(itemId)
   if (!existing) return notFound()
 
   const parsed = parseImportInput(await readJson(request))
@@ -120,10 +121,10 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
 
   // The fields the page is allowed to have an opinion about. The name is not
   // among them: somebody called this card "Pilarka Janka" on purpose.
-  await updateTool(
-    toolId,
+  await updateItem(
+    itemId,
     {
-      brand: product.brand,
+      brandId: await brandIdForImportedName(product.brand, actorId),
       category: product.category,
       model: product.model,
       notes: product.notes,
@@ -135,15 +136,15 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
     actorId,
   )
 
-  const attributes = await replaceAttributes('tool', toolId, product.attributes, actorId)
-  await clearManuals(toolId)
+  const attributes = await replaceAttributes('item', itemId, product.attributes, actorId)
+  await clearManuals(itemId)
 
   const manuals: Manual[] = []
   const manualsFailed: string[] = []
 
   for (const manual of product.manuals.slice(0, MAX_IMPORT_MANUALS)) {
     try {
-      manuals.push(await saveManualFromUrl(toolId, manual.url, manual.title, 'import', actorId))
+      manuals.push(await saveManualFromUrl(itemId, manual.url, manual.title, 'import', actorId))
     } catch (error) {
       if (error instanceof ManualRejectedError) {
         manualsFailed.push(manual.url)
@@ -165,7 +166,7 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
       photosFailed: 0,
       sourceUrl: product.sourceUrl,
     },
-    tool: await getToolDetail(toolId),
+    item: await getItemDetail(itemId),
   }
 
   return Response.json(body)
@@ -176,13 +177,18 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
 // not fail the import: the card is the thing somebody asked for, and what
 // could not be read is reported beside it rather than instead of it.
 async function createCard(product: ImportedProduct, actorId: number): Promise<Response> {
-  const tool = await createTool(
+  const item = await createItem(
     {
       // A product page says what a machine is, never where it will be kept.
       addressId: null,
-      brand: product.brand,
+      brandId: await brandIdForImportedName(product.brand, actorId),
       category: product.category,
       condition: 'new',
+      // Every importer reads a shop or a maker's own product page, and all of
+      // them so far sell tools. An appliance imported from one is a card
+      // somebody changes the kind of afterwards, which is one field rather
+      // than a guess made from a category.
+      kind: 'tool',
       model: product.model,
       name: product.name,
       notes: product.notes,
@@ -200,7 +206,7 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
 
   for (const attribute of product.attributes) {
     try {
-      await addAttribute('tool', tool.id, attribute, actorId)
+      await addAttribute('item', item.id, attribute, actorId)
     } catch {
       // The page listed the same parameter twice in a way the merge did not
       // catch, or something else the card refuses. One line is not worth the
@@ -210,7 +216,7 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
   }
 
   const photos = await importPhotoLinks(
-    { id: tool.id, kind: 'tool' },
+    { id: item.id, kind: 'item' },
     product.photoUrls.slice(0, MAX_IMPORT_PHOTOS).map((url) => ({
       attribution: new URL(product.sourceUrl).hostname,
       fromSearch: false,
@@ -227,7 +233,7 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
 
   for (const manual of product.manuals.slice(0, MAX_IMPORT_MANUALS)) {
     try {
-      manuals.push(await saveManualFromUrl(tool.id, manual.url, manual.title, 'import', actorId))
+      manuals.push(await saveManualFromUrl(item.id, manual.url, manual.title, 'import', actorId))
     } catch (error) {
       // A PDF that will not download is not worth the card it came with.
       if (error instanceof ManualRejectedError) {
@@ -249,7 +255,7 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
         photosFailed: photos.failed.length,
         sourceUrl: product.sourceUrl,
       },
-      tool: await getToolDetail(tool.id),
+      item: await getItemDetail(item.id),
     },
     { status: 201 },
   )
@@ -261,7 +267,7 @@ function parseId(value: string | undefined): null | number {
 }
 
 function notFound(): Response {
-  return errorResponse(404, 'TOOL_NOT_FOUND', 'Tool not found')
+  return errorResponse(404, 'ITEM_NOT_FOUND', 'Item not found')
 }
 
 async function readJson(request: Request): Promise<unknown> {

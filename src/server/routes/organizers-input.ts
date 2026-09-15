@@ -103,7 +103,7 @@ export const ORGANIZER_CREATE_SCHEMA = ORGANIZER_PATCH_SCHEMA.extend({
   // Null means "give me the next free one". The store decides, because only it
   // can see what is taken.
   number: NUMBER.nullish(),
-  toolIds: z.array(z.unknown()).optional(),
+  itemIds: z.array(z.unknown()).optional(),
 })
 
 export function parseOrganizerCreate(body: unknown): Parsed<OrganizerFields> {
@@ -133,7 +133,7 @@ export function parseOrganizerPatch(body: unknown): Parsed<OrganizerPatch> {
 // One shape for the two selections this domain takes. Everything else about a
 // redraw is already on the row, which is the point of keeping the options.
 function idsSchema(
-  field: 'labelIds' | 'toolIds',
+  field: 'labelIds' | 'itemIds',
   max: number,
   empty: () => string,
   tooMany: () => string,
@@ -154,10 +154,10 @@ function idsSchema(
 // The messages are written out rather than built from `max`, because `t()`
 // keys on the Polish sentence: one assembled from pieces has no entry in
 // i18n/catalog.ts and goes out untranslated, which a test here catches.
-export const TOOL_IDS_SCHEMA = idsSchema(
-  'toolIds',
+export const ITEM_IDS_SCHEMA = idsSchema(
+  'itemIds',
   200,
-  () => 'toolIds must not be empty',
+  () => 'itemIds must not be empty',
   () => t('Maksymalnie 200 narzędzi naraz'),
 )
 
@@ -180,10 +180,10 @@ function wholeNumbers(raw: unknown[], field: string): Parsed<number[]> {
   return valid(ids)
 }
 
-export function parseToolIds(body: unknown): Parsed<number[]> {
-  const parsed = parseWith(TOOL_IDS_SCHEMA, body)
+export function parseItemIds(body: unknown): Parsed<number[]> {
+  const parsed = parseWith(ITEM_IDS_SCHEMA, body)
 
-  return parsed.ok ? wholeNumbers(parsed.value.toolIds as unknown[], 'toolIds') : parsed
+  return parsed.ok ? wholeNumbers(parsed.value.itemIds as unknown[], 'itemIds') : parsed
 }
 
 export function parseLabelIds(body: unknown): Parsed<number[]> {
@@ -262,7 +262,7 @@ export function parseLabelRequest(body: unknown): Parsed<LabelRequest> {
   const photoIds = wholeNumbers((input.photoIds ?? []) as unknown[], 'photoIds')
   if (!photoIds.ok) return photoIds
 
-  // Empty means "work it out": the organizer's name over the rule, the tool
+  // Empty means "work it out": the organizer's name over the rule, the item
   // names under it. Anything else is what somebody typed instead, and the label
   // says that rather than what the catalog thinks.
   const namesText = input.namesText ?? ''

@@ -1,16 +1,16 @@
-// Photos of a tool or of a case: list, add, promote, remove, serve, and the
+// Photos of an item or of a case: list, add, promote, remove, serve, and the
 // on-demand search that suggests where a picture could come from.
 //
-//   GET    /api/{tools,cases}/:id/photos               catalog.read
-//   POST   /api/{tools,cases}/:id/photos               catalog.write  (raw bytes or JSON links)
-//   POST   /api/{tools,cases}/:id/photos/attach        catalog.write
-//   GET    /api/{tools,cases}/:id/photos/:photoId/file catalog.read
-//   PATCH  /api/{tools,cases}/:id/photos/:photoId      catalog.write  ({ isPrimary: true })
-//   DELETE /api/{tools,cases}/:id/photos/:photoId      catalog.write
-//   GET    /api/{tools,cases}/:id/photo-suggestions    catalog.write
+//   GET    /api/{items,cases}/:id/photos               catalog.read
+//   POST   /api/{items,cases}/:id/photos               catalog.write  (raw bytes or JSON links)
+//   POST   /api/{items,cases}/:id/photos/attach        catalog.write
+//   GET    /api/{items,cases}/:id/photos/:photoId/file catalog.read
+//   PATCH  /api/{items,cases}/:id/photos/:photoId      catalog.write  ({ isPrimary: true })
+//   DELETE /api/{items,cases}/:id/photos/:photoId      catalog.write
+//   GET    /api/{items,cases}/:id/photo-suggestions    catalog.write
 //
 // One module for both because a case carries pictures on exactly the same
-// terms as a tool. Which of the two is in the path arrives as an owner (see
+// terms as an item. Which of the two is in the path arrives as an owner (see
 // photo-owner.ts) and is the only difference that reaches the SQL.
 //
 // An upload arrives as the raw file in the request body with its own
@@ -64,7 +64,7 @@ import {
   unlinkPhoto,
   type CardPhoto,
 } from './photos-store'
-import { getTool } from './tools-store'
+import { getItem } from './items-store'
 import { t } from '../i18n'
 
 // Write the picture, then put it on this card. Two steps because they are two
@@ -176,7 +176,7 @@ async function uploadBytes(
 }
 
 // Fetching pictures from addresses and putting them on a card. Exported
-// because the tool importer walks a shop's gallery the same way: a picture
+// because the item importer walks a shop's gallery the same way: a picture
 // arriving from a URL should be stored, converted and refused on exactly the
 // same terms whichever screen asked for it.
 export async function importPhotoLinks(
@@ -399,7 +399,7 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
 // POST .../photos/:photoId/cutout — the one-click edit.
 //
 // It adds a photo rather than replacing one. The original stays, so a cutout
-// that mangled the tool is one delete away from undone, and the two are linked
+// that mangled the item is one delete away from undone, and the two are linked
 // by derivedFrom. The new photo does not become the main one on its own:
 // whether the cutout is better than the photograph is a judgement, and the
 // person looking at both makes it.
@@ -538,8 +538,8 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
 // that cannot return somebody else's machine. Offered beside the engines
 // because it is the same errand — pick the pictures worth keeping — and
 // answered in the same shape, so the screen needs no second way to show them.
-async function suggestFromPage(toolId: number): Promise<Response> {
-  const reference = (await getTool(toolId))?.referenceUrl
+async function suggestFromPage(itemId: number): Promise<Response> {
+  const reference = (await getItem(itemId))?.referenceUrl
 
   if (!reference) {
     return errorResponse(422, 'NO_SOURCE_PAGE', t('Ta karta nie ma adresu karty produktu'), {
@@ -618,10 +618,10 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
 
   const url = new URL(request.url)
 
-  // `?source=page` — the product page rather than the engines. Only a tool has
+  // `?source=page` — the product page rather than the engines. Only an item has
   // one: a case is not imported from anywhere.
   if (url.searchParams.get('source') === 'page') {
-    if (owner.kind !== 'tool') {
+    if (owner.kind !== 'item') {
       return errorResponse(422, 'NO_SOURCE_PAGE', t('Ta karta nie ma adresu karty produktu'), {
         extra: { providers: [] },
       })
@@ -661,12 +661,12 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
 }
 
 // Does this card exist, and what would we type into a search engine for it? A
-// tool is identified by its brand and model; a case by who makes it and what
+// item is identified by its brand and model; a case by who makes it and what
 // it is called.
 async function loadOwner(owner: PhotoOwner): Promise<null | OwnerCard> {
-  if (owner.kind === 'tool') {
-    const tool = await getTool(owner.id)
-    return tool ? { searchQuery: defaultQuery(tool) } : null
+  if (owner.kind === 'item') {
+    const item = await getItem(owner.id)
+    return item ? { searchQuery: defaultQuery(item) } : null
   }
 
   const found = await getCase(owner.id)
@@ -726,7 +726,7 @@ function cutoutError(error: unknown): Response {
 // the caller used, so a 404 never names the wrong kind of thing.
 function ownerNotFound(context: RouteContext): Response {
   const owner = parsePhotoOwner(context.params)
-  const label = owner ? OWNER_LABELS[owner.kind] : OWNER_LABELS.tool
+  const label = owner ? OWNER_LABELS[owner.kind] : OWNER_LABELS.item
 
   return errorResponse(404, 'NOT_FOUND', t(label))
 }

@@ -20,14 +20,14 @@ import { ORGANIZER_OPERATIONS } from './paths/organizers'
 import { PHOTO_OPERATIONS } from './paths/photos'
 import { AUTH_OPERATIONS, PUBLIC_OPERATIONS } from './paths/public'
 import { SETTINGS_OPERATIONS } from './paths/settings'
-import { TOOL_OPERATIONS } from './paths/tools'
+import { ITEM_OPERATIONS } from './paths/items'
 import { USER_OPERATIONS } from './paths/users'
 
 export const OPERATIONS: OperationSpec[] = [
   ...PUBLIC_OPERATIONS,
   ...AUTH_OPERATIONS,
   ...IMPORT_OPERATIONS,
-  ...TOOL_OPERATIONS,
+  ...ITEM_OPERATIONS,
   ...PHOTO_OPERATIONS,
   ...MANUAL_OPERATIONS,
   ...CASE_OPERATIONS,

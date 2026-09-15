@@ -7,7 +7,7 @@
 // markup, as rows of two divs under a tab, so half of this reads the graph and
 // half scrapes.
 //
-// Pure, like every importer. The fetching lives in routes/tool-import.ts.
+// Pure, like every importer. The fetching lives in routes/item-import.ts.
 
 import { mergeDuplicates } from './attributes'
 import { text } from './html'
@@ -79,7 +79,7 @@ export function modelOf(name: string): string {
   return first === -1 ? '' : words.slice(first).join(' ')
 }
 
-// The kind of tool, as the last crumb before the product: "Pompy do
+// The kind of item, as the last crumb before the product: "Pompy do
 // nawadniania". The list is inside the Product rather than in the markup,
 // which is the one thing this store makes easier than most.
 export function categoryOf(product: Product): string {
@@ -123,7 +123,7 @@ function attributesOf(html: string, product: Product): ImportedAttribute[] {
   return mergeDuplicates(attributes)
 }
 
-// What the tool is for, in the maker's own words. `Product.description` is one
+// What the item is for, in the maker's own words. `Product.description` is one
 // line of marketing; this is the paragraph under it, which is the part that
 // says what the machine does.
 export function notesOf(html: string): string {

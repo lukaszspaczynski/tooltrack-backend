@@ -6,7 +6,7 @@
 // payload, and every manual's real title is the text of its link rather than
 // the heading above it.
 //
-// Pure, like every importer. The fetching lives in routes/tool-import.ts.
+// Pure, like every importer. The fetching lives in routes/item-import.ts.
 
 import { manualTitle, mergeDuplicates } from './attributes'
 import { text } from './html'
@@ -72,7 +72,7 @@ export function modelOf(name: string): string {
   return name.replace(/^PRO\s+/i, '').trim()
 }
 
-// The kind of tool, out of the analytics payload the page sends about itself.
+// The kind of item, out of the analytics payload the page sends about itself.
 //
 // An odd place to read it from, and the only one that has it: the JSON-LD
 // carries no category, and the breadcrumb markup on this site is a list of

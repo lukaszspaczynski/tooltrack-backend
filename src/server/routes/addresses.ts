@@ -1,6 +1,6 @@
 // Places: GET/POST /api/addresses and GET/PATCH/DELETE /api/addresses/:id.
 //
-// Assigning one is not here. A tool is at one place and an arrangement is at
+// Assigning one is not here. An item is at one place and an arrangement is at
 // one place, so it is `addressId` on each of those — a field on the thing that
 // moved, edited by the PATCH that already edits it. An endpoint per pairing
 // would be two more routes saying what one column already says.
@@ -70,7 +70,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
   }
 }
 
-// The tools and arrangements that were here stay in the catalog and stop
+// The items and arrangements that were here stay in the catalog and stop
 // pointing at anything — the foreign key sets the column to null. Closing a
 // site is a normal thing to do and must not take the kit with it.
 //
@@ -87,7 +87,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   if (!(await deleteAddress(id))) return notFound()
 
   return Response.json({
-    cleared: { organizers: address.organizerCount, tools: address.toolCount },
+    cleared: { organizers: address.organizerCount, items: address.itemCount },
     ok: true,
   })
 }

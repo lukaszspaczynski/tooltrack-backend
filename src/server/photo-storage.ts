@@ -3,7 +3,7 @@
 // The filesystem rather than the database, because a Postgres carrying a few
 // hundred megabytes of JPEG is one nobody wants to back up or replicate. The
 // filesystem rather than object storage, because this is a catalog for one
-// company's tool shed and a bucket is a dependency, a credential and a bill.
+// company's item shed and a bucket is a dependency, a credential and a bill.
 // Everything object storage would change is behind these four functions.
 //
 // Content addressed: the key is the checksum, so the same photo saved twice is

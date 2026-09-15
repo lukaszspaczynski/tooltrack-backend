@@ -18,21 +18,21 @@ function doc(schemas: Record<string, Schema>, paths?: Document['paths']): Docume
     info: { description: '', title: '', version: '1' },
     openapi: '3.1.0',
     paths: paths ?? {
-      '/api/tools': {
+      '/api/items': {
         get: {
-          operationId: 'listTools',
+          operationId: 'listItems',
           responses: {
-            200: { content: { 'application/json': { schema: ref('Tool') } }, description: '' },
+            200: { content: { 'application/json': { schema: ref('Item') } }, description: '' },
           },
           summary: '',
-          tags: ['tools'],
+          tags: ['items'],
         },
         post: {
-          operationId: 'createTool',
-          requestBody: { content: { 'application/json': { schema: ref('ToolBody') } } },
+          operationId: 'createItem',
+          requestBody: { content: { 'application/json': { schema: ref('ItemBody') } } },
           responses: { 201: { description: '' } },
           summary: '',
-          tags: ['tools'],
+          tags: ['items'],
         },
       },
     },
@@ -57,18 +57,18 @@ const TOOL_BODY: Schema = {
   type: 'object',
 }
 
-const BASE = doc({ Tool: TOOL, ToolBody: TOOL_BODY })
+const BASE = doc({ Item: TOOL, ItemBody: TOOL_BODY })
 
 test('adding things is not a break, and is not reported', () => {
   // The safe half of every change. A checker that complained here is one people
   // learn to run with their eyes shut, which is the only way it ever fails.
   const grown = doc({
     Case: { properties: {}, type: 'object' },
-    Tool: {
+    Item: {
       ...TOOL,
       properties: { ...(TOOL.properties as object), referenceUrl: { type: 'string' } },
     },
-    ToolBody: {
+    ItemBody: {
       ...TOOL_BODY,
       properties: { ...(TOOL_BODY.properties as object), brand: { type: 'string' } },
     },
@@ -82,22 +82,22 @@ test('a field that leaves a response is named', () => {
   // that has moved, finds nothing, and shows an empty screen rather than an
   // error anybody would report.
   const shrunk = doc({
-    Tool: { ...TOOL, properties: { id: { type: 'integer' } } },
-    ToolBody: TOOL_BODY,
+    Item: { ...TOOL, properties: { id: { type: 'integer' } } },
+    ItemBody: TOOL_BODY,
   })
 
-  assert.deepEqual(breakingChanges(BASE, shrunk), ['Tool.name is gone'])
+  assert.deepEqual(breakingChanges(BASE, shrunk), ['Item.name is gone'])
 })
 
 test('a request field that becomes required is a break; a response one is not', () => {
   // The difference is who promises what. A client that has never heard of a
   // field does not send it — but it is happy to receive one.
-  const stricter = doc({ Tool: TOOL, ToolBody: { ...TOOL_BODY, required: ['name', 'notes'] } })
-  assert.deepEqual(breakingChanges(BASE, stricter), ['ToolBody.notes is now required'])
+  const stricter = doc({ Item: TOOL, ItemBody: { ...TOOL_BODY, required: ['name', 'notes'] } })
+  assert.deepEqual(breakingChanges(BASE, stricter), ['ItemBody.notes is now required'])
 
   const generous = doc({
-    Tool: { ...TOOL, required: ['id', 'name', 'extra'] },
-    ToolBody: TOOL_BODY,
+    Item: { ...TOOL, required: ['id', 'name', 'extra'] },
+    ItemBody: TOOL_BODY,
   })
   assert.deepEqual(breakingChanges(BASE, generous), [])
 })
@@ -106,55 +106,55 @@ test('a limit that tightens is a break even though every field is still there', 
   // Exactly what lowering MAX_NAME_LENGTH does: nothing is missing, and a name
   // that fitted last month is refused today.
   const tighter = doc({
-    Tool: TOOL,
-    ToolBody: {
+    Item: TOOL,
+    ItemBody: {
       ...TOOL_BODY,
       properties: { ...(TOOL_BODY.properties as object), name: { maxLength: 150, type: 'string' } },
     },
   })
 
   assert.deepEqual(breakingChanges(BASE, tighter), [
-    'ToolBody.name tightened maxLength from 200 to 150',
+    'ItemBody.name tightened maxLength from 200 to 150',
   ])
 })
 
 test('a type that changes under a name that did not is a break', () => {
   const retyped = doc({
-    Tool: { ...TOOL, properties: { ...(TOOL.properties as object), id: { type: 'string' } } },
-    ToolBody: TOOL_BODY,
+    Item: { ...TOOL, properties: { ...(TOOL.properties as object), id: { type: 'string' } } },
+    ItemBody: TOOL_BODY,
   })
 
   assert.deepEqual(breakingChanges(BASE, retyped), [
-    'Tool.id changed type from "integer" to "string"',
+    'Item.id changed type from "integer" to "string"',
   ])
 })
 
 test('a value dropped from an enum is a break', () => {
   const before = doc({
-    Tool: TOOL,
-    ToolBody: { ...TOOL_BODY, properties: { condition: { enum: ['good', 'worn', 'retired'] } } },
+    Item: TOOL,
+    ItemBody: { ...TOOL_BODY, properties: { condition: { enum: ['good', 'worn', 'retired'] } } },
   })
   const after = doc({
-    Tool: TOOL,
-    ToolBody: { ...TOOL_BODY, properties: { condition: { enum: ['good', 'worn'] } } },
+    Item: TOOL,
+    ItemBody: { ...TOOL_BODY, properties: { condition: { enum: ['good', 'worn'] } } },
   })
 
   assert.deepEqual(breakingChanges(before, after), [
-    'ToolBody.condition no longer accepts "retired"',
+    'ItemBody.condition no longer accepts "retired"',
   ])
 })
 
 test('a route or a method that stops answering is a break', () => {
   const withoutPost = doc(
-    { Tool: TOOL, ToolBody: TOOL_BODY },
+    { Item: TOOL, ItemBody: TOOL_BODY },
     {
-      '/api/tools': BASE.paths['/api/tools'].get ? { get: BASE.paths['/api/tools'].get } : {},
+      '/api/items': BASE.paths['/api/items'].get ? { get: BASE.paths['/api/items'].get } : {},
     },
   )
-  assert.deepEqual(breakingChanges(BASE, withoutPost), ['POST /api/tools is gone'])
+  assert.deepEqual(breakingChanges(BASE, withoutPost), ['POST /api/items is gone'])
 
-  const withoutPath = doc({ Tool: TOOL, ToolBody: TOOL_BODY }, {})
-  assert.deepEqual(breakingChanges(BASE, withoutPath), ['/api/tools is gone'])
+  const withoutPath = doc({ Item: TOOL, ItemBody: TOOL_BODY }, {})
+  assert.deepEqual(breakingChanges(BASE, withoutPath), ['/api/items is gone'])
 })
 
 // SUSPENDED while the catalog is renamed — see CLAUDE.md, "Changing something
@@ -162,8 +162,8 @@ test('a route or a method that stops answering is a break', () => {
 //
 // The guard protects clients that cannot be updated on the day this repo
 // changes. There is no such client yet: the web app is rebuilt from this repo
-// and reloads, and the mobile one does not exist. What is coming is `tool` →
-// `item`, which moves every route under /api/tools and is one deliberate break
+// and reloads, and the mobile one does not exist. What is coming is `item` →
+// `item`, which moves every route under /api/items and is one deliberate break
 // from beginning to end — so this would fire on every commit of it and be
 // answered by running `openapi:baseline` without reading the output, which is
 // the habit the check exists to prevent.

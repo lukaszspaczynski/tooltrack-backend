@@ -5,7 +5,7 @@
 // the heading, the category is the last breadcrumb before the product, the
 // spec table is a table, and the pictures are on a path of their own.
 //
-// Pure, like every importer. The fetching lives in routes/tool-import.ts.
+// Pure, like every importer. The fetching lives in routes/item-import.ts.
 
 import { mergeDuplicates } from './attributes'
 import { text } from './html'
@@ -46,7 +46,7 @@ export function parseStanleyProduct(html: string, pageUrl: string): null | Impor
     manuals: [],
     model: modelOf(name),
     name,
-    // The page carries no prose about the tool: what it has is the heading,
+    // The page carries no prose about the item: what it has is the heading,
     // the features and the table. An empty note beats an invented one.
     notes: '',
     photoUrls: photosOf(html),
@@ -83,7 +83,7 @@ export function catalogNumberOf(pageUrl: string): string {
   }
 }
 
-// The kind of tool: the last breadcrumb that is not the product itself. The
+// The kind of item: the last breadcrumb that is not the product itself. The
 // list ends with the product on this site, and begins with "Home".
 export function categoryOf(html: string): string {
   const nav = /breadcrumb[\s\S]{0,4000}?<\/nav>/i.exec(html)?.[0]

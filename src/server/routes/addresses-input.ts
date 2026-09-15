@@ -31,7 +31,7 @@ export type AddressFields = {
 
 export type AddressPatch = Partial<AddressFields>
 
-export type AddressSort = 'city' | 'name' | 'tools'
+export type AddressSort = 'city' | 'name' | 'items'
 
 export type AddressQuery = {
   direction: 'asc' | 'desc'
@@ -115,6 +115,6 @@ export function parseAddressQuery(params: URLSearchParams): Parsed<AddressQuery>
 function sortOf(raw: null | string): AddressSort {
   const value = raw?.trim()
   // Name by default: a list of places is read alphabetically, the way a shelf
-  // is. "tools" is what answers "where is most of the kit".
-  return value === 'city' || value === 'tools' ? value : 'name'
+  // is. "items" is what answers "where is most of the kit".
+  return value === 'city' || value === 'items' ? value : 'name'
 }

@@ -41,7 +41,7 @@ function messagesInSource(): Set<string> {
     }
 
     if (path.endsWith('photo-owner.ts')) {
-      for (const entry of source.matchAll(/(?:case|tool): '((?:[^'\\]|\\.)+)'/g)) {
+      for (const entry of source.matchAll(/(?:case|item): '((?:[^'\\]|\\.)+)'/g)) {
         found.add(entry[1].replace(/\\'/g, "'"))
       }
     }

@@ -68,7 +68,7 @@ export const USER_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'The tool cards they created stay, with `createdBy` set to null. Losing the catalog because somebody left is not an outcome anybody would ask for.',
+      'The item cards they created stay, with `createdBy` set to null. Losing the catalog because somebody left is not an outcome anybody would ask for.',
     operationId: 'deleteUser',
     pathParams: { id: 'The account to delete.' },
     responses: {

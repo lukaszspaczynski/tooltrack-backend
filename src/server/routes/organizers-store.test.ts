@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import type { PgClient, PgPool, PgQueryResult } from '../db'
-import { listOrganizers, removeTool, ToolAlreadyInOrganizerError } from './organizers-store'
-import { addTools } from './organizers-store'
+import { listOrganizers, removeItem, ItemAlreadyInOrganizerError } from './organizers-store'
+import { addItems } from './organizers-store'
 
 type Call = { params: unknown[]; text: string }
 
@@ -13,7 +13,7 @@ function fakePool(results: unknown[][] = [], error?: unknown): { calls: Call[]; 
 
   const answer = (text: string, params: unknown[] = []) => {
     calls.push({ params, text })
-    if (error && /INSERT INTO "catalog"\."organizer_tool"/.test(text)) return Promise.reject(error)
+    if (error && /INSERT INTO "catalog"\."organizer_item"/.test(text)) return Promise.reject(error)
     const rows = queue.shift() ?? []
     return Promise.resolve({ rowCount: rows.length, rows } as PgQueryResult<never>)
   }
@@ -36,7 +36,7 @@ const query = {
   sort: 'number' as const,
 }
 
-test('the tile is one query: the case, its photo, and every tool with its own', async () => {
+test('the tile is one query: the case, its photo, and every item with its own', async () => {
   // A screen of twenty organizers would otherwise be forty-one requests.
   const { calls, pool } = fakePool([[]])
 
@@ -44,8 +44,8 @@ test('the tile is one query: the case, its photo, and every tool with its own', 
 
   assert.match(calls[0].text, /JOIN "catalog"\."tool_case"/)
   assert.match(calls[0].text, /FROM "catalog"\."photo_case"/)
-  assert.match(calls[0].text, /FROM "catalog"\."organizer_tool"/)
-  assert.match(calls[0].text, /FROM "catalog"\."photo_tool"/)
+  assert.match(calls[0].text, /FROM "catalog"\."organizer_item"/)
+  assert.match(calls[0].text, /FROM "catalog"\."photo_item"/)
   assert.equal(calls.length, 1)
 })
 
@@ -61,30 +61,30 @@ test('the count sits between the columns and the FROM, not after it', async () =
   assert.ok(columns > 0 && from > columns, 'count(*) OVER () must come before FROM')
 })
 
-test('a tool already in another organizer is a conflict, not a silent move', async () => {
-  // Moving a tool out of somebody else's arrangement is a decision, so the
+test('an item already in another organizer is a conflict, not a silent move', async () => {
+  // Moving an item out of somebody else's arrangement is a decision, so the
   // unique index refusing it is reported rather than worked around.
   const { pool } = fakePool([[{}], []], { code: '23505' })
 
   await assert.rejects(
-    () => addTools(1, [5], 7, pool),
-    (error) => error instanceof ToolAlreadyInOrganizerError,
+    () => addItems(1, [5], 7, pool),
+    (error) => error instanceof ItemAlreadyInOrganizerError,
   )
 })
 
-test('adding tools to an organizer that is not there is not found', async () => {
+test('adding items to an organizer that is not there is not found', async () => {
   const { pool } = fakePool([[]])
 
-  assert.equal(await addTools(404, [5], 7, pool), null)
+  assert.equal(await addItems(404, [5], 7, pool), null)
 })
 
-test('taking a tool out touches the link and nothing else', async () => {
+test('taking an item out touches the link and nothing else', async () => {
   const { calls, pool } = fakePool([[{}]])
 
-  assert.equal(await removeTool(1, 5, pool), true)
-  assert.match(calls[0].text, /DELETE FROM "catalog"\."organizer_tool"/)
-  // The tool card is not touched. That is the whole point of the link table.
-  assert.doesNotMatch(calls[0].text, /"catalog"\."tool"\b/)
+  assert.equal(await removeItem(1, 5, pool), true)
+  assert.match(calls[0].text, /DELETE FROM "catalog"\."organizer_item"/)
+  // The item card is not touched. That is the whole point of the link table.
+  assert.doesNotMatch(calls[0].text, /"catalog"\."item"\b/)
 })
 
 test('the search matches the organizer and the case it is in', async () => {

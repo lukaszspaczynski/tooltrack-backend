@@ -17,7 +17,7 @@ export type RouteDomain =
   | 'organizers'
   | 'public'
   | 'settings'
-  | 'tools'
+  | 'items'
   | 'users'
 
 export type RouteCheck =
@@ -46,9 +46,9 @@ const WRITE_CATALOG: RouteCheck = { capability: 'catalog.write', kind: 'capabili
 const MANAGE_USERS: RouteCheck = { capability: 'users.manage', kind: 'capability' }
 const ALLOW: RouteCheck = { kind: 'allow' }
 
-// Order matters: the first matching pattern decides. `/api/tools/categories`
-// sits above `/api/tools/:id` because the id pattern would otherwise swallow
-// it and ask for a tool named "categories".
+// Order matters: the first matching pattern decides. `/api/items/categories`
+// sits above `/api/items/:id` because the id pattern would otherwise swallow
+// it and ask for an item named "categories".
 const RULES: readonly Rule[] = [
   {
     domain: 'public',
@@ -75,20 +75,20 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/auth\/sessions\/[^/]+$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/tools\/categories$/,
+    pattern: /^\/api\/items\/categories$/,
   },
   {
     // The parameter names in use across the catalog, like the category list
-    // above it — and above /api/tools/:id for the same reason.
-    domain: 'tools',
+    // above it — and above /api/items/:id for the same reason.
+    domain: 'items',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/tools\/attributes$/,
+    pattern: /^\/api\/items\/attributes$/,
   },
   {
     // Where this server can read a case from. Offered to anybody who may look
-    // at the catalog, for the same reason the tool list is.
+    // at the catalog, for the same reason the item list is.
     domain: 'cases',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/cases\/(?:import\/sources|attributes|systems)$/,
@@ -106,7 +106,7 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/cases\/\d+\/import$/,
   },
   {
-    // The spec sheet of a box, on the same terms as a tool's.
+    // The spec sheet of a box, on the same terms as an item's.
     domain: 'cases',
     methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG, POST: WRITE_CATALOG },
     pattern: /^\/api\/cases\/\d+\/attributes(?:\/[^/]+)?$/,
@@ -114,23 +114,23 @@ const RULES: readonly Rule[] = [
   {
     // Which shops this server can read. Offered to anybody who may look at the
     // catalog, because the import dialog says it before asking for an address.
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/tools\/import\/sources$/,
+    pattern: /^\/api\/items\/import\/sources$/,
   },
   {
     // Importing writes a card, its parameters and its photographs, so it asks
     // for what writing a card asks for.
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/import$/,
+    pattern: /^\/api\/items\/import$/,
   },
   {
     // Reading the page again into a card that exists. It overwrites most of
     // one, so it asks for the same thing.
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/import$/,
+    pattern: /^\/api\/items\/\d+\/import$/,
   },
   {
     // Places the kit is kept. Part of the catalog like everything else:
@@ -167,7 +167,7 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/brands\/\d+\/logo$/,
   },
   {
-    // The arrangement of tools in a case. Same split as everything else in the
+    // The arrangement of items in a case. Same split as everything else in the
     // catalog: looking is read, changing is write.
     domain: 'organizers',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
@@ -179,16 +179,16 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/organizers\/\d+$/,
   },
   {
-    // Putting a tool into an organizer, or taking it out. Neither touches the
-    // tool card, but both change what the catalog says is where.
+    // Putting an item into an organizer, or taking it out. Neither touches the
+    // item card, but both change what the catalog says is where.
     domain: 'organizers',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/organizers\/\d+\/tools$/,
+    pattern: /^\/api\/organizers\/\d+\/items$/,
   },
   {
     domain: 'organizers',
     methods: { DELETE: WRITE_CATALOG },
-    pattern: /^\/api\/organizers\/\d+\/tools\/\d+$/,
+    pattern: /^\/api\/organizers\/\d+\/items\/\d+$/,
   },
   {
     // The sizes the wizard may offer. Reading, like the organizer itself.
@@ -249,7 +249,7 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/labels\/sheet$/,
   },
   {
-    // Same shape as the tool rules, and above the :id pattern for the same
+    // Same shape as the item rules, and above the :id pattern for the same
     // reason: otherwise a request for the system list looks like a case named
     // "systems".
     domain: 'cases',
@@ -278,133 +278,133 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/cases\/\d+\/label-slots\/\d+$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools$/,
+    pattern: /^\/api\/items$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { DELETE: WRITE_CATALOG, GET: READ_CATALOG, PATCH: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/[^/]+$/,
+    pattern: /^\/api\/items\/[^/]+$/,
   },
   {
     // Duplicating writes a card, so it asks for what writing a card asks for.
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/duplicate$/,
+    pattern: /^\/api\/items\/\d+\/duplicate$/,
   },
   {
-    // The manuals of a tool. Reading one is reading the card; adding, renaming
+    // The manuals of an item. Reading one is reading the card; adding, renaming
     // or binning one is changing it.
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/manuals$/,
+    pattern: /^\/api\/items\/\d+\/manuals$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/manuals\/from-page$/,
+    pattern: /^\/api\/items\/\d+\/manuals\/from-page$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/manuals\/\d+$/,
+    pattern: /^\/api\/items\/\d+\/manuals\/\d+$/,
   },
   {
-    // The library: every manual there is, whichever tool keeps it. Looking is
+    // The library: every manual there is, whichever item keeps it. Looking is
     // reading the catalog; renaming one or taking it out of the catalog
     // altogether is changing it.
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/manuals$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/manuals\/delete$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { PATCH: WRITE_CATALOG },
     pattern: /^\/api\/manuals\/\d+$/,
   },
   {
     // Putting a document the catalog already has onto another card.
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/manuals\/attach$/,
+    pattern: /^\/api\/items\/\d+\/manuals\/attach$/,
   },
   {
     // The bytes of a manual, by the document's own id — it belongs to several
     // cards and none of them owns it. Readable by anyone who may read the
     // catalog, like the bytes of a photo.
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/manuals\/\d+\/file$/,
   },
   {
-    // What this tool is: 230 V, 300 rpm, SDS-plus. Part of the card, so
+    // What this item is: 230 V, 300 rpm, SDS-plus. Part of the card, so
     // reading one is reading the card and changing one is changing it. The
-    // parameters themselves come back with the tool, which is why there is no
+    // parameters themselves come back with the item, which is why there is no
     // GET here.
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/attributes$/,
+    pattern: /^\/api\/items\/\d+\/attributes$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
-    pattern: /^\/api\/tools\/\d+\/attributes\/\d+$/,
+    pattern: /^\/api\/items\/\d+\/attributes\/\d+$/,
   },
   {
     // The bytes of a photo. Readable by anyone who may read the catalog — the
     // picture is part of the card.
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/file$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/file$/,
   },
   {
     // The cutout writes a new photo, so it needs the capability to write one —
     // and it can cost a call to a paid service, which a viewer must not be
     // able to spend. The preview costs the same call, so it is not cheaper to
     // reach: all three paths ask for the same thing.
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/cutout$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/cutout$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: WRITE_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/\d+$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photos$/,
   },
   {
-    // Putting an existing photo on a tool changes the card, so it asks for
+    // Putting an existing photo on an item changes the card, so it asks for
     // what changing a card asks for.
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photos\/attach$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/attach$/,
   },
   {
     // Searching the web costs an API call and only exists to add a photo, so
     // it asks for the capability to add one. A viewer has no use for it.
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: WRITE_CATALOG },
-    pattern: /^\/api\/(?:tools|cases)\/\d+\/photo-suggestions$/,
+    pattern: /^\/api\/(?:items|cases)\/\d+\/photo-suggestions$/,
   },
   {
     // Everyone who may search needs to see which engines are on — that is what
@@ -442,18 +442,18 @@ const RULES: readonly Rule[] = [
   {
     // The whole photo library. Readable with the catalog, because the pictures
     // are the catalog; removable only by someone who may change it.
-    domain: 'tools',
+    domain: 'items',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
     pattern: /^\/api\/photos$/,
   },
   {
-    // The bytes of any photo, attached to a tool or not.
-    domain: 'tools',
+    // The bytes of any photo, attached to an item or not.
+    domain: 'items',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/photos\/\d+\/file$/,
   },
   {
-    domain: 'tools',
+    domain: 'items',
     methods: { POST: WRITE_CATALOG },
     pattern: /^\/api\/photos\/delete$/,
   },
@@ -498,7 +498,7 @@ export function satisfiesRequirement(user: null | undefined | User, requirement:
 function domainOf(pathname: string): RouteDomain {
   if (pathname.startsWith('/api/auth/')) return 'auth'
   if (pathname.startsWith('/api/settings/') || pathname.startsWith('/api/me/')) return 'settings'
-  if (pathname.startsWith('/api/tools')) return 'tools'
+  if (pathname.startsWith('/api/items')) return 'items'
   if (pathname.startsWith('/api/users')) return 'users'
   return 'public'
 }

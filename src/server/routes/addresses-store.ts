@@ -1,7 +1,7 @@
-// Everything that touches `catalog.address`: the places tools and arrangements
+// Everything that touches `catalog.address`: the places items and arrangements
 // are kept.
 //
-// Every row carries how many tools and how many arrangements point at it. Not
+// Every row carries how many items and how many arrangements point at it. Not
 // a convenience — it is what makes the list readable ("most of the kit is in
 // the workshop") and what a delete confirmation has to say before anybody
 // agrees to it, since removing a place quietly empties the field on everything
@@ -23,13 +23,13 @@ export type Address = {
   id: number
   name: string
   notes: string
-  // How many tools and arrangements say they are here. Read on the list as
+  // How many items and arrangements say they are here. Read on the list as
   // well as on one address, because "which of these is empty" is the question
   // that decides what can be tidied away.
   organizerCount: number
   postalCode: string
   street: string
-  toolCount: number
+  itemCount: number
   unit: string
   updatedAt: string
   updatedBy: null | number
@@ -64,7 +64,7 @@ type AddressRow = {
   organizer_count: number | string
   postal_code: string
   street: string
-  tool_count: number | string
+  item_count: number | string
   total_count?: number | string
   unit: string
   updated_at: Date | string
@@ -91,11 +91,11 @@ const ADDRESS_COLUMNS = `
 `
 
 // The counts as subqueries rather than as joins. Two joins against one row
-// multiply each other — three tools and two arrangements would read as six of
+// multiply each other — three items and two arrangements would read as six of
 // each — and the fix for that is either DISTINCT on every column or this.
 const COUNTS = `
-  (SELECT count(*) FROM "catalog"."tool" AS "t" WHERE "t"."address_id" = "a"."id")
-    AS "tool_count",
+  (SELECT count(*) FROM "catalog"."item" AS "t" WHERE "t"."address_id" = "a"."id")
+    AS "item_count",
   (SELECT count(*) FROM "catalog"."organizer" AS "o" WHERE "o"."address_id" = "a"."id")
     AS "organizer_count"
 `
@@ -104,7 +104,7 @@ const COUNTS = `
 const SORT_COLUMNS: Record<AddressQuery['sort'], string> = {
   city: 'lower("a"."city")',
   name: 'lower("a"."name")',
-  tools: '"tool_count"',
+  items: '"item_count"',
 }
 
 export async function listAddresses(
@@ -171,7 +171,7 @@ export async function createAddress(
         INSERT INTO "catalog"."address" (${columns.join(', ')}, "created_by", "updated_by")
         VALUES (${placeholders.join(', ')}, $1, $1)
         RETURNING ${ADDRESS_COLUMNS.replaceAll('"a".', '')},
-                  0 AS "tool_count", 0 AS "organizer_count"
+                  0 AS "item_count", 0 AS "organizer_count"
       `,
       [actorId, ...entries.map(([field]) => fields[field])],
     )
@@ -222,7 +222,7 @@ export async function updateAddress(
   }
 }
 
-// The tools and arrangements stay; their `address_id` is set to null by the
+// The items and arrangements stay; their `address_id` is set to null by the
 // foreign key. That is the whole reason this is allowed to be a plain delete:
 // closing a site is a normal thing to do, and it must not take the kit that
 // was on it out of the catalog.
@@ -268,7 +268,7 @@ function toAddress(row: AddressRow): Address {
     organizerCount: Number(row.organizer_count),
     postalCode: row.postal_code,
     street: row.street,
-    toolCount: Number(row.tool_count),
+    itemCount: Number(row.item_count),
     unit: row.unit,
     updatedAt: toIsoString(row.updated_at),
     updatedBy: row.updated_by === null ? null : Number(row.updated_by),

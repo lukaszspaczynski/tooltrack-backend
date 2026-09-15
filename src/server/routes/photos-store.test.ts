@@ -58,7 +58,7 @@ function photoRow(overrides: Record<string, unknown> = {}) {
   }
 }
 
-const TOOL = { id: 9, kind: 'tool' } as const
+const TOOL = { id: 9, kind: 'item' } as const
 const CASE = { id: 4, kind: 'case' } as const
 
 test('a card reads its photos through the link table', async () => {
@@ -69,7 +69,7 @@ test('a card reads its photos through the link table', async () => {
   assert.equal(photos[0].isPrimary, true)
   // Addressed by the picture's own id: it is not reached through any one card.
   assert.equal(photos[0].url, '/api/photos/5/file')
-  assert.match(calls[0].text, /FROM "catalog"\."photo_tool"/)
+  assert.match(calls[0].text, /FROM "catalog"\."photo_item"/)
   assert.match(calls[0].text, /JOIN "catalog"\."photo"/)
   // Main photo first, then in the order the pictures were attached to this
   // card — not the order they were uploaded.
@@ -114,7 +114,7 @@ test('the first picture of a card becomes its main one, decided in the insert', 
   assert.equal(photo.isPrimary, true)
   // NOT EXISTS in the same statement, so two uploads racing cannot both decide
   // they are the first.
-  assert.match(calls[0].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_tool"/)
+  assert.match(calls[0].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_item"/)
 })
 
 test('attaching a picture the card already shows is refused, not duplicated', async () => {
@@ -155,9 +155,9 @@ test('taking a picture off its last card deletes the picture', async () => {
   ])
 
   assert.equal(await unlinkPhoto(TOOL, 5, pool), true)
-  assert.match(calls[1].text, /DELETE FROM "catalog"\."photo_tool"/)
+  assert.match(calls[1].text, /DELETE FROM "catalog"\."photo_item"/)
   assert.match(calls[2].text, /DELETE FROM "catalog"\."photo"/)
-  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_tool"/)
+  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_item"/)
   assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."photo_case"/)
 })
 
@@ -170,9 +170,9 @@ test('what a card is the only home of is asked before it is deleted, not after',
   assert.deepEqual(await exclusivePhotoIds(TOOL, pool), [5, 7])
 
   const [{ text, params }] = calls
-  assert.match(text, /FROM "catalog"\."photo_tool" AS "l"/)
+  assert.match(text, /FROM "catalog"\."photo_item" AS "l"/)
   // Another card of the same kind, one of the other kind, or a maker's logo.
-  assert.match(text, /"same"\."tool_id" <> \$1/)
+  assert.match(text, /"same"\."item_id" <> \$1/)
   assert.match(text, /FROM "catalog"\."photo_case" AS "cross"/)
   assert.match(text, /FROM "catalog"\."photo_brand" AS "logo"/)
   assert.deepEqual(params, [TOOL.id])
@@ -185,13 +185,13 @@ test('a case asks the same question about its own table', async () => {
 
   assert.match(calls[0].text, /FROM "catalog"\."photo_case" AS "l"/)
   assert.match(calls[0].text, /"same"\."case_id" <> \$1/)
-  assert.match(calls[0].text, /FROM "catalog"\."photo_tool" AS "cross"/)
+  assert.match(calls[0].text, /FROM "catalog"\."photo_item" AS "cross"/)
 })
 
 test('a picture that is a maker’s logo is not deleted with the card it sat on', async () => {
   // photo_brand cascades on the photo, so a rule that only knows about cards
   // does not fail here — it quietly takes the logo off a brand that had
-  // nothing to do with the tool being deleted.
+  // nothing to do with the item being deleted.
   const { calls, pool } = fakePool([
     [], // BEGIN
     [{ is_primary: false }], // the link, removed
@@ -234,17 +234,17 @@ test('deleting nothing touches no database', async () => {
 test('a bulk delete reports every card that now shows a different main photo', async () => {
   const { pool } = fakePool([
     [], // BEGIN
-    [{ owner_id: '9' }], // tools losing their primary
+    [{ owner_id: '9' }], // items losing their primary
     [], // cases losing theirs
     [{ storage_key: 'ab/one.png' }], // the pictures, deleted
-    [{}], // the promotion on tool 9
+    [{}], // the promotion on item 9
     [], // nothing else points at the file
   ])
 
   const result = await deletePhotosByIds([5], pool)
 
   assert.equal(result.deleted, 1)
-  assert.deepEqual(result.promoted, [{ id: 9, kind: 'tool' }])
+  assert.deepEqual(result.promoted, [{ id: 9, kind: 'item' }])
 })
 
 test('the library lists a picture once, with every card that shows it', async () => {
@@ -253,7 +253,7 @@ test('the library lists a picture once, with every card that shows it', async ()
       {
         ...photoRow(),
         owners: [
-          { id: '9', isPrimary: true, kind: 'tool', name: 'Szlifierka' },
+          { id: '9', isPrimary: true, kind: 'item', name: 'Szlifierka' },
           { id: '4', isPrimary: false, kind: 'case', name: 'Toolbox' },
         ],
         total_count: '1',
@@ -269,10 +269,10 @@ test('the library lists a picture once, with every card that shows it', async ()
   // One row, two cards — the point of the link tables.
   assert.equal(page.items.length, 1)
   assert.deepEqual(page.items[0].owners, [
-    { id: 9, isPrimary: true, kind: 'tool', name: 'Szlifierka' },
+    { id: 9, isPrimary: true, kind: 'item', name: 'Szlifierka' },
     { id: 4, isPrimary: false, kind: 'case', name: 'Toolbox' },
   ])
-  // The same picture heads the tool and sits behind another on the case: a
+  // The same picture heads the item and sits behind another on the case: a
   // fact about each pairing, which is why it travels with the card and not
   // with the picture.
   // The search matches the cards, because a picture has no name of its own.
@@ -328,14 +328,14 @@ test('the assigned filter asks whether any card shows it', async () => {
 })
 
 test('copying a card onto another keeps which picture is the main one', async () => {
-  // Duplicating a tool: the copy shows the same pictures, headed by the same
+  // Duplicating an item: the copy shows the same pictures, headed by the same
   // one. A link each, no second file.
   const { calls, pool } = fakePool([[{}, {}]])
 
-  const copied = await copyPhotoLinks(TOOL, { id: 12, kind: 'tool' }, 1, pool)
+  const copied = await copyPhotoLinks(TOOL, { id: 12, kind: 'item' }, 1, pool)
 
   assert.equal(copied, 2)
-  assert.match(calls[0].text, /INSERT INTO "catalog"\."photo_tool"/)
+  assert.match(calls[0].text, /INSERT INTO "catalog"\."photo_item"/)
   assert.match(calls[0].text, /SELECT \$2, "photo_id", "is_primary", \$3/)
   assert.deepEqual(calls[0].params, [9, 12, 1])
 })

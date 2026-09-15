@@ -1,6 +1,6 @@
 // Photographs, wherever they hang.
 //
-// A case carries pictures on exactly the same terms as a tool, and one module
+// A case carries pictures on exactly the same terms as an item, and one module
 // in src/server/routes/photos.ts serves both — which of the two is in the path
 // is the only difference that reaches the SQL. So the two families are written
 // here once and produced twice, rather than copied: routes that are the same
@@ -83,7 +83,7 @@ const LINKS_SCHEMA: Schema = {
 }
 
 type Family = {
-  // 'tools' or 'cases', as the path spells it.
+  // 'items' or 'cases', as the path spells it.
   owner: string
   // What one of them is, for a path parameter description.
   card: string
@@ -92,7 +92,7 @@ type Family = {
 }
 
 const FAMILIES: Family[] = [
-  { card: 'The tool card.', owner: 'tools', suffix: 'Tool' },
+  { card: 'The item card.', owner: 'items', suffix: 'Item' },
   { card: 'The case.', owner: 'cases', suffix: 'Case' },
 ]
 
@@ -234,7 +234,7 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
     },
     {
       description:
-        'The one-click edit: the thing alone, without the bench it was photographed on.\n\nIt **adds** a photograph rather than replacing one. The original stays and the two are linked by `derivedFrom`, so a cutout that mangled the tool is one delete away from undone. The new photograph does not become the main one on its own — whether the cutout is better than the photograph is a judgement, and the person looking at both makes it.\n\nThe default method needs no key and no service, and refuses with a 422 rather than returning half a cut-out workbench.',
+        'The one-click edit: the thing alone, without the bench it was photographed on.\n\nIt **adds** a photograph rather than replacing one. The original stays and the two are linked by `derivedFrom`, so a cutout that mangled the item is one delete away from undone. The new photograph does not become the main one on its own — whether the cutout is better than the photograph is a judgement, and the person looking at both makes it.\n\nThe default method needs no key and no service, and refuses with a 422 rather than returning half a cut-out workbench.',
       operationId: `cutout${suffix}Photo`,
       pathParams: onPhoto,
       responses: {
@@ -309,10 +309,10 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
       description: [
         'Links and thumbnails, nothing downloaded: the client shows them, somebody ticks the ones that are actually this machine, and `POST …/photos` with those addresses is what puts bytes on our disk. It needs `catalog.write` for that reason — it is the first half of an edit.',
         '',
-        'Without `q` the query is built from the card: a tool by its maker and model, a case by who makes it and what it is called.',
+        'Without `q` the query is built from the card: an item by its maker and model, a case by who makes it and what it is called.',
         '',
         'Every engine enabled for this account is asked in parallel and contributes its own share; one failing costs its results rather than the search, and `failed` says which. With no engine enabled at all the answer is 503 — the catalog is fine, this one integration is not.',
-        suffix === 'Tool'
+        suffix === 'Item'
           ? '\n`?source=page` reads the product page this card was imported from instead of the engines. Not a search: the address is written on the card, so it is the one source that cannot return somebody else’s machine.'
           : '\n`?source=page` answers 422 here: a case is not imported from anywhere.',
       ].join('\n'),
@@ -357,7 +357,7 @@ function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {
 const LIBRARY_OPERATIONS: OperationSpec[] = [
   {
     description:
-      'Every photograph on disk, newest first, because the library is opened right after an import went wrong. `q` matches the tool a picture belongs to rather than the picture: a photograph has no name of its own, and "which tool was this" is the question people ask.',
+      'Every photograph on disk, newest first, because the library is opened right after an import went wrong. `q` matches the item a picture belongs to rather than the picture: a photograph has no name of its own, and "which item was this" is the question people ask.',
     operationId: 'listLibraryPhotos',
     query: [
       queryParam('q', 'Matches the card the photograph belongs to.', { type: 'string' }),

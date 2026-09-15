@@ -82,7 +82,7 @@ test('a spec row is two cells', () => {
 
 test('a photograph is kept at the size it was published', () => {
   // `?resize=530x530` is the layout talking, and the site's own furniture is
-  // not a picture of the tool.
+  // not a picture of the item.
   assert.deepEqual(photosOf(page()), [
     'https://www.stanleyworks.pl/EMEA/PRODUCT/IMAGES/HIRES/6-TRE650_3.jpg',
   ])

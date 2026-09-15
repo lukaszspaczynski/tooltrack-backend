@@ -38,7 +38,7 @@ function canvas(width: number, height: number, background = 255) {
   return { height, paint, pixels, width }
 }
 
-test('a dark tool on white is found and cropped to its outline', () => {
+test('a dark item on white is found and cropped to its outline', () => {
   const image = canvas(100, 100)
   image.paint(30, 40, 20, 10, 20)
 
@@ -70,7 +70,7 @@ test('padding grows the crop but stays inside the frame', () => {
 
 test('only the largest object survives — the bits lying next to it do not', () => {
   const image = canvas(120, 120)
-  image.paint(20, 20, 40, 40, 30) // the tool
+  image.paint(20, 20, 40, 40, 30) // the item
   image.paint(90, 90, 8, 8, 30) // a drill bit in the corner of the frame
 
   const plan = planCutout(image.pixels, image.width, image.height, {
@@ -83,7 +83,7 @@ test('only the largest object survives — the bits lying next to it do not', ()
   assert.equal(plan.mask[93 * 120 + 93], 0)
 })
 
-test('a light label inside the tool stays part of the tool', () => {
+test('a light label inside the item stays part of the item', () => {
   // This is the difference from the original method: the background is what
   // touches the edge, so an enclosed white patch is not background and does
   // not become a hole in the cutout.
@@ -101,7 +101,7 @@ test('a light label inside the tool stays part of the tool', () => {
 })
 
 test('a photo without a plain light background is refused', () => {
-  // A tool on a workbench: there is no background to flood in from the edge,
+  // An item on a workbench: there is no background to flood in from the edge,
   // and half a cut-out bench is worse than no cutout.
   const image = canvas(80, 80, 90)
   image.paint(30, 30, 20, 20, 10)
@@ -122,7 +122,7 @@ test('a close-up with nothing to trim is refused', () => {
   assert.match(plan.ok ? '' : plan.reason, /wypełnia już całe zdjęcie/)
 })
 
-test('a speck of dust is not a tool', () => {
+test('a speck of dust is not an item', () => {
   const image = canvas(200, 200)
   image.paint(100, 100, 2, 2, 0)
 

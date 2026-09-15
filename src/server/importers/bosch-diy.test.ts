@@ -105,7 +105,7 @@ test('a page that is not a product is refused', () => {
 test('the numbers describe the configuration the page is about', () => {
   // A product page offers several kits — with a battery, with two, with
   // neither — and only one of them is the thing at this address. The others
-  // describe a tool nobody bought.
+  // describe an item nobody bought.
   const attributes = parseBoschDiyProduct(page(), PAGE_URL)?.attributes ?? []
   const value = (name: string) => attributes.find((entry) => entry.name === name)?.value
 

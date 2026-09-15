@@ -6,7 +6,7 @@
 // Nothing here re-checks a role; a handler that decided access for itself
 // would be a second answer to a question the policy already answers.
 //
-// Photos of a case are not here: they are the same routes as a tool's, under
+// Photos of a case are not here: they are the same routes as an item's, under
 // /api/cases/:id/photos, served by routes/photos.ts.
 
 import { parseCaseCreate, parseCasePatch, parseCaseQuery, parseLabelSlot } from './cases-input'
@@ -32,7 +32,7 @@ import {
   updateAttribute,
 } from './attributes-store'
 import { parseOwnerId } from './photo-owner'
-import { parseAttributeCreate, parseAttributePatch } from './tools-input'
+import { parseAttributeCreate, parseAttributePatch } from './items-input'
 import { dropOrphanedPhotos, photoIdsOf, photoUrl, primaryPhotoIds } from './photos-store'
 import type { RouteContext } from '../route-context'
 
@@ -113,7 +113,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   const deleted = await deleteCase(id)
   if (!deleted) return notFound()
 
-  // The pictures no other card shows go with it. One that a tool inside the
+  // The pictures no other card shows go with it. One that an item inside the
   // case also uses stays, which is the whole point of the links.
   await dropOrphanedPhotos(photoIds)
   // No cascade does this: the attribute table's pair is not a foreign key,
@@ -182,7 +182,7 @@ async function readJson(request: Request): Promise<unknown> {
   }
 }
 
-// The parameters under a case, on exactly the terms a tool's are: a name and a
+// The parameters under a case, on exactly the terms an item's are: a name and a
 // value, both free text, unique per case. The columns hold what every box has —
 // a length is a length — and this holds what they do not: a stacking system, a
 // lid type, whatever the next kind of box turns out to state.

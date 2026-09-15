@@ -7,7 +7,7 @@
 // runs each request inside `withLanguage`, and `t` reads it from there.
 //
 // Outside a request there is no store and `t` answers in Polish, which is what
-// a script, a test, or the schema tool gets, and what this API said before it
+// a script, a test, or the schema item gets, and what this API said before it
 // said anything else.
 
 import { AsyncLocalStorage } from 'node:async_hooks'

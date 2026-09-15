@@ -31,7 +31,7 @@ export type OperationSpec = {
   query?: Parameter[]
   requestBody?: RequestBody
   responses: Record<string, Response>
-  // 'GET /api/tools/:id', as ROUTES writes it.
+  // 'GET /api/items/:id', as ROUTES writes it.
   route: string
   summary: string
   tag: string

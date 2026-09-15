@@ -38,7 +38,7 @@ function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     organizer_count: '2',
     postal_code: '02-566',
     street: 'Puławska',
-    tool_count: '7',
+    item_count: '7',
     unit: '3',
     updated_at: '2026-01-02T00:00:00.000Z',
     updated_by: '3',
@@ -51,7 +51,7 @@ test('a place comes back with what is kept there counted', async () => {
   const page = await listAddresses(parsed(''), pool)
 
   assert.equal(page.total, 1)
-  assert.equal(page.items[0].toolCount, 7)
+  assert.equal(page.items[0].itemCount, 7)
   assert.equal(page.items[0].organizerCount, 2)
   // snake_case to camelCase, like every other store here.
   assert.equal(page.items[0].postalCode, '02-566')
@@ -64,14 +64,14 @@ test('an empty page is a total of zero, not an unknown total', async () => {
 })
 
 test('the counts are subqueries, not joins', async () => {
-  // Two joins against one row multiply each other: three tools and two
+  // Two joins against one row multiply each other: three items and two
   // arrangements would read as six of each. The fix is either DISTINCT on
   // every column or this.
   const { calls, pool } = fakePool([])
 
   await listAddresses(parsed(''), pool)
 
-  assert.match(calls[0].text, /\(SELECT count\(\*\) FROM "catalog"\."tool"/)
+  assert.match(calls[0].text, /\(SELECT count\(\*\) FROM "catalog"\."item"/)
   assert.match(calls[0].text, /\(SELECT count\(\*\) FROM "catalog"\."organizer"/)
   assert.doesNotMatch(calls[0].text, /JOIN/)
 })
@@ -124,7 +124,7 @@ test('a patch writes only what it carries', async () => {
 
 test('deleting a place is a plain delete, and the kit is not part of it', async () => {
   // The foreign key sets address_id to null on whatever was here. Closing a
-  // site must not take the tools out of the catalog.
+  // site must not take the items out of the catalog.
   const { calls, pool } = fakePool([{}])
 
   assert.equal(await deleteAddress(4, pool), true)

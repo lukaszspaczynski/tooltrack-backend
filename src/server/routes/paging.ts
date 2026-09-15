@@ -16,7 +16,7 @@ export type Paging = {
   max: number
 }
 
-export const TOOL_PAGING: Paging = { default: 50, max: 200 }
+export const ITEM_PAGING: Paging = { default: 50, max: 200 }
 export const CASE_PAGING: Paging = { default: 50, max: 200 }
 export const ORGANIZER_PAGING: Paging = { default: 50, max: 200 }
 // Wider, because a shelf of makers is short and read whole.

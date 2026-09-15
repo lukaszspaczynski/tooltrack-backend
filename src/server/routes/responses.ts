@@ -1,6 +1,6 @@
 // The answers that are more than an envelope.
 //
-// Most routes answer `{ tool }` or `{ case }` — a single key around a value
+// Most routes answer `{ item }` or `{ case }` — a single key around a value
 // that already has a name, where the compiler knows the shape and there is
 // nothing to get wrong. These are the others: the ones a handler assembles
 // from several facts, which is exactly where a shape can drift from what the
@@ -9,7 +9,7 @@
 // They live here rather than in the handlers because the OpenAPI schemas are
 // generated from types. Written as a literal, each of these had to be described
 // a second time by hand in src/openapi/, and the two could disagree — which is
-// how `ToolListItem` and `CaseListItem` came to be missing two fields each.
+// how `ItemSummary` and `CaseListItem` came to be missing two fields each.
 //
 // The rule the rest of the codebase follows: if a handler builds anything other
 // than `{ key: <already-named-thing> }`, the shape gets a name here.
@@ -20,7 +20,7 @@ import type { CardPhoto } from './photos-store'
 import type { Manual } from './manuals-store'
 import type { Organizer } from './organizers-store'
 import type { PhotoOwner } from './photo-owner'
-import type { ToolDetail } from './tools-store'
+import type { ItemDetail } from './items-store'
 
 // What a login, a registration and "who am I" all answer with. The account,
 // and what its role actually allows — the client renders its menu from the
@@ -58,7 +58,7 @@ export type ImportOutcome = {
 
 export type ImportResponse = {
   imported: ImportOutcome
-  tool: null | ToolDetail
+  item: null | ItemDetail
 }
 
 // A cutout that has been run but not kept. The checksum is what the commit
@@ -118,7 +118,7 @@ export type ManualAttachResponse = {
 // What a bulk manual delete took, and off which cards.
 export type ManualDeleteResponse = {
   deleted: number
-  tools: { id: number; name: string }[]
+  items: { id: number; name: string }[]
 }
 
 // Redrawing labels: how many were drawn, and which were not, because a label

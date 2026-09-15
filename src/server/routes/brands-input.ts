@@ -30,7 +30,7 @@ export type BrandQuery = {
   limit: number
   offset: number
   search: null | string
-  sort: 'name' | 'tools'
+  sort: 'name' | 'items'
 }
 
 // The two spellings are both strings on the wire, so that is what the contract
@@ -112,6 +112,6 @@ export function parseBrandQuery(params: URLSearchParams): Parsed<BrandQuery> {
     limit: clampLimit(params.get('limit'), BRAND_PAGING),
     offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
-    sort: params.get('sort')?.trim() === 'tools' ? 'tools' : 'name',
+    sort: params.get('sort')?.trim() === 'items' ? 'items' : 'name',
   })
 }

@@ -9,7 +9,7 @@
 //
 // The cost is size: a photograph that arrives as a 200 kB JPEG leaves here as
 // a PNG several times larger, because PNG is lossless and photographs are not
-// what it was designed for. For a tool catalog measured in hundreds of
+// what it was designed for. For an item catalog measured in hundreds of
 // pictures that is an acceptable trade for never failing to read one.
 
 import sharp from 'sharp'

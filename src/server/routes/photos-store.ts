@@ -2,8 +2,8 @@
 // src/server/photo-storage.ts owns the bytes; this module owns the rows.
 //
 // A photo row is one picture, once. Which cards show it lives in
-// `photo_tool` and `photo_case`, so the same photograph can illustrate several
-// tools, several cases, and a tool together with the case it lives in — with
+// `photo_item` and `photo_case`, so the same photograph can illustrate several
+// items, several cases, and an item together with the case it lives in — with
 // its attribution, its source and its cutout lineage written down a single
 // time instead of copied per card.
 //
@@ -111,7 +111,7 @@ export async function listPhotos(owner: PhotoOwner, pool: PgPool = db()): Promis
   return result.rows.map(toCardPhoto)
 }
 
-// One query for a whole page of tools or cases, so a grid can show thumbnails
+// One query for a whole page of items or cases, so a grid can show thumbnails
 // without asking per card.
 export async function primaryPhotoIds(
   kind: PhotoOwnerKind,
@@ -399,12 +399,15 @@ export async function listAllPhotos(
     `
       WITH "owners" AS (
         SELECT "l"."photo_id",
-               jsonb_agg(jsonb_build_object('kind', 'tool', 'id', "t"."id", 'name', "t"."name",
+               jsonb_agg(jsonb_build_object('kind', 'item', 'id', "t"."id", 'name', "t"."name",
                                             'isPrimary', "l"."is_primary")
                          ORDER BY "t"."name") AS "refs",
-               string_agg("t"."name" || ' ' || "t"."brand" || ' ' || "t"."model", ' ') AS "text"
-        FROM "catalog"."photo_tool" AS "l"
-        JOIN "catalog"."tool" AS "t" ON "t"."id" = "l"."tool_id"
+               string_agg(
+                 "t"."name" || ' ' || coalesce("b"."name", '') || ' ' || "t"."model", ' '
+               ) AS "text"
+        FROM "catalog"."photo_item" AS "l"
+        JOIN "catalog"."item" AS "t" ON "t"."id" = "l"."item_id"
+        LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "t"."brand_id"
         GROUP BY "l"."photo_id"
         UNION ALL
         SELECT "l"."photo_id",
@@ -520,7 +523,7 @@ export async function deletePhotosByIds(
   const { promoted, removed, storageKeys } = await withTransaction(pool, async (client) => {
     // Which cards are about to lose their main photo, read before the rows go.
     const orphaned: PhotoOwner[] = []
-    for (const kind of ['tool', 'case'] as const) {
+    for (const kind of ['item', 'case'] as const) {
       const found = await client.query<{ owner_id: string }>(
         `SELECT "${ownerColumn(kind)}" AS "owner_id" FROM "catalog"."${linkTable(kind)}"
          WHERE "photo_id" = ANY($1::bigint[]) AND "is_primary"`,
@@ -579,7 +582,7 @@ export async function deletePhotosByIds(
 // the files that nothing points at. Shared by the per-card bin and by deleting
 // a whole card.
 //
-// Three things hold a picture, not two: a tool, a case, and a maker whose logo
+// Three things hold a picture, not two: an item, a case, and a maker whose logo
 // it is. `photo_brand` cascades on the photo, so leaving it out here does not
 // fail — it quietly takes the logo off a brand that had nothing to do with the
 // card being deleted. The media library has always said as much before
@@ -594,7 +597,7 @@ async function dropIfUnused(
     `
       DELETE FROM "catalog"."photo" AS "p"
       WHERE "p"."id" = ANY($1::bigint[])
-        AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_tool" WHERE "photo_id" = "p"."id")
+        AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_item" WHERE "photo_id" = "p"."id")
         AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_case" WHERE "photo_id" = "p"."id")
         AND NOT EXISTS (SELECT 1 FROM "catalog"."photo_brand" WHERE "photo_id" = "p"."id")
       RETURNING "storage_key"
@@ -622,7 +625,7 @@ async function dropIfUnused(
 // them, since that is the link about to disappear. A confirmation that says
 // "and its photographs" without a number is a confirmation nobody can weigh.
 export async function exclusivePhotoIds(owner: PhotoOwner, pool: PgPool = db()): Promise<number[]> {
-  const other: PhotoOwnerKind = owner.kind === 'tool' ? 'case' : 'tool'
+  const other: PhotoOwnerKind = owner.kind === 'item' ? 'case' : 'item'
 
   const result = await pool.query<{ photo_id: number | string }>(
     `
@@ -649,7 +652,7 @@ export async function exclusivePhotoIds(owner: PhotoOwner, pool: PgPool = db()):
   return result.rows.map((row) => Number(row.photo_id))
 }
 
-// Called when a whole tool or case goes. Its links cascade away with it; this
+// Called when a whole item or case goes. Its links cascade away with it; this
 // clears the pictures that nothing shows any more, so deleting a card still
 // takes its photographs with it rather than filling the library.
 export async function dropOrphanedPhotos(photoIds: number[], pool: PgPool = db()): Promise<number> {

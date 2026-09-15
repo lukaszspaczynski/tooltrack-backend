@@ -10,7 +10,7 @@ const IMPORT_URL_BODY = jsonBody(ref('ImportUrlBody'), 'The address of the page 
 export const IMPORT_OPERATIONS: OperationSpec[] = [
   {
     description:
-      'What the import dialog lists before asking for an address. `manuals` says whether that source publishes documents at all: a shop sells the tool and leaves the manual to the maker, so a screen asking for one offers only the sources that have any.',
+      'What the import dialog lists before asking for an address. `manuals` says whether that source publishes documents at all: a shop sells the item and leaves the manual to the maker, so a screen asking for one offers only the sources that have any.',
     operationId: 'listImportSources',
     responses: {
       200: jsonResponse(
@@ -19,7 +19,7 @@ export const IMPORT_OPERATIONS: OperationSpec[] = [
       ),
       ...errors(401, 403),
     },
-    route: 'GET /api/tools/import/sources',
+    route: 'GET /api/items/import/sources',
     summary: 'The sources that can be imported from',
     tag: 'import',
   },
@@ -31,7 +31,7 @@ export const IMPORT_OPERATIONS: OperationSpec[] = [
       '',
       'Every imported card carries a `referenceUrl` holding the address it was read from, with any analytics tail removed. A field on the card rather than a parameter on its sheet: a card has exactly one, and the analytics tail a shop adds to a shared link is not part of it.',
     ].join('\n'),
-    operationId: 'importTool',
+    operationId: 'importItem',
     requestBody: IMPORT_URL_BODY,
     responses: {
       201: jsonResponse('The card, and what came with it.', ref('ImportResponse')),
@@ -41,7 +41,7 @@ export const IMPORT_OPERATIONS: OperationSpec[] = [
       ),
       ...errors(401, 403, 422, 503),
     },
-    route: 'POST /api/tools/import',
+    route: 'POST /api/items/import',
     summary: 'Import a card from a product page',
     tag: 'import',
   },
@@ -53,7 +53,7 @@ export const IMPORT_OPERATIONS: OperationSpec[] = [
       '',
       'The parameters and the documents are cleared and written again rather than merged: the page is the source of truth for what a machine is, so a parameter the maker has dropped should leave the card.',
     ].join('\n'),
-    operationId: 'refreshToolFromPage',
+    operationId: 'refreshItemFromPage',
     pathParams: { id: 'The card to read the page into.' },
     requestBody: IMPORT_URL_BODY,
     responses: {
@@ -63,7 +63,7 @@ export const IMPORT_OPERATIONS: OperationSpec[] = [
       ),
       ...errors(400, 401, 403, 404, 422, 503),
     },
-    route: 'POST /api/tools/:id/import',
+    route: 'POST /api/items/:id/import',
     summary: 'Read the page again into an existing card',
     tag: 'import',
   },

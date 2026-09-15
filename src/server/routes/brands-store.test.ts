@@ -24,7 +24,7 @@ function brandRow(overrides: Record<string, unknown> = {}) {
     logo_photo_id: null,
     name: 'Bosch',
     notes: '',
-    tool_count: '4',
+    item_count: '4',
     updated_at: '2026-01-02T00:00:00.000Z',
     updated_by: '1',
     ...overrides,
@@ -64,7 +64,7 @@ const query = {
   sort: 'name' as const,
 }
 
-test('the list carries the logo and how many tools name the maker', async () => {
+test('the list carries the logo and how many items name the maker', async () => {
   // Both as aggregates in the one statement: a screen of makers would
   // otherwise ask per row, twice.
   const { calls, pool } = fakePool([[]])
@@ -72,13 +72,13 @@ test('the list carries the logo and how many tools name the maker', async () => 
   await listBrands(query, pool)
 
   assert.match(calls[0].text, /FROM "catalog"\."photo_brand"/)
-  assert.match(calls[0].text, /FROM "catalog"\."tool" WHERE "brand_id"/)
+  assert.match(calls[0].text, /FROM "catalog"\."item" WHERE "brand_id"/)
   assert.equal(calls.length, 1)
 })
 
 test('two makers cannot share a name, whatever the capitals', async () => {
   // "Bosch" and "BOSCH" typed on two days are the same company, and two rows
-  // would split its tools in half.
+  // would split its items in half.
   const { pool } = fakePool([], { code: '23505', on: /INSERT INTO "catalog"\."brand"/ })
 
   await assert.rejects(
@@ -87,7 +87,7 @@ test('two makers cannot share a name, whatever the capitals', async () => {
   )
 })
 
-test('renaming a maker renames it on its tools as well', async () => {
+test('renaming a maker renames it on its items as well', async () => {
   // The card carries the name as text, which is what the catalog searches.
   // Renaming one without the other leaves them telling different stories.
   const { calls, pool } = fakePool([
@@ -99,18 +99,18 @@ test('renaming a maker renames it on its tools as well', async () => {
 
   await updateBrand(1, { name: 'Bosch Professional' }, 7, pool)
 
-  const update = calls.find((call) => /UPDATE "catalog"\."tool" SET "brand"/.test(call.text))
-  assert.ok(update, 'the tools should be renamed too')
+  const update = calls.find((call) => /UPDATE "catalog"\."item" SET "brand"/.test(call.text))
+  assert.ok(update, 'the items should be renamed too')
   assert.deepEqual(update!.params, [1, 'Bosch Professional'])
 })
 
-test('a rename that touches no tools still only runs inside the transaction', async () => {
+test('a rename that touches no items still only runs inside the transaction', async () => {
   const { calls, pool } = fakePool([[], [{ id: '1' }], [], [brandRow()]])
 
   await updateBrand(1, { notes: 'tylko notatka' }, 7, pool)
 
-  // No name in the patch, so nothing on the tools is touched.
-  assert.equal(calls.filter((call) => /UPDATE "catalog"\."tool"/.test(call.text)).length, 0)
+  // No name in the patch, so nothing on the items is touched.
+  assert.equal(calls.filter((call) => /UPDATE "catalog"\."item"/.test(call.text)).length, 0)
 })
 
 test('a logo that already belongs to another brand is refused, not moved', async () => {

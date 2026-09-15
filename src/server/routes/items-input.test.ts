@@ -8,13 +8,13 @@ import {
   MAX_LIMIT,
   parseAttributeCreate,
   parseAttributePatch,
-  parseToolCreate,
-  parseToolPatch,
-  parseToolQuery,
-} from './tools-input'
+  parseItemCreate,
+  parseItemPatch,
+  parseItemQuery,
+} from './items-input'
 
-function query(search: string): ReturnType<typeof parseToolQuery> {
-  return parseToolQuery(new URLSearchParams(search))
+function query(search: string): ReturnType<typeof parseItemQuery> {
+  return parseItemQuery(new URLSearchParams(search))
 }
 
 function page(search: string) {
@@ -24,13 +24,14 @@ function page(search: string) {
 }
 
 test('a card needs a name and nothing else', () => {
-  const parsed = parseToolCreate({ name: '  Wiertarka udarowa ' })
+  const parsed = parseItemCreate({ name: '  Wiertarka udarowa ' })
 
   assert.ok(parsed.ok)
   assert.deepEqual(parsed.value, {
-    brand: '',
+    brandId: null,
     category: '',
     condition: 'good',
+    kind: 'tool',
     model: '',
     addressId: null,
     name: 'Wiertarka udarowa',
@@ -41,14 +42,13 @@ test('a card needs a name and nothing else', () => {
 })
 
 test('a card without a usable name is refused', () => {
-  for (const body of [{}, { name: '' }, { name: '   ' }, { name: 42 }, null, 'tool']) {
-    assert.equal(parseToolCreate(body).ok, false, JSON.stringify(body))
+  for (const body of [{}, { name: '' }, { name: '   ' }, { name: 42 }, null, 'item']) {
+    assert.equal(parseItemCreate(body).ok, false, JSON.stringify(body))
   }
 })
 
 test('every card field is kept as typed, trimmed at the ends', () => {
-  const parsed = parseToolCreate({
-    brand: ' Makita ',
+  const parsed = parseItemCreate({
     category: 'Wiertarki',
     condition: 'needs_repair',
     model: 'HR 2470  BLACK',
@@ -58,7 +58,6 @@ test('every card field is kept as typed, trimmed at the ends', () => {
   })
 
   assert.ok(parsed.ok)
-  assert.equal(parsed.value.brand, 'Makita')
   assert.equal(parsed.value.model, 'HR 2470  BLACK')
   assert.equal(parsed.value.notes, 'Szczotki do wymiany')
   assert.equal(parsed.value.serialNumber, '12345-AB')
@@ -66,34 +65,59 @@ test('every card field is kept as typed, trimmed at the ends', () => {
 })
 
 test('an unknown condition is refused rather than defaulted', () => {
-  assert.equal(parseToolCreate({ condition: 'broken', name: 'Piła' }).ok, false)
-  assert.equal(parseToolPatch({ condition: 'NEW' }).ok, false)
+  assert.equal(parseItemCreate({ condition: 'broken', name: 'Piła' }).ok, false)
+  assert.equal(parseItemPatch({ condition: 'NEW' }).ok, false)
 })
 
 test('a patch carries only what was sent', () => {
-  const parsed = parseToolPatch({ condition: 'retired' })
+  const parsed = parseItemPatch({ condition: 'retired' })
 
   assert.ok(parsed.ok)
   assert.deepEqual(parsed.value, { condition: 'retired' })
 })
 
 test('a patch can clear a field but not the name', () => {
-  const cleared = parseToolPatch({ brand: '', serialNumber: '' })
+  const cleared = parseItemPatch({ brandId: null, serialNumber: '' })
   assert.ok(cleared.ok)
-  assert.deepEqual(cleared.value, { brand: '', serialNumber: '' })
+  // The maker clears to null and the serial number to '': one is a row this
+  // card points at, the other is a string on the card itself.
+  assert.deepEqual(cleared.value, { brandId: null, serialNumber: '' })
 
-  assert.equal(parseToolPatch({ name: '  ' }).ok, false)
+  assert.equal(parseItemPatch({ name: '  ' }).ok, false)
 })
 
 test('an empty patch is refused', () => {
-  assert.equal(parseToolPatch({}).ok, false)
+  assert.equal(parseItemPatch({}).ok, false)
 })
 
 test('over-long values are refused by field name', () => {
-  const parsed = parseToolPatch({ brand: 'x'.repeat(121) })
+  const parsed = parseItemPatch({ model: 'x'.repeat(121) })
 
   assert.equal(parsed.ok, false)
-  assert.match(parsed.ok ? '' : parsed.error, /^brand must be at most/)
+  assert.match(parsed.ok ? '' : parsed.error, /^model must be at most/)
+})
+
+test('a maker is an id, and nonsense in its place is refused', () => {
+  // It was free text, matched back to a row on the way in. A card pointing at
+  // a maker that does not exist is now a 404 rather than a string nobody can
+  // count, and "no maker" is null rather than an empty name.
+  assert.ok(parseItemPatch({ brandId: 4 }).ok)
+  assert.ok(parseItemPatch({ brandId: '4' }).ok)
+  assert.ok(parseItemPatch({ brandId: null }).ok)
+  assert.equal(parseItemPatch({ brandId: 'Makita' }).ok, false)
+  assert.equal(parseItemPatch({ brandId: -1 }).ok, false)
+})
+
+test('a kind is one of the sorts the catalog knows', () => {
+  assert.ok(parseItemCreate({ kind: 'appliance', name: 'Pralka' }).ok)
+  assert.ok(parseItemCreate({ kind: 'case', name: 'Skrzynka' }).ok)
+  // Unset is a tool: this catalog was a tool shed, and most of what is added
+  // to it still is one.
+  const unset = parseItemCreate({ name: 'Wiertarka' })
+  assert.ok(unset.ok)
+  assert.equal(unset.value.kind, 'tool')
+
+  assert.equal(parseItemCreate({ kind: 'furniture', name: 'Szafa' }).ok, false)
 })
 
 test('the list query has usable defaults', () => {
@@ -103,6 +127,7 @@ test('the list query has usable defaults', () => {
   assert.deepEqual(parsed.value, {
     addressId: null,
     category: null,
+    kind: null,
     condition: null,
     inOrganizer: null,
     direction: 'desc',

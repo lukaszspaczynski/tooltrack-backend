@@ -24,13 +24,13 @@ const DEFAULT_MAX_BODY_BYTES = 1024 * 1024
 // broken upload rather than a missing line here — so `upload-paths.test.ts`
 // reads the routing table and fails when a photos or manuals route is not
 // matched by either.
-const PHOTO_UPLOAD_PATTERN = /^\/api\/(?:(?:cases|tools)\/\d+\/)?photos\/?$/
+const PHOTO_UPLOAD_PATTERN = /^\/api\/(?:(?:cases|items)\/\d+\/)?photos\/?$/
 
 // Its own ceiling rather than the photo one: a scanned parts list is an order
 // of magnitude bigger than a photograph, and `saveManualBytes` already refuses
 // anything over MAX_MANUAL_BYTES. Without this the two disagreed, and the
 // stricter one won silently — a 40 MB constant with a 1 MB cap in front of it.
-const MANUAL_UPLOAD_PATTERN = /^\/api\/tools\/\d+\/manuals\/?$/
+const MANUAL_UPLOAD_PATTERN = /^\/api\/items\/\d+\/manuals\/?$/
 
 export type BodyResult =
   { body: undefined | Uint8Array; ok: true } | { ok: false; response: Response }

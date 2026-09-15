@@ -6,7 +6,7 @@
 // the last breadcrumb, and the one document is a row in a downloads table whose
 // only names are a file name and a language.
 //
-// Pure, like every importer. The fetching lives in routes/tool-import.ts.
+// Pure, like every importer. The fetching lives in routes/item-import.ts.
 
 import { mergeDuplicates } from './attributes'
 import { decodeEntities, text } from './html'
@@ -124,7 +124,7 @@ function attributesOf(html: string, product: Product): ImportedAttribute[] {
   return mergeDuplicates(attributes)
 }
 
-// What the tool is for, as the shop lists it: the bullets under "Opis
+// What the item is for, as the shop lists it: the bullets under "Opis
 // produktu". The table below them is the specification and is read separately,
 // so the note is prose rather than a spec sheet written out twice.
 export function notesOf(html: string): string {

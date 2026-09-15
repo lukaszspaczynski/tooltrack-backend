@@ -1,17 +1,17 @@
 // Who a photo belongs to.
 //
-// Tools and cases carry pictures on exactly the same terms: several per card,
+// Items and cases carry pictures on exactly the same terms: several per card,
 // one of them the main one, uploaded or fetched or found by search, and a
 // cutout is a new photo derived from another. Writing that twice would mean
 // fixing every photo bug twice, so the photo routes and the photo store take
-// an owner instead of a tool id.
+// an owner instead of an item id.
 //
 // The pairing lives in a link table per kind, not on the photo row: one
-// picture legitimately illustrates several tools, several cases, and a tool
+// picture legitimately illustrates several items, several cases, and an item
 // together with the case it lives in. Two tables rather than one polymorphic
 // pair of columns, so the foreign keys are real.
 
-export const PHOTO_OWNER_KINDS = ['case', 'tool'] as const
+export const PHOTO_OWNER_KINDS = ['case', 'item'] as const
 
 export type PhotoOwnerKind = (typeof PHOTO_OWNER_KINDS)[number]
 
@@ -24,33 +24,33 @@ export type PhotoOwner = {
 // maps cannot reach a query, whatever arrives in the path.
 export const OWNER_COLUMNS: Record<PhotoOwnerKind, string> = {
   case: 'case_id',
-  tool: 'tool_id',
+  item: 'item_id',
 }
 
 // Which cards show which pictures. Two tables rather than one polymorphic
 // table, so the foreign keys are real and deleting a case takes its links.
 export const LINK_TABLES: Record<PhotoOwnerKind, string> = {
   case: 'photo_case',
-  tool: 'photo_tool',
+  item: 'photo_item',
 }
 
-// The segment each owner occupies in a URL: /api/tools/7/photos,
+// The segment each owner occupies in a URL: /api/items/7/photos,
 // /api/cases/7/photos. Also how a path is read back into an owner.
 export const OWNER_SEGMENTS: Record<PhotoOwnerKind, string> = {
   case: 'cases',
-  tool: 'tools',
+  item: 'items',
 }
 
 const SEGMENT_KINDS: Record<string, PhotoOwnerKind> = {
   cases: 'case',
-  tools: 'tool',
+  items: 'item',
 }
 
 // What the API calls the thing when it is missing. Polish, because it reaches
 // the screen.
 export const OWNER_LABELS: Record<PhotoOwnerKind, string> = {
   case: 'Nie ma takiej skrzynki',
-  tool: 'Nie ma takiego narzędzia',
+  item: 'Nie ma takiego narzędzia',
 }
 
 export function isPhotoOwnerKind(value: unknown): value is PhotoOwnerKind {

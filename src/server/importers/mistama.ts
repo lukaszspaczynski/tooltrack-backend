@@ -7,7 +7,7 @@
 // "Parametry techniczne" where the name of the parameter is the plain text and
 // its value is in bold.
 //
-// Everything here is pure. The fetching lives in routes/tool-import.ts, so
+// Everything here is pure. The fetching lives in routes/item-import.ts, so
 // what this file decides can be argued with in a test rather than over the
 // network.
 
@@ -19,7 +19,7 @@ const ORIGIN = 'https://mistama.com'
 
 // The shop sells one maker and writes it one way — "BOSCH" — while the catalog
 // keeps the two lines apart, because a green drill and a blue one are not the
-// same tool to anybody holding them. Which line it is, is in the breadcrumb.
+// same item to anybody holding them. Which line it is, is in the breadcrumb.
 const BRAND_LINES: readonly { line: string; marker: RegExp }[] = [
   { line: 'Bosch Professional', marker: /bosch\s+professional/i },
   { line: 'Bosch Home & Garden', marker: /bosch\s+(?:ogr[oó]d|dom|diy|zielon)/i },
@@ -59,7 +59,7 @@ export function parseMistamaProduct(html: string, pageUrl: string): null | Impor
     model: modelOf(name, brand),
     name,
     // The maker's own sentence about the thing. It is the only prose the page
-    // offers that describes the tool rather than the offer.
+    // offers that describes the item rather than the offer.
     notes:
       typeof product.description === 'string' ? decodeEntities(product.description).trim() : '',
     photoUrls: photosOf(product),
@@ -147,7 +147,7 @@ function brandOf(product: ProductNode, crumbs: string[]): string {
   return decodeEntities(String(written)).trim()
 }
 
-// The kind of tool, not the shelf it is sold from.
+// The kind of item, not the shelf it is sold from.
 //
 // The last crumb before the product is the shop's own narrowest heading, and
 // it is as often "Seria 18V" as "Wiertarko-wkrętarki z udarem". So: the last

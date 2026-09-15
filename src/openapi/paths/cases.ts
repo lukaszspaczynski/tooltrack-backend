@@ -1,13 +1,13 @@
 // Cases, and the slots a label goes in.
 //
-// A case is a box a tool lives in, described mostly by measurements — and a
+// A case is a box an item lives in, described mostly by measurements — and a
 // measurement is **nullable rather than zero**. A case with no height does not
 // exist; a case nobody has measured is normal, so `null` means unmeasured and
 // an explicit `null` in a PATCH clears a number copied off the wrong spec
 // sheet. Sending a number as a string is accepted too, because a form sends
 // `"450"` and a Polish keyboard produces `"4,5"`.
 //
-// Photographs of a case are not here. They are the same routes as a tool's,
+// Photographs of a case are not here. They are the same routes as an item's,
 // under `/api/cases/:id/photos`, and are described with the rest of the
 // photographs.
 
@@ -55,7 +55,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      "One line off the spec sheet of a box, on exactly the terms a tool's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking system, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
+      "One line off the spec sheet of a box, on exactly the terms an item's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking system, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
     operationId: 'addCaseAttribute',
     pathParams: { id: 'The case to add the parameter to.' },
     requestBody: jsonBody(ref('AttributeCreateBody')),
@@ -100,7 +100,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'What the import dialog lists before asking for an address. A shorter list than the tools one, and a different one: a page that sells drills has nothing to say about a box.',
+      'What the import dialog lists before asking for an address. A shorter list than the items one, and a different one: a page that sells drills has nothing to say about a box.',
     operationId: 'listCaseImportSources',
     responses: {
       200: jsonResponse(
@@ -230,7 +230,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'The pictures no other card shows go with it. One that a tool inside the case also uses stays, which is the whole point of storing them as links.',
+      'The pictures no other card shows go with it. One that an item inside the case also uses stays, which is the whole point of storing them as links.',
     operationId: 'deleteCase',
     pathParams: { id: 'The case to delete.' },
     responses: {

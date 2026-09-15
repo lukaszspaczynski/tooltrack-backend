@@ -2,7 +2,7 @@
   "source": "Projekt Qbrick (~/Projects/Qbrick): generuj.py -> SKRZYNKI/NAZWY oraz ZASADY-PROJEKTU.md, sekcja \"Numeracja i zawartość skrzynek\", wersja z 5 września 2026.",
   "note": "Jeden wpis = jedno fizyczne narzędzie, nie jedna skrzynka. Skrzynki 01 i 11 mieszczą po dwa narzędzia, 14 i 15 po trzy. Numery katalogowe i handlowe trafiają do notatek, nie do numeru seryjnego: numer katalogowy opisuje model, a nie egzemplarz, i jest w ToolTrack unikalny.",
   "generatedAt": "2026-09-10",
-  "tools": [
+  "items": [
     {
       "box": "01",
       "brand": "Bosch Professional",

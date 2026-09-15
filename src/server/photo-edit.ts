@@ -1,14 +1,14 @@
 // "Wytnij samo narzędzie" — the AI edit behind
-// POST /api/tools/:id/photos/:photoId/cutout.
+// POST /api/items/:id/photos/:photoId/cutout.
 //
-// One operation, not an editor: take a photo of a tool on a workbench, in a
-// case, in someone's hand, and give back the tool alone. That is the edit a
+// One operation, not an editor: take a photo of an item on a workbench, in a
+// case, in someone's hand, and give back the item alone. That is the edit a
 // catalog needs, and it is a request a model can be held to. A general "edit
 // this picture with a prompt" would be a different product.
 //
 // The provider is a deploy variable, like the photo search. remove.bg is the
 // purpose-built one and returns real transparency; Gemini is the general model
-// and returns the tool on a plain background. Neither key is required for the
+// and returns the item on a plain background. Neither key is required for the
 // rest of the app to work — without one the route answers 503 and says so.
 
 import { cutoutLocally, PhotoNotSuitableError } from './cutout-local'
@@ -42,7 +42,7 @@ export type CutoutOverrides = {
   method?: PhotoEditProvider
   padding?: number
   // remove.bg's own hint about what is in the picture. 'product' is what a
-  // tool on a bench is; 'auto' lets the service decide.
+  // item on a bench is; 'auto' lets the service decide.
   removeBgType?: 'auto' | 'product'
   threshold?: number
 }
@@ -52,14 +52,14 @@ const EDIT_TIMEOUT_MS = 60_000
 const GEMINI_MODEL = 'gemini-3.1-flash-image'
 
 // Written for a model that will take it literally. It names what to keep, what
-// to remove, and what not to invent — a cutout that "improves" the tool is a
-// photo of a tool we do not own.
+// to remove, and what not to invent — a cutout that "improves" the item is a
+// photo of an item we do not own.
 const CUTOUT_PROMPT = [
-  'Cut out only the tool shown in this photo.',
+  'Cut out only the item shown in this photo.',
   'Remove the background, the workbench, the case, hands, and every other object.',
-  'Place the tool on a plain, uniform white background.',
-  'Keep the tool itself exactly as it is: same model, same colours, same wear, same labels and stickers.',
-  'Do not add, remove or repaint any part of the tool. Do not add text, shadows, reflections or props.',
+  'Place the item on a plain, uniform white background.',
+  'Keep the item itself exactly as it is: same model, same colours, same wear, same labels and stickers.',
+  'Do not add, remove or repaint any part of the item. Do not add text, shadows, reflections or props.',
 ].join(' ')
 
 export class PhotoEditUnavailableError extends Error {
@@ -159,7 +159,7 @@ async function removeBg(
   form.append('image_file', new Blob([Buffer.from(bytes)], { type: contentType }), 'photo')
   form.append('size', 'auto')
   // Telling the service it is looking at a product rather than letting it
-  // guess measurably helps on tools photographed on a bench.
+  // guess measurably helps on items photographed on a bench.
   form.append('type', type)
   // A transparent PNG, which is what makes a cutout usable on any background.
   form.append('format', 'png')

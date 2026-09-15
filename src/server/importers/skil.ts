@@ -1,11 +1,11 @@
 // Reading a product page off skileurope.com.
 //
-// The fourth shape. A schema.org Product that names the kind of tool rather
+// The fourth shape. A schema.org Product that names the kind of item rather
 // than the machine, a Magento spec table, a category that exists only in the
 // analytics payload, and documents whose real titles are in the `title`
 // attribute of their links.
 //
-// Pure, like every importer. The fetching lives in routes/tool-import.ts.
+// Pure, like every importer. The fetching lives in routes/item-import.ts.
 
 import { manualTitle, mergeDuplicates } from './attributes'
 import { text } from './html'
@@ -71,7 +71,7 @@ function findProduct(html: string): null | Product {
 
 // The shop names the product for what it is — "Szlifierka taśmowa" — and keeps
 // the machine's number in the sku. A card wants both: "Szlifierka taśmowa" is
-// three of the tools in the shed, and "7615 AB" is none of them until somebody
+// three of the items in the shed, and "7615 AB" is none of them until somebody
 // remembers what it is.
 export function nameOf(kind: string, sku: string): string {
   if (!kind) return sku
@@ -80,7 +80,7 @@ export function nameOf(kind: string, sku: string): string {
   return `${kind} ${sku}`
 }
 
-// The kind of tool, out of the analytics payload: `item_category` is the
+// The kind of item, out of the analytics payload: `item_category` is the
 // department and each numbered one after it is narrower, so the last one is
 // what this is. The JSON-LD has no category and the breadcrumb markup here is
 // a list of empty names — the same as on bosch-professional.com.

@@ -39,13 +39,13 @@ export type ContentsOptions = {
   withTitle: boolean
 }
 
-export const CAPTION_SOURCES = ['models', 'text', 'tools'] as const
+export const CAPTION_SOURCES = ['models', 'text', 'items'] as const
 
 export type CaptionSource = (typeof CAPTION_SOURCES)[number]
 
 // What the caption is made of. A label drawn before the choice existed says
 // nothing about it, and back then a text meant a typed line while its absence
-// meant the tool names — which is what those labels still mean when one of
+// meant the item names — which is what those labels still mean when one of
 // them is drawn again.
 export function captionSource(options: {
   namesSource?: string
@@ -58,12 +58,12 @@ export function captionSource(options: {
     return options.namesSource as CaptionSource
   }
 
-  return options.namesText ? 'text' : 'tools'
+  return options.namesText ? 'text' : 'items'
 }
 
 export type LabelOptions = ContentsOptions | NumberOptions
 
-// The tool names, their model numbers, or the line somebody typed.
+// The item names, their model numbers, or the line somebody typed.
 //
 // A model is what is written on the machine and what somebody orders a spare
 // belt by — "POF 1200 F5" identifies the box more sharply than "Frezarka
@@ -84,8 +84,8 @@ async function caption(
   const result = await pool.query<{ value: string }>(
     `
       SELECT "t"."${column}" AS "value"
-      FROM "catalog"."organizer_tool" AS "ot"
-      JOIN "catalog"."tool" AS "t" ON "t"."id" = "ot"."tool_id"
+      FROM "catalog"."organizer_item" AS "ot"
+      JOIN "catalog"."item" AS "t" ON "t"."id" = "ot"."item_id"
       WHERE "ot"."organizer_id" = $1 AND btrim("t"."${column}") <> ''
       ORDER BY lower("t"."name")
     `,
@@ -97,7 +97,7 @@ async function caption(
 
 const CAPTION_COLUMNS: Record<Exclude<CaptionSource, 'text'>, string> = {
   models: 'model',
-  tools: 'name',
+  items: 'name',
 }
 
 export class LabelDataError extends Error {
@@ -138,7 +138,7 @@ async function generateNumber(
   )
   if (!organizer.rows[0]) throw new LabelDataError('Nie ma takiego organizera')
 
-  // The makers of the tools inside, most tools first: the one that owns most
+  // The makers of the items inside, most items first: the one that owns most
   // of the box gets the larger share of the background.
   const brands = await pool.query<{ color: string; logo_key: null | string; name: string }>(
     `
@@ -146,8 +146,8 @@ async function generateNumber(
              (SELECT "p"."storage_key" FROM "catalog"."photo_brand" AS "pb"
               JOIN "catalog"."photo" AS "p" ON "p"."id" = "pb"."photo_id"
               WHERE "pb"."brand_id" = "b"."id") AS "logo_key"
-      FROM "catalog"."organizer_tool" AS "ot"
-      JOIN "catalog"."tool" AS "t" ON "t"."id" = "ot"."tool_id"
+      FROM "catalog"."organizer_item" AS "ot"
+      JOIN "catalog"."item" AS "t" ON "t"."id" = "ot"."item_id"
       JOIN "catalog"."brand" AS "b" ON "b"."id" = "t"."brand_id"
       WHERE "ot"."organizer_id" = $1
       GROUP BY "b"."id", "b"."name", "b"."color"
@@ -188,7 +188,7 @@ async function generateContents(
 
   const ids = options.photoIds.slice(0, maxContentsPhotos(size))
 
-  // Only pictures of the tools in this organizer. Asked of the database rather
+  // Only pictures of the items in this organizer. Asked of the database rather
   // than trusted from the request: the wizard offers the right ones, and this
   // is what stops a hand-written call from printing somebody else's photo.
   const photos = ids.length
@@ -196,8 +196,8 @@ async function generateContents(
         `
           SELECT DISTINCT "p"."id", "p"."storage_key"
           FROM "catalog"."photo" AS "p"
-          JOIN "catalog"."photo_tool" AS "pt" ON "pt"."photo_id" = "p"."id"
-          JOIN "catalog"."organizer_tool" AS "ot" ON "ot"."tool_id" = "pt"."tool_id"
+          JOIN "catalog"."photo_item" AS "pt" ON "pt"."photo_id" = "p"."id"
+          JOIN "catalog"."organizer_item" AS "ot" ON "ot"."item_id" = "pt"."item_id"
           WHERE "ot"."organizer_id" = $1 AND "p"."id" = ANY($2::bigint[])
         `,
         [organizerId, ids],
@@ -226,7 +226,7 @@ async function generateContents(
     heightMm: size.heightMm,
     photos: bytes,
     title: options.withTitle ? options.titleText || organizer.rows[0].name : null,
-    toolNames: names,
+    itemNames: names,
     widthMm: size.widthMm,
   })
 }

@@ -34,9 +34,9 @@ change and when an account is disabled.
 
 ## `catalog`
 
-### `catalog.tool`
+### `catalog.item`
 
-One row per physical tool — the card the app shows.
+One row per physical item — the card the app shows.
 
 | Column                                        | Type                              | Notes                                                    |
 | --------------------------------------------- | --------------------------------- | -------------------------------------------------------- |
@@ -48,15 +48,15 @@ One row per physical tool — the card the app shows.
 | `created_by`, `updated_by`                    | `bigint` → `account.user_account` | `ON DELETE SET NULL`                                     |
 | `created_at`, `updated_at`                    | `timestamptz`                     |                                                          |
 
-Category and brand are free text rather than foreign keys. A tool shed is not
+Category and brand are free text rather than foreign keys. An item shed is not
 a taxonomy: people type "wiertarka" and "Makita" long before anyone agrees on
 a list, and a card that cannot be saved because its brand is missing from a
-table is a card that gets written on paper instead. `GET /api/tools/categories`
-derives the filter list from the tools themselves.
+table is a card that gets written on paper instead. `GET /api/items/categories`
+derives the filter list from the items themselves.
 
 A partial unique index makes a non-blank `serial_number` unique
 (case-insensitively): one serial number is one physical machine, so a second
-card claiming it is a duplicate to merge. Blank is exempt — most hand tools
+card claiming it is a duplicate to merge. Blank is exempt — most hand items
 have no serial at all.
 
 Search is `ILIKE` over six columns, with `%` and `_` escaped so a typed
@@ -66,7 +66,7 @@ not a search service.
 
 ### `catalog.tool_case`
 
-One row per case, box or drawer unit the tools are kept in.
+One row per case, box or drawer unit the items are kept in.
 
 | Column                                    | Type                              | Notes                              |
 | ----------------------------------------- | --------------------------------- | ---------------------------------- |
@@ -86,9 +86,9 @@ the two apart in the database rather than only in the parser.
 
 The EAN and the SKU identify the product, not this box. Two identical cases on
 the shelf are two rows carrying the same barcode, which is why neither column
-is unique — the opposite of `tool.serial_number`, which is one machine.
+is unique — the opposite of `item.serial_number`, which is one machine.
 
-### `catalog.manual` and `catalog.manual_tool`
+### `catalog.manual` and `catalog.manual_item`
 
 | Column        | Type              | Notes                                            |
 | ------------- | ----------------- | ------------------------------------------------ |
@@ -101,7 +101,7 @@ is unique — the opposite of `tool.serial_number`, which is one machine.
 | `source_url`  | `text`            | Where it was fetched from, when it was           |
 | `created_by`  | `bigint`          | → `account.user_account`, `ON DELETE SET NULL`   |
 
-`manual_tool` pairs a manual with a tool, primary key on both columns, cascading
+`manual_item` pairs a manual with an item, primary key on both columns, cascading
 from either side. The same arrangement as the photos and for the same reason: a
 manual describes a model rather than one machine, so several cards share one
 file. The checksum being unique is what makes that true in practice — the same
@@ -112,19 +112,19 @@ PDF uploaded from a laptop and fetched from the maker's site is one row.
 | Column       | Type              | Notes                                          |
 | ------------ | ----------------- | ---------------------------------------------- |
 | `id`         | `bigint` identity |                                                |
-| `tool_id`    | `bigint`          | → `catalog.tool`, `ON DELETE CASCADE`          |
+| `item_id`    | `bigint`          | → `catalog.item`, `ON DELETE CASCADE`          |
 | `name`       | `text`            | Non-blank; "Napięcie sieciowe"                 |
 | `value`      | `text`            | Non-blank, carries its unit; "230 V"           |
 | `created_by` | `bigint`          | → `account.user_account`, `ON DELETE SET NULL` |
 
-Unique on `(tool_id, lower(btrim(name)))`: one tool cannot list the same
+Unique on `(item_id, lower(btrim(name)))`: one item cannot list the same
 parameter twice, and the second one is somebody correcting the first rather
-than a second fact about the machine. The name repeats freely across tools,
+than a second fact about the machine. The name repeats freely across items,
 which is what makes it worth reading across the catalog — and what the
 suggestion list is built from.
 
-A row per parameter rather than columns on the tool, because no two kinds of
-tool share a spec sheet: a drill has a chuck size and a ladder has a working
+A row per parameter rather than columns on the item, because no two kinds of
+item share a spec sheet: a drill has a chuck size and a ladder has a working
 height, and a column for each would be a table of mostly nulls needing a
 migration every time somebody catalogues a new kind of thing.
 
@@ -176,13 +176,13 @@ every caller has to handle.
 Nothing here says which card shows the picture. That is a different fact, and
 it has its own tables.
 
-### `catalog.photo_tool` and `catalog.photo_case`
+### `catalog.photo_item` and `catalog.photo_case`
 
 Which cards show which pictures.
 
 | Column                     | Type                       | Notes                                  |
 | -------------------------- | -------------------------- | -------------------------------------- |
-| `tool_id` / `case_id`      | `bigint` → the card        | `ON DELETE CASCADE`                    |
+| `item_id` / `case_id`      | `bigint` → the card        | `ON DELETE CASCADE`                    |
 | `photo_id`                 | `bigint` → `catalog.photo` | `ON DELETE CASCADE`                    |
 | `is_primary`               | `boolean`                  | One per card, by partial unique index  |
 | `created_by`, `created_at` |                            | When this picture was put on this card |
@@ -229,27 +229,27 @@ transaction, so two people creating at once cannot both read the same maximum.
 toolbox with three drawers is three arrangements of the same box — and deleting
 the box deletes them, because an arrangement has no meaning without it.
 
-### `catalog.organizer_tool`
+### `catalog.organizer_item`
 
-Which tools are in which organizer.
+Which items are in which organizer.
 
 | Column                     | Type                           | Notes                    |
 | -------------------------- | ------------------------------ | ------------------------ |
 | `organizer_id`             | `bigint` → `catalog.organizer` | `ON DELETE CASCADE`      |
-| `tool_id`                  | `bigint` → `catalog.tool`      | `ON DELETE CASCADE`      |
+| `item_id`                  | `bigint` → `catalog.item`      | `ON DELETE CASCADE`      |
 | `created_by`, `created_at` |                                | When it was put in there |
 
-The primary key is the pair; a **unique index on `tool_id` alone** is what makes
-it one-to-one from the tool's side. A tool lies in exactly one place, and the
+The primary key is the pair; a **unique index on `item_id` alone** is what makes
+it one-to-one from the item's side. An item lies in exactly one place, and the
 database says so rather than a handler remembering to check — `INSERT` for a
-tool that is already somewhere fails with 23505, which the API answers as 409
+item that is already somewhere fails with 23505, which the API answers as 409
 rather than moving it silently.
 
-A link table rather than an `organizer_id` column on the tool, so `catalog.tool`
-knows nothing about organizers: removing the feature would not touch a tool
+A link table rather than an `organizer_id` column on the item, so `catalog.item`
+knows nothing about organizers: removing the feature would not touch an item
 card. The same reasoning as the photo links above.
 
-Deleting a tool takes it out of its organizer and changes nothing else — the
+Deleting an item takes it out of its organizer and changes nothing else — the
 arrangement is still an arrangement with one fewer thing in it.
 
 ### `catalog.brand`
@@ -272,10 +272,10 @@ brand book gives it. Empty means nobody has said, which is not the same as
 black and is why the column is not null with a default rather than nullable.
 
 The unique index is case-insensitive: "Bosch" and "BOSCH" typed on two days are
-the same company, and two rows would split its tools in half.
+the same company, and two rows would split its items in half.
 
-`catalog.tool.brand_id` points here, `ON DELETE SET NULL` — removing a maker
-must not remove its tools. The tool keeps its free-text `brand` as well: that
+`catalog.item.brand_id` points here, `ON DELETE SET NULL` — removing a maker
+must not remove its items. The item keeps its free-text `brand` as well: that
 is what the catalog searches and what a card shows, and the API keeps the two
 in step (a rename rewrites the text, and a typed name is matched back to a row).
 Collapsing them into one column is the obvious next step and has not been taken.

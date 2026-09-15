@@ -1,15 +1,15 @@
-// Organizers: which tools live in which case, and the labels that say so.
+// Organizers: which items live in which case, and the labels that say so.
 //
-// An organizer is an **arrangement, not a container**. The link between a tool
+// An organizer is an **arrangement, not a container**. The link between an item
 // and an organizer lives in a table of its own, so deleting the arrangement
-// touches no tool card — the tools stay, only the arrangement goes. A tool can
+// touches no item card — the items stay, only the arrangement goes. An item can
 // be in one organizer at a time, which is what makes a label true.
 //
 // Four things run through the domain and are worth reading once.
 //
-// **Every write answers with the whole organizer.** Adding a tool, drawing a
+// **Every write answers with the whole organizer.** Adding an item, drawing a
 // label, deleting one — each comes back with the arrangement as it now stands,
-// because the screen shows the tools and the labels together and would
+// because the screen shows the items and the labels together and would
 // otherwise have to merge one row into a list it already holds.
 //
 // **A label's size is never in the request.** It comes from the slot, which is
@@ -40,7 +40,7 @@ import type { Schema } from '../types'
 import { ORGANIZER_PAGING } from '../../server/routes/paging'
 
 const ORGANIZER = jsonResponse(
-  'The arrangement as it now stands, with its tools and its labels.',
+  'The arrangement as it now stands, with its items and its labels.',
   object({ organizer: ref('Organizer') }),
 )
 
@@ -79,14 +79,14 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'The wizard’s last step, in one request: a case, a name, and the tools that were ticked. One request rather than three, so a half-made arrangement cannot exist because somebody closed the tab between two of them.\n\nAn arrangement without a case is an arrangement of nothing, so `caseId` is required. Leave `number` out for the next free one — only the server can see what is taken.',
+      'The wizard’s last step, in one request: a case, a name, and the items that were ticked. One request rather than three, so a half-made arrangement cannot exist because somebody closed the tab between two of them.\n\nAn arrangement without a case is an arrangement of nothing, so `caseId` is required. Leave `number` out for the next free one — only the server can see what is taken.',
     operationId: 'createOrganizer',
     requestBody: jsonBody(ref('OrganizerCreateBody')),
     responses: {
       201: jsonResponse('The new arrangement.', object({ organizer: ref('Organizer') })),
       404: jsonResponse('No such case.', ref('Error')),
       409: jsonResponse(
-        'That number is taken, or one of the tools is already in another arrangement.',
+        'That number is taken, or one of the items is already in another arrangement.',
         ref('Error'),
       ),
       ...errors(400, 401, 403, 503),
@@ -96,7 +96,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
     tag: 'organizers',
   },
   {
-    description: 'The arrangement, its case, the tools in it and the labels made for it.',
+    description: 'The arrangement, its case, the items in it and the labels made for it.',
     operationId: 'getOrganizer',
     pathParams: { id: 'The arrangement.' },
     responses: { 200: ORGANIZER, ...errors(401, 403, 404, 503) },
@@ -122,7 +122,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'The tools stay; only the arrangement goes. Nothing here touches a tool card, which is the point of keeping the link in a table of its own.',
+      'The items stay; only the arrangement goes. Nothing here touches an item card, which is the point of keeping the link in a table of its own.',
     operationId: 'deleteOrganizer',
     pathParams: { id: 'The arrangement to delete.' },
     responses: {
@@ -135,33 +135,33 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'A tool is in one arrangement at a time — that is what makes a label true — so one that is already somewhere else is a 409 rather than a quiet move.',
-    operationId: 'addOrganizerTools',
+      'An item is in one arrangement at a time — that is what makes a label true — so one that is already somewhere else is a 409 rather than a quiet move.',
+    operationId: 'addOrganizerItems',
     pathParams: { id: 'The arrangement.' },
-    requestBody: jsonBody(ref('ToolIdsBody')),
+    requestBody: jsonBody(ref('ItemIdsBody')),
     responses: {
       200: ORGANIZER,
-      409: jsonResponse('One of the tools is already in another arrangement.', ref('Error')),
+      409: jsonResponse('One of the items is already in another arrangement.', ref('Error')),
       ...errors(400, 401, 403, 404, 503),
     },
-    route: 'POST /api/organizers/:id/tools',
-    summary: 'Put tools in an organizer',
+    route: 'POST /api/organizers/:id/items',
+    summary: 'Put items in an organizer',
     tag: 'organizers',
   },
   {
     description:
-      'Takes the tool out of the arrangement. The card is untouched — it simply stops being anywhere.',
-    operationId: 'removeOrganizerTool',
+      'Takes the item out of the arrangement. The card is untouched — it simply stops being anywhere.',
+    operationId: 'removeOrganizerItem',
     pathParams: {
       id: 'The arrangement.',
-      toolId: 'The tool, which must be in this arrangement.',
+      itemId: 'The item, which must be in this arrangement.',
     },
     responses: {
       200: jsonResponse('Removed.', object({ ok: { const: true, type: 'boolean' } })),
       ...errors(401, 403, 404, 503),
     },
-    route: 'DELETE /api/organizers/:id/tools/:toolId',
-    summary: 'Take a tool out of an organizer',
+    route: 'DELETE /api/organizers/:id/items/:itemId',
+    summary: 'Take an item out of an organizer',
     tag: 'organizers',
   },
   {
@@ -200,7 +200,7 @@ export const ORGANIZER_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'Draws the chosen labels again from the options they were made with — which is how a label stops being wrong after somebody moved a tool.\n\nScoped to this arrangement: a label id belonging to another one is not found here rather than redrawn, which is what makes the URL mean what it says. For a selection spanning arrangements, use `POST /api/labels/refresh`.',
+      'Draws the chosen labels again from the options they were made with — which is how a label stops being wrong after somebody moved an item.\n\nScoped to this arrangement: a label id belonging to another one is not found here rather than redrawn, which is what makes the URL mean what it says. For a selection spanning arrangements, use `POST /api/labels/refresh`.',
     operationId: 'refreshOrganizerLabels',
     pathParams: { id: 'The arrangement.' },
     requestBody: jsonBody(ref('LabelIdsBody')),

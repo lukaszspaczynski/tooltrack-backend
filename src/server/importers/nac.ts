@@ -9,7 +9,7 @@
 // are icon boxes beside the heading. The heading itself carries the model in a
 // span of its own, which is what tells a product page from a shelf.
 //
-// Pure, like every importer. The fetching lives in routes/tool-import.ts.
+// Pure, like every importer. The fetching lives in routes/item-import.ts.
 
 import { manualTitle, mergeDuplicates } from './attributes'
 import { text } from './html'
@@ -55,7 +55,7 @@ export function modelOf(heading: string): string {
   return text(/<span[^>]*>([\s\S]*?)<\/span>/i.exec(heading)?.[1] ?? '')
 }
 
-// The kind of tool, as the post is filed: "Rozdrabniacze", "Aeratory i
+// The kind of item, as the post is filed: "Rozdrabniacze", "Aeratory i
 // wertykulatory". The page prints its own shelf above the heading as well, but
 // that is a heading among many and this is a field.
 export function categoryOf(html: string): string {
@@ -103,7 +103,7 @@ function attributesOf(html: string): ImportedAttribute[] {
   return mergeDuplicates(attributes)
 }
 
-// What the tool is for, as the bullets under "Opis produktu". The table of
+// What the item is for, as the bullets under "Opis produktu". The table of
 // numbers is the specification and is read separately, so the note is prose.
 export function notesOf(html: string): string {
   const list = /id="opis"[\s\S]*?<ul[^>]*>([\s\S]*?)<\/ul>/i.exec(html)?.[1]

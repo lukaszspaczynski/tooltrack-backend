@@ -1,6 +1,6 @@
 // Makers, and their logos.
 //
-// A brand is a **grouping, not an owner**. A tool card keeps its maker's name
+// A brand is a **grouping, not an owner**. An item card keeps its maker's name
 // as text and merely points at a row here, so deleting a brand regroups the
 // catalog rather than making a claim about who built anything — the cards keep
 // the name and simply stop pointing.
@@ -27,13 +27,13 @@ const BRAND = jsonResponse('The maker.', object({ brand: ref('Brand') }))
 export const BRAND_OPERATIONS: OperationSpec[] = [
   {
     description:
-      'Every maker, with `toolCount` — how many cards name it. That count is the reason the list is worth looking at, and it is read-only.\n\nSorted by name unless `?sort=tools`, and ascending by default, unlike every other list here: a shelf of makers is read alphabetically.',
+      'Every maker, with `itemCount` — how many cards name it. That count is the reason the list is worth looking at, and it is read-only.\n\nSorted by name unless `?sort=items`, and ascending by default, unlike every other list here: a shelf of makers is read alphabetically.',
     operationId: 'listBrands',
     query: [
       queryParam('q', 'Free-text search over the maker.', { type: 'string' }),
-      queryParam('sort', 'By name, or by how many tools name it.', {
+      queryParam('sort', 'By name, or by how many items name it.', {
         default: 'name',
-        enum: ['name', 'tools'],
+        enum: ['name', 'items'],
         type: 'string',
       }),
       queryParam('order', 'Direction.', { default: 'asc', enum: ['asc', 'desc'], type: 'string' }),

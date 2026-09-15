@@ -1,4 +1,4 @@
-// What an importer hands back: one product page, read into the shape of a tool
+// What an importer hands back: one product page, read into the shape of an item
 // card. Pure data — nothing here has fetched anything or written a row.
 //
 // The fields are the card's own, plus the two lists that make an import worth
@@ -37,7 +37,7 @@ export type Importer = {
   // what the import dialog offers and what an address is checked against.
   hosts: readonly string[]
   label: string
-  // Whether this source publishes documents at all. A shop that sells a tool
+  // Whether this source publishes documents at all. A shop that sells an item
   // is not obliged to host its manual, and most do not — offering a page as a
   // place to fetch manuals from when it can only ever answer "none" is a
   // promise the screen cannot keep.
@@ -49,10 +49,10 @@ export type Importer = {
 }
 
 // What a case importer hands back: one product page, read into the shape of a
-// case rather than of a tool card.
+// case rather than of an item card.
 //
 // A separate type rather than a wider `ImportedProduct`, because the two have
-// almost nothing in common. A tool has a maker, a model and a spec sheet of
+// almost nothing in common. An item has a maker, a model and a spec sheet of
 // free-text parameters; a case is a box, and what is worth knowing about it is
 // measurements with units the catalog stores as numbers. Folding them together
 // would mean every field being optional and nothing being checked.
@@ -90,7 +90,7 @@ export type CaseImporter = {
   // Every host this script can read, including the www. form.
   hosts: readonly string[]
   label: string
-  // Pure, like a tool importer: the page as text, the address it came from,
+  // Pure, like an item importer: the page as text, the address it came from,
   // and a case or nothing. Nothing means "this is not a product page".
   parse: (html: string, pageUrl: string) => null | ImportedCase
 }

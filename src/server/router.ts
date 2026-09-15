@@ -24,8 +24,8 @@ import * as openapi from './routes/openapi'
 import * as organizers from './routes/organizers'
 import * as photos from './routes/photos'
 import * as settings from './routes/settings'
-import * as toolImport from './routes/tool-import'
-import * as tools from './routes/tools'
+import * as itemImport from './routes/item-import'
+import * as items from './routes/items'
 import * as users from './routes/users'
 import * as version from './routes/version'
 import { compileRoute, normalizePath, ROUTES } from './route-list'
@@ -42,9 +42,9 @@ export type RouteMatch = {
 
 // A handler, or a handler plus the parameters the path cannot supply.
 //
-// The photo routes are the only ones that need the second form. `/api/tools/…`
+// The photo routes are the only ones that need the second form. `/api/items/…`
 // and `/api/cases/…` reach one module — a case carries pictures on exactly the
-// same terms as a tool — and which of the two it is has to arrive as a
+// same terms as an item — and which of the two it is has to arrive as a
 // parameter, because the path says it in a segment the pattern does not
 // capture. Writing it here rather than deriving it from the path keeps the
 // matcher from having to know anything about photographs.
@@ -64,64 +64,64 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
   'GET /api/auth/me': auth.me,
   'PATCH /api/auth/password': auth.changePassword,
   'PATCH /api/auth/language': auth.changeLanguage,
-  'GET /api/tools': tools.GET,
-  'POST /api/tools': tools.POST,
-  'GET /api/tools/categories': tools.categoriesGET,
-  'GET /api/tools/attributes': tools.attributeNamesGET,
-  'GET /api/tools/import/sources': toolImport.sourcesGET,
-  'POST /api/tools/import': toolImport.POST,
-  'POST /api/tools/:id/import': toolImport.refreshPOST,
-  'GET /api/tools/:id/manuals': manuals.listGET,
-  'POST /api/tools/:id/manuals': manuals.POST,
-  'POST /api/tools/:id/manuals/from-page': manuals.fromPagePOST,
-  'PATCH /api/tools/:id/manuals/:manualId': manuals.detailPATCH,
-  'DELETE /api/tools/:id/manuals/:manualId': manuals.detailDELETE,
+  'GET /api/items': items.GET,
+  'POST /api/items': items.POST,
+  'GET /api/items/categories': items.categoriesGET,
+  'GET /api/items/attributes': items.attributeNamesGET,
+  'GET /api/items/import/sources': itemImport.sourcesGET,
+  'POST /api/items/import': itemImport.POST,
+  'POST /api/items/:id/import': itemImport.refreshPOST,
+  'GET /api/items/:id/manuals': manuals.listGET,
+  'POST /api/items/:id/manuals': manuals.POST,
+  'POST /api/items/:id/manuals/from-page': manuals.fromPagePOST,
+  'PATCH /api/items/:id/manuals/:manualId': manuals.detailPATCH,
+  'DELETE /api/items/:id/manuals/:manualId': manuals.detailDELETE,
   'GET /api/manuals/:id/file': manuals.fileGET,
   'GET /api/manuals': manuals.libraryGET,
   'PATCH /api/manuals/:id': manuals.libraryPATCH,
   'POST /api/manuals/delete': manuals.libraryDeletePOST,
-  'POST /api/tools/:id/manuals/attach': manuals.attachPOST,
-  'POST /api/tools/:id/attributes': tools.attributePOST,
-  'PATCH /api/tools/:id/attributes/:attributeId': tools.attributePATCH,
-  'DELETE /api/tools/:id/attributes/:attributeId': tools.attributeDELETE,
-  'GET /api/tools/:id': tools.detailGET,
-  'PATCH /api/tools/:id': tools.detailPATCH,
-  'DELETE /api/tools/:id': tools.detailDELETE,
-  'POST /api/tools/:id/duplicate': tools.duplicatePOST,
-  'GET /api/tools/:id/photos': { handler: photos.listGET, params: { owner: 'tools' } },
-  'POST /api/tools/:id/photos': { handler: photos.POST, params: { owner: 'tools' } },
-  'POST /api/tools/:id/photos/attach': { handler: photos.attachPOST, params: { owner: 'tools' } },
-  'GET /api/tools/:id/photos/:photoId/file': {
+  'POST /api/items/:id/manuals/attach': manuals.attachPOST,
+  'POST /api/items/:id/attributes': items.attributePOST,
+  'PATCH /api/items/:id/attributes/:attributeId': items.attributePATCH,
+  'DELETE /api/items/:id/attributes/:attributeId': items.attributeDELETE,
+  'GET /api/items/:id': items.detailGET,
+  'PATCH /api/items/:id': items.detailPATCH,
+  'DELETE /api/items/:id': items.detailDELETE,
+  'POST /api/items/:id/duplicate': items.duplicatePOST,
+  'GET /api/items/:id/photos': { handler: photos.listGET, params: { owner: 'items' } },
+  'POST /api/items/:id/photos': { handler: photos.POST, params: { owner: 'items' } },
+  'POST /api/items/:id/photos/attach': { handler: photos.attachPOST, params: { owner: 'items' } },
+  'GET /api/items/:id/photos/:photoId/file': {
     handler: photos.fileGET,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
-  'PATCH /api/tools/:id/photos/:photoId': {
+  'PATCH /api/items/:id/photos/:photoId': {
     handler: photos.detailPATCH,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
-  'DELETE /api/tools/:id/photos/:photoId': {
+  'DELETE /api/items/:id/photos/:photoId': {
     handler: photos.detailDELETE,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
-  'POST /api/tools/:id/photos/:photoId/cutout': {
+  'POST /api/items/:id/photos/:photoId/cutout': {
     handler: photos.cutoutPOST,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
-  'POST /api/tools/:id/photos/:photoId/cutout/preview': {
+  'POST /api/items/:id/photos/:photoId/cutout/preview': {
     handler: photos.cutoutPreviewPOST,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
-  'GET /api/tools/:id/photos/:photoId/cutout/preview/:checksum': {
+  'GET /api/items/:id/photos/:photoId/cutout/preview/:checksum': {
     handler: photos.cutoutPreviewGET,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
-  'POST /api/tools/:id/photos/:photoId/cutout/commit': {
+  'POST /api/items/:id/photos/:photoId/cutout/commit': {
     handler: photos.cutoutCommitPOST,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
-  'GET /api/tools/:id/photo-suggestions': {
+  'GET /api/items/:id/photo-suggestions': {
     handler: photos.suggestionsGET,
-    params: { owner: 'tools' },
+    params: { owner: 'items' },
   },
   'GET /api/cases': cases.GET,
   'POST /api/cases': cases.POST,
@@ -191,8 +191,8 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
   'GET /api/organizers/:id': organizers.detailGET,
   'PATCH /api/organizers/:id': organizers.detailPATCH,
   'DELETE /api/organizers/:id': organizers.detailDELETE,
-  'POST /api/organizers/:id/tools': organizers.toolsPOST,
-  'DELETE /api/organizers/:id/tools/:toolId': organizers.toolDELETE,
+  'POST /api/organizers/:id/items': organizers.itemsPOST,
+  'DELETE /api/organizers/:id/items/:itemId': organizers.itemDELETE,
   'GET /api/organizers/:id/label-slots': organizers.labelSlotsGET,
   'POST /api/organizers/:id/labels': organizers.labelPOST,
   'POST /api/organizers/:id/labels/refresh': organizers.labelRefreshPOST,

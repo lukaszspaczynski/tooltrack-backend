@@ -4,7 +4,7 @@
 // of "Budowa Mokotów" is a catalog in which "what is on the Mokotów site"
 // cannot be asked, which is the only question this feature exists to answer.
 //
-// Assigning one is deliberately not here. A tool is at one place and an
+// Assigning one is deliberately not here. An item is at one place and an
 // arrangement is at one place, so it is `addressId` on each of those, set by
 // the PATCH that already edits them. An endpoint per pairing would be two more
 // routes saying what one column already says.
@@ -28,7 +28,7 @@ const ID_PARAM = { id: 'The address id.' }
 export const ADDRESS_OPERATIONS: OperationSpec[] = [
   {
     description: [
-      'Every place, with `toolCount` and `organizerCount` — how many things say they are there. Those counts are most of why the list is worth looking at: they answer "where is the kit" and "which of these is empty and can be tidied away".',
+      'Every place, with `itemCount` and `organizerCount` — how many things say they are there. Those counts are most of why the list is worth looking at: they answer "where is the kit" and "which of these is empty and can be tidied away".',
       '',
       'Sorted by name unless `?sort=` says otherwise, and ascending by default, like the makers: a short list of places is read alphabetically rather than newest-first.',
     ].join('\n'),
@@ -39,7 +39,7 @@ export const ADDRESS_OPERATIONS: OperationSpec[] = [
       }),
       queryParam('sort', 'By name, by city, or by how much is kept there.', {
         default: 'name',
-        enum: ['name', 'city', 'tools'],
+        enum: ['name', 'city', 'items'],
         type: 'string',
       }),
       queryParam('order', 'Direction.', { default: 'asc', enum: ['asc', 'desc'], type: 'string' }),
@@ -88,7 +88,7 @@ export const ADDRESS_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'The tools and arrangements that were here stay in the catalog and stop pointing at anything — closing a site must not take the kit that was on it out of the catalog.\n\n`cleared` says how many lost their place. That number is the reason this answer is not a bare `ok`: "delete" on a list of places reads like tidying up, and forty cards quietly losing their location does not.',
+      'The items and arrangements that were here stay in the catalog and stop pointing at anything — closing a site must not take the kit that was on it out of the catalog.\n\n`cleared` says how many lost their place. That number is the reason this answer is not a bare `ok`: "delete" on a list of places reads like tidying up, and forty cards quietly losing their location does not.',
     operationId: 'deleteAddress',
     pathParams: ID_PARAM,
     responses: {
@@ -97,7 +97,7 @@ export const ADDRESS_OPERATIONS: OperationSpec[] = [
         object({
           cleared: object({
             organizers: { type: 'integer' },
-            tools: { type: 'integer' },
+            items: { type: 'integer' },
           }),
           ok: { type: 'boolean' },
         }),

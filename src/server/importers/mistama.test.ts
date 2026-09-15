@@ -77,7 +77,7 @@ test('a page that sells nothing is refused rather than half-read', () => {
 
 test('which Bosch it is comes from the breadcrumb, not from the shop', () => {
   // The shop writes one maker, "BOSCH". The catalog keeps the lines apart,
-  // because a green drill and a blue one are not the same tool to anybody
+  // because a green drill and a blue one are not the same item to anybody
   // holding them.
   assert.equal(parseMistamaProduct(page({}), PAGE_URL)?.brand, 'Bosch Home & Garden')
 
@@ -95,7 +95,7 @@ test('which Bosch it is comes from the breadcrumb, not from the shop', () => {
   assert.equal(parseMistamaProduct(other, PAGE_URL)?.brand, 'Stanley')
 })
 
-test('the category is the kind of tool, not the shelf it is sold from', () => {
+test('the category is the kind of item, not the shelf it is sold from', () => {
   // The last crumb is as often "Seria 18V" as it is a kind of thing, and the
   // one before the home page is the maker's own section.
   assert.equal(parseMistamaProduct(page({}), PAGE_URL)?.category, 'Podkaszarki akumulatorowe')
@@ -142,7 +142,7 @@ test('a parameter is the plain text and its value is the bold', () => {
 
 test('a bullet with no name is a feature, and a dash is not a value', () => {
   // "Metalowy kabłąk w wyposażeniu" is bold all the way through: it says
-  // something about the tool but it is not a parameter called nothing. "-" is
+  // something about the item but it is not a parameter called nothing. "-" is
   // the shop saying the field does not apply to this machine.
   const specs = specifications(
     page({

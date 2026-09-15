@@ -1,6 +1,6 @@
 // Reading a case off qbricksystem.com — the maker's own site.
 //
-// The first importer that reads a **case** rather than a tool, and the shape it
+// The first importer that reads a **case** rather than an item, and the shape it
 // reads is why cases got their own type: everything worth knowing about a box
 // is a measurement, and the page states them all in one small table with the
 // units written into the values.

@@ -4,7 +4,7 @@
 //   POST /api/photos/delete   catalog.write
 //
 // A separate surface from the per-card photo routes on purpose. Those answer
-// "what does this tool or this case look like"; this one answers "what did we
+// "what does this item or this case look like"; this one answers "what did we
 // import", and it exists for the cleanup after a batch that pulled in the
 // wrong pictures.
 //
@@ -38,11 +38,11 @@ export async function GET(request: Request): Promise<Response> {
   return Response.json(page, { headers: { 'cache-control': 'no-store' } })
 }
 
-// POST /api/photos — an upload that belongs to no tool.
+// POST /api/photos — an upload that belongs to no item.
 //
 // Pictures arrive before anyone decides what they are: a batch off a phone at
 // the end of a day, something found while looking for something else. Forcing
-// a tool at that moment is how photos end up on the wrong card; they wait in
+// an item at that moment is how photos end up on the wrong card; they wait in
 // the library instead, and the filter on that screen is how you find them
 // again.
 //
@@ -133,7 +133,7 @@ async function importFromUrl(request: Request, actorId: number): Promise<Respons
 
 // GET /api/photos/:id/file — the bytes, by the photo's own id.
 //
-// The per-tool path still works and still serves the same file; this one is
+// The per-item path still works and still serves the same file; this one is
 // what an unattached photo can be reached through at all.
 export async function fileGET(_request: Request, context: RouteContext): Promise<Response> {
   const id = Number(context.params.id)
@@ -172,7 +172,7 @@ export async function deletePOST(request: Request, _context: RouteContext): Prom
     deleted: result.deleted,
     // Which cards now show a different main photo, and what kind of card each
     // one is: deleting the main picture of a case changes the shelf as much as
-    // deleting a tool's changes the catalog.
+    // deleting an item's changes the catalog.
     promoted: result.promoted,
     requested: parsed.value.length,
   }

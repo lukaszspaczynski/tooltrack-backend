@@ -36,7 +36,7 @@ export const ERROR_CODES = {
 
   // Not there
   NOT_FOUND: 'No such record, or none this account may see.',
-  TOOL_NOT_FOUND: 'No such tool card.',
+  ITEM_NOT_FOUND: 'No such item card.',
   CASE_NOT_FOUND: 'No such case.',
   ORGANIZER_NOT_FOUND: 'No such organizer.',
   BRAND_NOT_FOUND: 'No such maker.',
@@ -48,7 +48,7 @@ export const ERROR_CODES = {
   LABEL_NOT_FOUND: 'No such label, or its file is gone.',
   SEARCH_ENGINE_NOT_FOUND: 'No search engine or cutout method by that name.',
   LABEL_SLOT_NOT_FOUND: 'This case has no such label slot.',
-  TOOL_NOT_IN_ORGANIZER: 'That tool is not in this organizer.',
+  ITEM_NOT_IN_ORGANIZER: 'That item is not in this organizer.',
 
   // Already there
   EMAIL_TAKEN: 'An account with that e-mail already exists.',
@@ -59,7 +59,10 @@ export const ERROR_CODES = {
   LOGO_TAKEN: 'That picture is already another maker’s logo.',
   LABEL_SLOT_TAKEN: 'This case already has a slot that size.',
   ORGANIZER_NUMBER_TAKEN: 'Another organizer already has that number.',
-  TOOL_ALREADY_IN_ORGANIZER: 'That tool is in another organizer already.',
+  ITEM_IS_NOT_A_TOOL: 'Only tools go in an organizer. This card is an appliance or a case.',
+  ITEM_IN_ORGANIZER:
+    'This card is in an organizer, so it cannot stop being a tool until it is taken out.',
+  ITEM_ALREADY_IN_ORGANIZER: 'That item is in another organizer already.',
   PHOTO_ALREADY_ON_CARD: 'That photograph is already on this card.',
   MANUAL_ALREADY_ON_CARD: 'That document is already on this card.',
 

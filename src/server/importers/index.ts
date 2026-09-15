@@ -19,7 +19,7 @@ import {
   MAX_FIELD_LENGTH,
   MAX_NAME_LENGTH,
   MAX_NOTES_LENGTH,
-} from '../routes/tools-input'
+} from '../routes/items-input'
 import { boschDiy } from './bosch-diy'
 import { boschProfessional } from './bosch-professional'
 import { gardena } from './gardena'
@@ -62,7 +62,7 @@ export const IMPORT_SOURCES = IMPORTERS.map((importer) => ({
 // The sources worth offering when what is wanted is a manual.
 export const MANUAL_SOURCES = IMPORT_SOURCES.filter((source) => source.manuals)
 
-// The scripts that read a case rather than a tool. A separate registry rather
+// The scripts that read a case rather than an item. A separate registry rather
 // than a flag on the same one: the two answer with different shapes, and a
 // dialog asking "where is this box from" should not offer a page that sells
 // drills.

@@ -32,11 +32,17 @@ function suggestion(url: string, provider: PhotoSuggestion['provider']): PhotoSu
 
 test('the query identifies the machine, not the category', () => {
   assert.equal(
-    defaultQuery({ brand: 'Bosch Professional', model: 'GWS 180-LI', name: 'Szlifierka kątowa' }),
+    defaultQuery({
+      brand: { name: 'Bosch Professional' },
+      model: 'GWS 180-LI',
+      name: 'Szlifierka kątowa',
+    }),
     'Bosch Professional GWS 180-LI',
   )
-  assert.equal(defaultQuery({ brand: '', model: '', name: 'Młotek' }), 'Młotek')
-  assert.equal(defaultQuery({ brand: 'Makita', model: '', name: 'Wiertarka' }), 'Makita')
+  // A card with no maker is normal — most hand tools have none — and the name
+  // is all there is to search for.
+  assert.equal(defaultQuery({ brand: null, model: '', name: 'Młotek' }), 'Młotek')
+  assert.equal(defaultQuery({ brand: { name: 'Makita' }, model: '', name: 'Wiertarka' }), 'Makita')
 })
 
 test('no engine switched on is an error the screen can explain', async () => {

@@ -40,7 +40,7 @@ import {
   LABEL_REQUEST_SCHEMA,
   ORGANIZER_CREATE_SCHEMA,
   ORGANIZER_PATCH_SCHEMA,
-  TOOL_IDS_SCHEMA,
+  ITEM_IDS_SCHEMA,
 } from '../server/routes/organizers-input'
 import {
   CUTOUT_COMMIT_SCHEMA,
@@ -54,9 +54,9 @@ import {
   ATTRIBUTE_CREATE_SCHEMA,
   ATTRIBUTE_PATCH_SCHEMA,
   IMPORT_SCHEMA,
-  TOOL_CREATE_SCHEMA,
-  TOOL_PATCH_SCHEMA,
-} from '../server/routes/tools-input'
+  ITEM_CREATE_SCHEMA,
+  ITEM_PATCH_SCHEMA,
+} from '../server/routes/items-input'
 import { USER_PATCH_SCHEMA } from '../server/routes/users-input'
 
 export const REQUEST_SCHEMAS: Record<string, ZodType> = {
@@ -91,8 +91,8 @@ export const REQUEST_SCHEMAS: Record<string, ZodType> = {
   SearchEngineBody: GLOBAL_ENGINE_SCHEMA,
   SearchEngineMineBody: USER_ENGINE_SCHEMA,
   TokenBody: TOKEN_SCHEMA,
-  ToolCreateBody: TOOL_CREATE_SCHEMA,
-  ToolIdsBody: TOOL_IDS_SCHEMA,
-  ToolPatchBody: TOOL_PATCH_SCHEMA,
+  ItemCreateBody: ITEM_CREATE_SCHEMA,
+  ItemIdsBody: ITEM_IDS_SCHEMA,
+  ItemPatchBody: ITEM_PATCH_SCHEMA,
   UserPatchBody: USER_PATCH_SCHEMA,
 }

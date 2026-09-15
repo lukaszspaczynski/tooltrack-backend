@@ -20,9 +20,9 @@ export const ACCOUNT_STATUSES = ['active', 'disabled'] as const
 
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number]
 
-// One capability for the catalog, not one per kind of thing in it. Tools live
+// One capability for the catalog, not one per kind of thing in it. Items live
 // in cases, both carry photos, and every screen that shows one shows the
-// other; a viewer who could read tools but not the case they are in would be
+// other; a viewer who could read items but not the case they are in would be
 // looking at half a shelf.
 export type Capability = 'catalog.read' | 'catalog.write' | 'users.manage'
 

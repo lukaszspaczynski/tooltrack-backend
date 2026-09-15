@@ -1,6 +1,6 @@
 // Everything that touches `catalog.brand` and `catalog.photo_brand`.
 //
-// The list carries the logo and how many tools point at the brand, both as
+// The list carries the logo and how many items point at the brand, both as
 // aggregates in the one statement: a screen of makers would otherwise ask per
 // row, twice.
 
@@ -20,9 +20,9 @@ export type Brand = {
   logoUrl: null | string
   name: string
   notes: string
-  // How many tools name this maker. Read-only, and the reason the list is
+  // How many items name this maker. Read-only, and the reason the list is
   // worth looking at.
-  toolCount: number
+  itemCount: number
   updatedAt: string
   updatedBy: null | number
 }
@@ -72,7 +72,7 @@ type BrandRow = {
   logo_photo_id: null | number | string
   name: string
   notes: string
-  tool_count: number | string
+  item_count: number | string
   total_count?: number | string
   updated_at: Date | string
   updated_by: null | number | string
@@ -82,12 +82,12 @@ const BRAND_COLUMNS = `
   "b"."id", "b"."name", "b"."notes", "b"."color", "b"."created_by", "b"."updated_by",
   "b"."created_at", "b"."updated_at",
   (SELECT "photo_id" FROM "catalog"."photo_brand" WHERE "brand_id" = "b"."id") AS "logo_photo_id",
-  (SELECT count(*) FROM "catalog"."tool" WHERE "brand_id" = "b"."id") AS "tool_count"
+  (SELECT count(*) FROM "catalog"."item" WHERE "brand_id" = "b"."id") AS "item_count"
 `
 
 const SORT_COLUMNS: Record<BrandQuery['sort'], string> = {
   name: 'lower("b"."name")',
-  tools: '"tool_count"',
+  items: '"item_count"',
 }
 
 export async function listBrands(query: BrandQuery, pool: PgPool = db()): Promise<BrandPage> {
@@ -186,11 +186,11 @@ export async function updateBrand(
       )
       if ((result.rowCount ?? 0) === 0) return null
 
-      // The tool cards carry the maker's name as text as well, which is what
+      // The item cards carry the maker's name as text as well, which is what
       // the catalog searches and what a card shows. Renaming the brand without
-      // it would leave the two telling different stories about the same tool.
+      // it would leave the two telling different stories about the same item.
       if (patch.name !== undefined) {
-        await client.query(`UPDATE "catalog"."tool" SET "brand" = $2 WHERE "brand_id" = $1`, [
+        await client.query(`UPDATE "catalog"."item" SET "brand" = $2 WHERE "brand_id" = $1`, [
           id,
           patch.name,
         ])
@@ -206,7 +206,7 @@ export async function updateBrand(
   }
 }
 
-// The tools stay, and keep the maker's name as text: deleting the row that
+// The items stay, and keep the maker's name as text: deleting the row that
 // grouped them is not a statement about who made them.
 export async function deleteBrand(id: number, pool: PgPool = db()): Promise<boolean> {
   const result = await pool.query(`DELETE FROM "catalog"."brand" WHERE "id" = $1`, [id])
@@ -252,9 +252,45 @@ export async function clearLogo(brandId: number, pool: PgPool = db()): Promise<n
   return getBrand(brandId, pool)
 }
 
-// Which brand a typed name belongs to, if any. The tool form still writes the
+// Which brand a typed name belongs to, if any. The item form still writes the
 // maker as text; this is what keeps the column and the row pointing at the
 // same company without inventing a brand from a typo.
+// The maker a page named, as a row — creating it when the catalog has never
+// seen it before.
+//
+// An import reads "Festool" off a product page. Matching it and pointing at
+// nothing when it is unknown was safe while a card also carried the name as
+// text; with the text gone, that would mean reading a maker and then losing it.
+// So an import may add to the list of makers, which is what an import is for.
+//
+// Only imports use this. A person editing a card picks from the list, because
+// a typo there would otherwise become a maker.
+export async function brandIdForImportedName(
+  name: string,
+  actorId: number,
+  pool: PgPool = db(),
+): Promise<null | number> {
+  const trimmed = name.trim()
+  if (!trimmed) return null
+
+  const existing = await brandIdForName(trimmed, pool)
+  if (existing !== null) return existing
+
+  // ON CONFLICT rather than a second look: two imports of the same maker can
+  // run at once, and the unique index is what decides.
+  const result = await pool.query<{ id: string }>(
+    `
+      INSERT INTO "catalog"."brand" ("name", "created_by")
+      VALUES ($1, $2)
+      ON CONFLICT (lower("name")) DO UPDATE SET "name" = "catalog"."brand"."name"
+      RETURNING "id"
+    `,
+    [trimmed, actorId],
+  )
+
+  return result.rows[0] ? Number(result.rows[0].id) : brandIdForName(trimmed, pool)
+}
+
 export async function brandIdForName(name: string, pool: PgPool = db()): Promise<null | number> {
   const trimmed = name.trim()
   if (!trimmed) return null
@@ -277,7 +313,7 @@ function toBrand(row: BrandRow): Brand {
     logoUrl: row.logo_photo_id === null ? null : photoUrl(Number(row.logo_photo_id)),
     name: row.name,
     notes: row.notes,
-    toolCount: Number(row.tool_count),
+    itemCount: Number(row.item_count),
     updatedAt: toIsoString(row.updated_at),
     updatedBy: row.updated_by === null ? null : Number(row.updated_by),
   }

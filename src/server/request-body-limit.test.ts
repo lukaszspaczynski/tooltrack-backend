@@ -12,22 +12,22 @@ test('a photo upload gets the photo cap, everything else the JSON cap', (t) => {
 
   const json = maxRequestBodyBytes()
 
-  assert.equal(bodyLimitFor('/api/tools'), json)
+  assert.equal(bodyLimitFor('/api/items'), json)
   assert.equal(bodyLimitFor('/api/auth/login'), json)
-  // A tool card is a small document; a photograph off a phone is not.
-  assert.ok(bodyLimitFor('/api/tools/42/photos') > json)
-  assert.equal(bodyLimitFor('/api/tools/42/photos/'), bodyLimitFor('/api/tools/42/photos'))
+  // An item card is a small document; a photograph off a phone is not.
+  assert.ok(bodyLimitFor('/api/items/42/photos') > json)
+  assert.equal(bodyLimitFor('/api/items/42/photos/'), bodyLimitFor('/api/items/42/photos'))
 
   process.env.TOOLTRACK_MAX_PHOTO_BYTES = '2048'
-  assert.equal(bodyLimitFor('/api/tools/42/photos'), 2048)
+  assert.equal(bodyLimitFor('/api/items/42/photos'), 2048)
 })
 
 test('the JSON cap applies to the paths around an upload', () => {
   const json = maxRequestBodyBytes()
 
   // Promoting a photo and importing links are JSON documents, not files.
-  assert.equal(bodyLimitFor('/api/tools/42/photos/7'), json)
-  assert.equal(bodyLimitFor('/api/tools/42/photo-suggestions'), json)
+  assert.equal(bodyLimitFor('/api/items/42/photos/7'), json)
+  assert.equal(bodyLimitFor('/api/items/42/photo-suggestions'), json)
 })
 
 test('every route that takes bytes is over the JSON cap, and nothing else is', () => {
@@ -47,7 +47,7 @@ test('every route that takes bytes is over the JSON cap, and nothing else is', (
   // `/manuals/from-page` sends an address.
   //
   // By path rather than by route, because the cap is decided before the method
-  // is looked at — `GET /api/tools/1/manuals` is under the same ceiling and it
+  // is looked at — `GET /api/items/1/manuals` is under the same ceiling and it
   // costs nothing, since readRequestBody reads no body for a GET at all.
   const uploadPaths = new Set(
     ROUTES.filter((route) => /^POST \/api\/(\S+\/)?(photos|manuals)$/.test(route)).map((route) =>
@@ -71,15 +71,15 @@ test('a manual is allowed to be far bigger than a photograph', () => {
   // saveManualBytes refuses anything over MAX_MANUAL_BYTES. A cap in front of
   // it that is stricter makes that constant a fiction, which is what a 40 MB
   // limit behind a 1 MB one was.
-  assert.equal(bodyLimitFor('/api/tools/42/manuals'), MAX_MANUAL_BYTES)
-  assert.equal(bodyLimitFor('/api/tools/42/manuals/'), MAX_MANUAL_BYTES)
+  assert.equal(bodyLimitFor('/api/items/42/manuals'), MAX_MANUAL_BYTES)
+  assert.equal(bodyLimitFor('/api/items/42/manuals/'), MAX_MANUAL_BYTES)
   // The routes beside it carry an address or a list of ids.
-  assert.equal(bodyLimitFor('/api/tools/42/manuals/from-page'), maxRequestBodyBytes())
+  assert.equal(bodyLimitFor('/api/items/42/manuals/from-page'), maxRequestBodyBytes())
 })
 
-test('a case photograph gets the same room as a tool’s', () => {
-  // The same camera, the same file. The pattern used to name tools only, so
+test('a case photograph gets the same room as an item’s', () => {
+  // The same camera, the same file. The pattern used to name items only, so
   // photographing a box failed at a megabyte and photographing a drill did not.
-  assert.equal(bodyLimitFor('/api/cases/42/photos'), bodyLimitFor('/api/tools/42/photos'))
+  assert.equal(bodyLimitFor('/api/cases/42/photos'), bodyLimitFor('/api/items/42/photos'))
   assert.ok(bodyLimitFor('/api/cases/42/photos') > maxRequestBodyBytes())
 })

@@ -148,10 +148,10 @@ test('the cleared cookie expires in the past and carries no token', () => {
 test('a request without our cookie never reaches the database', async () => {
   const { calls, pool } = fakePool([userRow()])
 
-  const anonymous = new Request('http://localhost/api/tools')
+  const anonymous = new Request('http://localhost/api/items')
   assert.equal(await authenticateRequest(anonymous, pool), null)
 
-  const other = new Request('http://localhost/api/tools', { headers: { cookie: 'other=1' } })
+  const other = new Request('http://localhost/api/items', { headers: { cookie: 'other=1' } })
   assert.equal(await authenticateRequest(other, pool), null)
 
   await revokeSession(anonymous, pool)
@@ -161,7 +161,7 @@ test('a request without our cookie never reaches the database', async () => {
 test('an expired or unknown session reads as no session', async () => {
   const { pool } = fakePool([])
 
-  const request = new Request('http://localhost/api/tools', {
+  const request = new Request('http://localhost/api/items', {
     headers: { cookie: `${SESSION_COOKIE}=whatever` },
   })
 
@@ -171,7 +171,7 @@ test('an expired or unknown session reads as no session', async () => {
 test('a resolved session answers the account behind it', async () => {
   const { calls, pool } = fakePool([userRow({ role: 'editor' })])
 
-  const request = new Request('http://localhost/api/tools', {
+  const request = new Request('http://localhost/api/items', {
     headers: { cookie: `a=1; ${SESSION_COOKIE}=token-value; b=2` },
   })
 
@@ -193,7 +193,7 @@ test('a resolved session answers the account behind it', async () => {
 test('a role the application does not know reads as the least privileged one', async () => {
   const { pool } = fakePool([userRow({ role: 'owner' })])
 
-  const request = new Request('http://localhost/api/tools', {
+  const request = new Request('http://localhost/api/items', {
     headers: { cookie: `${SESSION_COOKIE}=token-value` },
   })
 
@@ -230,7 +230,7 @@ test('readCookie takes the named cookie and decodes it', () => {
 test('the language a row carries travels with the account', async () => {
   const { pool } = fakePool([userRow({ language: 'en' })])
 
-  const request = new Request('http://localhost/api/tools', {
+  const request = new Request('http://localhost/api/items', {
     headers: { cookie: `${SESSION_COOKIE}=token-value` },
   })
 
@@ -243,7 +243,7 @@ test('a language the application does not know reads as Polish', async () => {
   // language this interface was written in is the safe way to be wrong.
   const { pool } = fakePool([userRow({ language: 'kaszubski' })])
 
-  const request = new Request('http://localhost/api/tools', {
+  const request = new Request('http://localhost/api/items', {
     headers: { cookie: `${SESSION_COOKIE}=token-value` },
   })
 
@@ -266,17 +266,17 @@ test('choosing a language writes one column and leaves the sessions alone', asyn
 test('a bearer token is read from the header, and beats a stale cookie', () => {
   // A client that has been given a token means to use it. A cookie left over
   // from the same host must not quietly authenticate as somebody else.
-  const withBoth = new Request('http://x/api/tools', {
+  const withBoth = new Request('http://x/api/items', {
     headers: { authorization: 'Bearer abc123', cookie: `${SESSION_COOKIE}=stary` },
   })
   assert.equal(sessionTokenOf(withBoth), 'abc123')
 
-  const cookieOnly = new Request('http://x/api/tools', {
+  const cookieOnly = new Request('http://x/api/items', {
     headers: { cookie: `${SESSION_COOKIE}=zciasteczka` },
   })
   assert.equal(sessionTokenOf(cookieOnly), 'zciasteczka')
 
-  assert.equal(sessionTokenOf(new Request('http://x/api/tools')), null)
+  assert.equal(sessionTokenOf(new Request('http://x/api/items')), null)
 })
 
 test('the scheme is matched loosely enough to be usable and not more', () => {
@@ -300,7 +300,7 @@ test('using a session slides its expiry, and the slide is capped', async () => {
   const { calls, pool } = fakePool([userRow()])
 
   await authenticateRequest(
-    new Request('http://x/api/tools', { headers: { authorization: 'Bearer abc' } }),
+    new Request('http://x/api/items', { headers: { authorization: 'Bearer abc' } }),
     pool,
   )
 

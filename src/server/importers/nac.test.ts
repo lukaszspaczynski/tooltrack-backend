@@ -144,7 +144,7 @@ test('the barcode comes off the field the theme prints under the heading', () =>
   assert.equal(attributes.find((attribute) => attribute.name === 'Kod EAN')?.value, '5902067856109')
 })
 
-test('the note is what the tool is for, and every bullet ends as a sentence', () => {
+test('the note is what the item is for, and every bullet ends as a sentence', () => {
   // Run together as they were typed, they read as one sentence that never
   // finishes: the shop ended one of these with a full stop and one without.
   assert.equal(

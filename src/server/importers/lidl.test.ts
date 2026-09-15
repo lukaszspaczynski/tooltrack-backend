@@ -95,7 +95,7 @@ test('the downloads table is not mistaken for a specification', () => {
   assert.ok(!names.some((name) => name.includes('IAN')))
 })
 
-test('the note is what the tool is for, not the spec sheet written twice', () => {
+test('the note is what the item is for, not the spec sheet written twice', () => {
   assert.equal(notesOf(page()), 'Do obróbki drewna. 7 regulowanych prędkości')
 })
 

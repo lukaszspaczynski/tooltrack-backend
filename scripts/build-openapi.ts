@@ -1,7 +1,7 @@
 // Writes docs/openapi.json.
 //
 // The entity schemas are not written by hand. Every one of them already has a
-// TypeScript type that the server actually returns — `Tool`, `Manual`,
+// TypeScript type that the server actually returns — `Item`, `Manual`,
 // `CardPhoto`, `Brand` — and a JSON Schema copied out beside it would be a
 // second description of the same thing, accurate right up until somebody adds
 // a column. So they are generated from those types, and the only hand-written
@@ -31,7 +31,7 @@ const BASELINE = 'docs/openapi.baseline.json'
 
 // The types the API answers with, and where they live. A type named here
 // becomes `#/components/schemas/<name>`; everything it refers to comes along
-// with it, which is why `Tool` does not have to be listed beside `ToolDetail`.
+// with it, which is why `Item` does not have to be listed beside `ItemDetail`.
 const ENTITY_TYPES: { path: string; types: string[] }[] = [
   {
     path: 'src/access/roles.ts',
@@ -40,14 +40,14 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
   { path: 'src/server/i18n/lang.ts', types: ['Lang'] },
   { path: 'src/server/routes/auth-store.ts', types: ['SessionSummary'] },
   {
-    path: 'src/server/routes/tools-store.ts',
+    path: 'src/server/routes/items-store.ts',
     types: [
-      // `Tool` itself is never returned alone — the list answers with
-      // `ToolListItem` and everything else with `ToolDetail` — so it is not
+      // `Item` itself is never returned alone — the list answers with
+      // `ItemSummary` and everything else with `ItemDetail` — so it is not
       // named here. It still reaches the document as the base of both.
-      'ToolDetail',
-      'ToolListItem',
-      'ToolListPage',
+      'ItemDetail',
+      'ItemSummary',
+      'ItemListPage',
       'CategoryCount',
       'AttributeNameCount',
     ],
@@ -66,7 +66,7 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
   },
   {
     path: 'src/server/routes/organizers-store.ts',
-    types: ['Organizer', 'OrganizerPage', 'OrganizerTool', 'OrganizerLabel'],
+    types: ['Organizer', 'OrganizerPage', 'OrganizerItem', 'OrganizerLabel'],
   },
   { path: 'src/server/routes/labels-store.ts', types: ['LabelListItem', 'LabelPage'] },
   { path: 'src/server/photo-search.ts', types: ['PhotoSearchResult', 'PhotoSuggestion'] },

@@ -10,7 +10,7 @@
 // The component holding it sits under a key that is a hash of the page, so it
 // is found by the models it carries rather than by its address in the tree.
 //
-// Pure, like every importer. The fetching lives in routes/tool-import.ts.
+// Pure, like every importer. The fetching lives in routes/item-import.ts.
 
 import { manualTitle } from './attributes'
 import { text } from './html'
@@ -123,7 +123,7 @@ function categoryOf(stage: Section): string {
 // A product page offers several kits — with a battery, with two, with neither
 // — each with its own order number, and the page is about one of them. The one
 // whose order number is the page's own is the one whose EAN and contents
-// belong on this card; the others describe a tool somebody did not buy.
+// belong on this card; the others describe an item somebody did not buy.
 function attributesOf(sections: Section, sku: string): ImportedAttribute[] {
   const attributes = specifications(asSection(sections.technicalSpecificationsSection))
 
@@ -232,7 +232,7 @@ function photosOf(stage: Section): string[] {
 //
 // The download block lists more than one machine's manuals: a CityMower page
 // offers an AdvancedRotak's and a PSR's beside its own. A manual for the wrong
-// tool on a card is worse than no manual, because nobody re-reads a document
+// item on a card is worse than no manual, because nobody re-reads a document
 // they believe they already have.
 //
 // What tells them apart is the asset number Bosch bakes into every file it

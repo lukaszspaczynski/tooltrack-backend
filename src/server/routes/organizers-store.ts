@@ -1,7 +1,7 @@
-// Everything that touches `catalog.organizer` and `catalog.organizer_tool`.
+// Everything that touches `catalog.organizer` and `catalog.organizer_item`.
 //
 // The list carries enough for the screen to draw a tile without a second
-// request per row: the case, its main photo, and every tool with its own.
+// request per row: the case, its main photo, and every item with its own.
 // That is one query with two aggregates rather than N+1.
 
 import { db, withTransaction, type PgPool } from '../db'
@@ -11,7 +11,7 @@ import type { OrganizerFields, OrganizerPatch, OrganizerQuery } from './organize
 import { photoUrl } from './photos-store'
 import { t } from '../i18n'
 
-export type OrganizerTool = {
+export type OrganizerItem = {
   brand: string
   id: number
   model: string
@@ -37,8 +37,8 @@ export type OrganizerLabel = {
 }
 
 export type Organizer = {
-  // Where this arrangement is kept, or null when nobody has said. The tools in
-  // it carry an address of their own: a tool taken out to a site while its box
+  // Where this arrangement is kept, or null when nobody has said. The items in
+  // it carry an address of their own: an item taken out to a site while its box
   // stays in the workshop is two places, and the catalog records both rather
   // than deciding which is the lie.
   addressId: null | number
@@ -55,7 +55,7 @@ export type Organizer = {
   labels: OrganizerLabel[]
   name: string
   number: number
-  tools: OrganizerTool[]
+  items: OrganizerItem[]
   updatedAt: string
   updatedBy: null | number
 }
@@ -77,13 +77,23 @@ export class NumberTakenError extends Error {
   }
 }
 
-export class ToolAlreadyInOrganizerError extends Error {
+export class ItemAlreadyInOrganizerError extends Error {
   readonly code: ErrorCode
 
   constructor() {
     super(t('To narzędzie jest już w innym organizerze'))
-    this.name = 'ToolAlreadyInOrganizerError'
-    this.code = 'TOOL_ALREADY_IN_ORGANIZER'
+    this.name = 'ItemAlreadyInOrganizerError'
+    this.code = 'ITEM_ALREADY_IN_ORGANIZER'
+  }
+}
+
+export class NotAToolError extends Error {
+  readonly code: ErrorCode
+
+  constructor() {
+    super(t('Do organizera trafiają tylko narzędzia'))
+    this.name = 'NotAToolError'
+    this.code = 'ITEM_IS_NOT_A_TOOL'
   }
 }
 
@@ -120,7 +130,7 @@ type OrganizerRow = {
   labels: null | RawLabel[]
   name: string
   number: number | string
-  tools: null | RawTool[]
+  items: null | RawItem[]
   total_count?: number | string
   updated_at: Date | string
   updated_by: null | number | string
@@ -139,7 +149,7 @@ type RawLabel = {
   widthMm: number | string
 }
 
-type RawTool = {
+type RawItem = {
   brand: string
   id: number | string
   model: string
@@ -152,7 +162,7 @@ const SORT_COLUMNS: Record<OrganizerQuery['sort'], string> = {
   number: '"o"."number"',
 }
 
-// The tile needs the case, its main photo, and every tool with its own. Pulled
+// The tile needs the case, its main photo, and every item with its own. Pulled
 // in one statement: a screen of twenty organizers would otherwise be forty-one
 // queries.
 const ORGANIZER_COLUMNS = `
@@ -165,17 +175,18 @@ const ORGANIZER_COLUMNS = `
       (
         SELECT jsonb_agg(
                  jsonb_build_object(
-                   'id', "t"."id", 'name', "t"."name", 'brand', "t"."brand", 'model', "t"."model",
-                   'photoId', (SELECT "photo_id" FROM "catalog"."photo_tool"
-                               WHERE "tool_id" = "t"."id" AND "is_primary" LIMIT 1)
+                   'id', "t"."id", 'name', "t"."name", 'model', "t"."model",
+                   'brand', (SELECT "name" FROM "catalog"."brand" WHERE "id" = "t"."brand_id"),
+                   'photoId', (SELECT "photo_id" FROM "catalog"."photo_item"
+                               WHERE "item_id" = "t"."id" AND "is_primary" LIMIT 1)
                  ) ORDER BY lower("t"."name")
                )
-        FROM "catalog"."organizer_tool" AS "ot"
-        JOIN "catalog"."tool" AS "t" ON "t"."id" = "ot"."tool_id"
+        FROM "catalog"."organizer_item" AS "ot"
+        JOIN "catalog"."item" AS "t" ON "t"."id" = "ot"."item_id"
         WHERE "ot"."organizer_id" = "o"."id"
       ),
       '[]'::jsonb
-    ) AS "tools",
+    ) AS "items",
     COALESCE(
       (
         SELECT jsonb_agg(
@@ -246,7 +257,7 @@ export async function getOrganizer(id: number, pool: PgPool = db()): Promise<nul
 
 export async function createOrganizer(
   fields: OrganizerFields,
-  toolIds: number[],
+  itemIds: number[],
   actorId: number,
   pool: PgPool = db(),
 ): Promise<Organizer> {
@@ -269,7 +280,7 @@ export async function createOrganizer(
       )
 
       const organizerId = Number(inserted.rows[0].id)
-      if (toolIds.length > 0) await linkTools(client, organizerId, toolIds, actorId)
+      if (itemIds.length > 0) await linkItems(client, organizerId, itemIds, actorId)
 
       return organizerId
     } catch (error) {
@@ -333,13 +344,13 @@ export async function deleteOrganizer(id: number, pool: PgPool = db()): Promise<
   return (result.rowCount ?? 0) > 0
 }
 
-// Puts tools into an organizer. A tool lies in exactly one place, so the
+// Puts items into an organizer. An item lies in exactly one place, so the
 // unique index refuses one that is already somewhere else — reported as a 409
-// rather than silently moving it, because moving a tool out of another
+// rather than silently moving it, because moving an item out of another
 // organizer is a decision somebody should make on purpose.
-export async function addTools(
+export async function addItems(
   organizerId: number,
-  toolIds: number[],
+  itemIds: number[],
   actorId: number,
   pool: PgPool = db(),
 ): Promise<null | Organizer> {
@@ -348,30 +359,30 @@ export async function addTools(
   ])
   if ((exists.rowCount ?? 0) === 0) return null
 
-  await withTransaction(pool, (client) => linkTools(client, organizerId, toolIds, actorId))
+  await withTransaction(pool, (client) => linkItems(client, organizerId, itemIds, actorId))
 
   return getOrganizer(organizerId, pool)
 }
 
-export async function removeTool(
+export async function removeItem(
   organizerId: number,
-  toolId: number,
+  itemId: number,
   pool: PgPool = db(),
 ): Promise<boolean> {
   const result = await pool.query(
-    `DELETE FROM "catalog"."organizer_tool" WHERE "organizer_id" = $1 AND "tool_id" = $2`,
-    [organizerId, toolId],
+    `DELETE FROM "catalog"."organizer_item" WHERE "organizer_id" = $1 AND "item_id" = $2`,
+    [organizerId, itemId],
   )
 
   return (result.rowCount ?? 0) > 0
 }
 
-// Where each of these tools lies, for the catalog grid: the organizer's number
+// Where each of these items lies, for the catalog grid: the organizer's number
 // and the case it is in, with that case's main photo.
 //
 // One query for a whole page, like the thumbnails: asking per card would be a
 // request per row, and the catalog is read on a phone.
-export type ToolPlacement = {
+export type OrganizerPlacement = {
   caseId: number
   caseName: string
   casePhotoUrl: null | string
@@ -380,10 +391,10 @@ export type ToolPlacement = {
 }
 
 export async function placementsFor(
-  toolIds: number[],
+  itemIds: number[],
   pool: PgPool = db(),
-): Promise<Map<number, ToolPlacement>> {
-  if (toolIds.length === 0) return new Map()
+): Promise<Map<number, OrganizerPlacement>> {
+  if (itemIds.length === 0) return new Map()
 
   const result = await pool.query<{
     case_id: string
@@ -391,24 +402,24 @@ export async function placementsFor(
     case_photo_id: null | string
     number: string
     organizer_id: string
-    tool_id: string
+    item_id: string
   }>(
     `
-      SELECT "ot"."tool_id", "o"."id" AS "organizer_id", "o"."number",
+      SELECT "ot"."item_id", "o"."id" AS "organizer_id", "o"."number",
              "c"."id" AS "case_id", "c"."name" AS "case_name",
              (SELECT "photo_id" FROM "catalog"."photo_case"
               WHERE "case_id" = "c"."id" AND "is_primary" LIMIT 1) AS "case_photo_id"
-      FROM "catalog"."organizer_tool" AS "ot"
+      FROM "catalog"."organizer_item" AS "ot"
       JOIN "catalog"."organizer" AS "o" ON "o"."id" = "ot"."organizer_id"
       JOIN "catalog"."tool_case" AS "c" ON "c"."id" = "o"."case_id"
-      WHERE "ot"."tool_id" = ANY($1::bigint[])
+      WHERE "ot"."item_id" = ANY($1::bigint[])
     `,
-    [toolIds],
+    [itemIds],
   )
 
   return new Map(
     result.rows.map((row) => [
-      Number(row.tool_id),
+      Number(row.item_id),
       {
         caseId: Number(row.case_id),
         caseName: row.case_name,
@@ -578,25 +589,35 @@ export async function countOrganizersOfCase(caseId: number, pool: PgPool = db())
   return Number(result.rows[0]?.count ?? 0)
 }
 
-async function linkTools(
+async function linkItems(
   client: { query: PgPool['query'] },
   organizerId: number,
-  toolIds: number[],
+  itemIds: number[],
   actorId: number,
 ): Promise<void> {
   try {
     await client.query(
       `
-        INSERT INTO "catalog"."organizer_tool" ("organizer_id", "tool_id", "created_by")
-        SELECT $1, "id", $3 FROM "catalog"."tool" WHERE "id" = ANY($2::bigint[])
-        ON CONFLICT ("organizer_id", "tool_id") DO NOTHING
+        INSERT INTO "catalog"."organizer_item" ("organizer_id", "item_id", "created_by")
+        SELECT $1, "id", $3 FROM "catalog"."item" WHERE "id" = ANY($2::bigint[])
+        ON CONFLICT ("organizer_id", "item_id") DO NOTHING
       `,
-      [organizerId, toolIds, actorId],
+      [organizerId, itemIds, actorId],
     )
   } catch (error) {
-    // 23505 on organizer_tool_once_idx: the tool is in another organizer. The
+    const failure = error as { code?: string; constraint?: string }
+
+    // 23505 on organizer_item_once_idx: the item is in another organizer. The
     // pair conflict is handled above and is not an error.
-    if ((error as { code?: string }).code === '23505') throw new ToolAlreadyInOrganizerError()
+    if (failure.code === '23505') throw new ItemAlreadyInOrganizerError()
+
+    // 23503 on the composite key that says a drawer holds tools. The catalog
+    // is one card for a drill and for a washing machine, and only one of them
+    // goes in a Qbrick box.
+    if (failure.code === '23503' && failure.constraint === 'organizer_item_is_a_tool_fkey') {
+      throw new NotAToolError()
+    }
+
     throw error
   }
 }
@@ -609,9 +630,11 @@ function translateWriteError(error: unknown, number: null | number): unknown {
   // them now. Which one is in the constraint name — without reading it, adding
   // the address would have made every bad address id report a missing case.
   if (failure.code === '23503') {
-    return failure.constraint === 'organizer_address_id_fkey'
-      ? new AddressNotFoundError()
-      : new CaseNotFoundError()
+    if (failure.constraint === 'organizer_address_id_fkey') return new AddressNotFoundError()
+    // The composite key that says an organizer holds tools. A washing machine
+    // is on the same kind of card and is not going into a Qbrick box.
+    if (failure.constraint === 'organizer_item_is_a_tool_fkey') return new NotAToolError()
+    return new CaseNotFoundError()
   }
 
   return error
@@ -644,12 +667,12 @@ function toOrganizer(row: OrganizerRow): Organizer {
     })),
     name: row.name,
     number: Number(row.number),
-    tools: (row.tools ?? []).map((tool) => ({
-      brand: tool.brand,
-      id: Number(tool.id),
-      model: tool.model,
-      name: tool.name,
-      primaryPhotoUrl: tool.photoId === null ? null : photoUrl(Number(tool.photoId)),
+    items: (row.items ?? []).map((item) => ({
+      brand: item.brand,
+      id: Number(item.id),
+      model: item.model,
+      name: item.name,
+      primaryPhotoUrl: item.photoId === null ? null : photoUrl(Number(item.photoId)),
     })),
     updatedAt: toIsoString(row.updated_at),
     updatedBy: row.updated_by === null ? null : Number(row.updated_by),

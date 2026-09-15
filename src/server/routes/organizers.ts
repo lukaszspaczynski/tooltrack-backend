@@ -1,12 +1,12 @@
-// The organizer: which tools live in which case.
+// The organizer: which items live in which case.
 //
 //   GET    /api/organizers              catalog.read
 //   POST   /api/organizers              catalog.write
 //   GET    /api/organizers/:id          catalog.read
 //   PATCH  /api/organizers/:id          catalog.write
 //   DELETE /api/organizers/:id          catalog.write
-//   POST   /api/organizers/:id/tools    catalog.write
-//   DELETE /api/organizers/:id/tools/:toolId  catalog.write
+//   POST   /api/organizers/:id/items    catalog.write
+//   DELETE /api/organizers/:id/items/:itemId  catalog.write
 //
 // Reading needs catalog.read, writing needs catalog.write, and both are
 // checked by the guard before any of this runs.
@@ -23,12 +23,13 @@ import {
   parseOrganizerCreate,
   parseOrganizerPatch,
   parseOrganizerQuery,
-  parseToolIds,
+  parseItemIds,
 } from './organizers-input'
 import {
-  addTools,
+  addItems,
   AddressNotFoundError,
   CaseNotFoundError,
+  NotAToolError,
   createOrganizer,
   deleteLabel,
   deleteOrganizer,
@@ -38,8 +39,8 @@ import {
   labelSlotsFor,
   listOrganizers,
   NumberTakenError,
-  removeTool,
-  ToolAlreadyInOrganizerError,
+  removeItem,
+  ItemAlreadyInOrganizerError,
   updateOrganizer,
 } from './organizers-store'
 import type { RouteContext } from '../route-context'
@@ -54,7 +55,7 @@ export async function GET(request: Request): Promise<Response> {
   })
 }
 
-// The wizard's last step: a case, a name, and the tools that were ticked. One
+// The wizard's last step: a case, a name, and the items that were ticked. One
 // request, so a half-made organizer cannot exist because somebody closed the
 // tab between two of them.
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
@@ -62,15 +63,15 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   const parsed = parseOrganizerCreate(body)
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
-  let toolIds: number[] = []
-  if (isObject(body) && 'toolIds' in body) {
-    const tools = parseToolIds(body)
-    if (!tools.ok) return errorResponse(400, 'INVALID_BODY', tools.error)
-    toolIds = tools.value
+  let itemIds: number[] = []
+  if (isObject(body) && 'itemIds' in body) {
+    const items = parseItemIds(body)
+    if (!items.ok) return errorResponse(400, 'INVALID_BODY', items.error)
+    itemIds = items.value
   }
 
   try {
-    const organizer = await createOrganizer(parsed.value, toolIds, actorId(context))
+    const organizer = await createOrganizer(parsed.value, itemIds, actorId(context))
 
     return Response.json({ organizer }, { status: 201 })
   } catch (error) {
@@ -109,7 +110,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
-  // The tools stay; only the arrangement goes. Nothing here touches a tool
+  // The items stay; only the arrangement goes. Nothing here touches an item
   // card, which is the point of keeping the link in its own table.
   const deleted = await deleteOrganizer(id)
   if (!deleted) return notFound()
@@ -117,15 +118,15 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   return Response.json({ ok: true })
 }
 
-export async function toolsPOST(request: Request, context: RouteContext): Promise<Response> {
+export async function itemsPOST(request: Request, context: RouteContext): Promise<Response> {
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
-  const parsed = parseToolIds(await readJson(request))
+  const parsed = parseItemIds(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   try {
-    const organizer = await addTools(id, parsed.value, actorId(context))
+    const organizer = await addItems(id, parsed.value, actorId(context))
     if (!organizer) return notFound()
 
     return Response.json({ organizer })
@@ -134,14 +135,14 @@ export async function toolsPOST(request: Request, context: RouteContext): Promis
   }
 }
 
-export async function toolDELETE(_request: Request, context: RouteContext): Promise<Response> {
+export async function itemDELETE(_request: Request, context: RouteContext): Promise<Response> {
   const id = parseId(context.params.id)
-  const toolId = parseId(context.params.toolId)
-  if (id === null || toolId === null) return notFound()
+  const itemId = parseId(context.params.itemId)
+  if (id === null || itemId === null) return notFound()
 
-  const removed = await removeTool(id, toolId)
+  const removed = await removeItem(id, itemId)
   if (!removed) {
-    return errorResponse(404, 'TOOL_NOT_IN_ORGANIZER', t('Tego narzędzia nie ma w tym organizerze'))
+    return errorResponse(404, 'ITEM_NOT_IN_ORGANIZER', t('Tego narzędzia nie ma w tym organizerze'))
   }
 
   return Response.json({ ok: true })
@@ -327,10 +328,15 @@ function labelNotFound(): Response {
   return errorResponse(404, 'ORGANIZER_NOT_FOUND', 'Nie ma takiej etykiety')
 }
 
-// A taken number and a tool that is already somewhere else are both conflicts
+// A taken number and an item that is already somewhere else are both conflicts
 // the person can act on; a case that does not exist is a 404 about the case.
 function writeError(error: unknown): Response {
-  if (error instanceof NumberTakenError || error instanceof ToolAlreadyInOrganizerError) {
+  if (error instanceof NumberTakenError || error instanceof ItemAlreadyInOrganizerError) {
+    return errorResponse(409, error.code, error.message)
+  }
+  // What the card is, against what the drawer takes. A conflict with a fact
+  // already stored rather than a malformed request.
+  if (error instanceof NotAToolError) {
     return errorResponse(409, error.code, error.message)
   }
   if (error instanceof AddressNotFoundError || error instanceof CaseNotFoundError) {

@@ -18,7 +18,7 @@ type Row = {
   content_type: string
   id: string
   storage_key: string
-  tool_id: string
+  item_id: string
 }
 
 async function main(): Promise<void> {
@@ -31,7 +31,7 @@ async function main(): Promise<void> {
 
   try {
     const result = await client.query<Row>(
-      `SELECT "id", "tool_id", "storage_key", "content_type"
+      `SELECT "id", "item_id", "storage_key", "content_type"
        FROM "catalog"."tool_photo"
        WHERE "content_type" <> 'image/png'
        ORDER BY "id"`,

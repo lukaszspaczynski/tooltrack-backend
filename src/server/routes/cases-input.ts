@@ -8,7 +8,7 @@ import { invalid, NOT_AN_OBJECT, parseWith, valid, type Parsed } from './input'
 export const MAX_NAME_LENGTH = 200
 export const MAX_FIELD_LENGTH = 120
 export const MAX_NOTES_LENGTH = 4000
-// The same ceiling a tool's reference takes: an address is not a field
+// The same ceiling an item's reference takes: an address is not a field
 // somebody types, it is one a page hands over.
 export const MAX_URL_LENGTH = 2000
 
@@ -23,7 +23,7 @@ export const DEFAULT_LIMIT = CASE_PAGING.default
 export const MAX_LIMIT = CASE_PAGING.max
 
 // Text fields that are optional and stored as '' when not filled in, the same
-// convention the tool card uses.
+// convention the item card uses.
 const TEXT_FIELDS = ['system', 'ean', 'sku'] as const
 
 // Numbers that are optional and stored as NULL when not filled in. Zero is not

@@ -1,6 +1,6 @@
 // Fetching a product page, for whichever importer is about to read it.
 //
-// Shared by the tool import and the case import rather than written twice: the
+// Shared by the item import and the case import rather than written twice: the
 // two read different pages into different shapes, but "get me this page without
 // letting a shop hold the request open or fill the process" is the same job,
 // and a timeout that existed in one of them and not the other would be a bug

@@ -47,7 +47,7 @@ export function buildDocument(entitySchemas: Record<string, Schema>): Document {
     },
     info: {
       description: [
-        'The HTTP contract of the ToolTrack catalog: one card per physical tool,',
+        'The HTTP contract of the ToolTrack catalog: one card per physical item,',
         'searchable from a phone on site, with three roles deciding who may look',
         'and who may change things.',
         '',

@@ -1,7 +1,7 @@
 # ToolTrack Backend — working notes
 
-The Node API behind ToolTrack, a catalog of construction tools. One card per
-physical tool, searchable from a phone on site, with three roles deciding who
+The Node API behind ToolTrack, a catalog of construction items. One card per
+physical item, searchable from a phone on site, with three roles deciding who
 may look and who may change things.
 
 Runtime state lives in two raw Postgres schemas, `account` and `catalog`.
@@ -45,7 +45,7 @@ docs/
   with a `Request` built by hand.
 - **No ORM.** Raw SQL in `*-store.ts`, always parameterised. The only user
   input that may reach query text is a value looked up in a fixed map (see
-  `SORT_COLUMNS` in `tools-store.ts`).
+  `SORT_COLUMNS` in `items-store.ts`).
 - **No migration framework.** The DDL strings in `src/server/*-schema.ts` are
   written to be re-runnable, and `npm run db:schema:apply` applies them.
 - **One access decision.** `src/access/route-policy.ts` says what each route
@@ -64,14 +64,14 @@ a refusal, because somebody has to undo it.
 
 Each importer is **pure**. `mistama.ts` takes the page as text and gives back a
 product or nothing; the fetching, the writing and the photographs live in
-`routes/tool-import.ts`. That is what lets the reading be argued with in a test
+`routes/item-import.ts`. That is what lets the reading be argued with in a test
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
 Six scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
 another publishes both halves in different places, a fourth names the kind of
-tool where the others name the machine, the fifth publishes no structured data
+item where the others name the machine, the fifth publishes no structured data
 at all, and the sixth keeps its specification inside the description. That is the argument
 for a script per domain rather than one parser with options — the shapes are
 not variations of each other. What they did turn out to share is two small
@@ -93,7 +93,7 @@ What mistama.ts knows about that shop:
   neither reading is worth losing.
 - The shop writes one maker, "BOSCH". Which line it is — Professional or Home &
   Garden — is in the **breadcrumb**, and the catalog keeps them apart because a
-  green drill and a blue one are not the same tool to anybody holding one.
+  green drill and a blue one are not the same item to anybody holding one.
 - The **category** is the last crumb that names a kind of thing rather than a
   battery platform or the maker's own section. The shop's own narrowest heading
   is as often "Seria 18V" as "Podkaszarki".
@@ -120,7 +120,7 @@ by its address in the tree.
 - A product page offers several **kits** — with a battery, with two, with
   neither — each with its own order number. The one whose number is the page's
   own `sku` is the configuration this address is about; its EAN and its
-  contents are the ones that belong on the card, and the others describe a tool
+  contents are the ones that belong on the card, and the others describe an item
   nobody bought.
 - Noise and vibration sit behind "Pokaż więcej" as a row of titles and a row of
   values rather than as pairs. Same spec sheet, continued, so they are zipped
@@ -146,7 +146,7 @@ The importers still only report it, as `sourceUrl`, and the routes write it.
 `withoutTracking` cuts the analytics tail before it is stored, and unlike every
 other field it is not clamped: half an address is not an address.
 
-`POST /api/tools/:id/import` reads a page into a card that already exists. The
+`POST /api/items/:id/import` reads a page into a card that already exists. The
 split is what the page can know and what it cannot: the maker, the model, the
 category, the description, the spec sheet and the documents are overwritten;
 the name, the serial number, the condition and the photographs are not — a card
@@ -177,9 +177,9 @@ what a card needs most:
   is what the catalog calls it. The model is the name without the "PRO" in
   front, because the line already lives in the brand.
 
-`skil.ts` is the fourth. Its Product names the **kind** of tool — "Szlifierka
+`skil.ts` is the fourth. Its Product names the **kind** of item — "Szlifierka
 taśmowa" — and keeps the machine's number in the sku, so the card is named for
-both: one of those is three of the tools in the shed and the other is none of
+both: one of those is three of the items in the shed and the other is none of
 them until somebody remembers what it is. The spec table is Magento's own, the
 category is again only in the analytics payload (the narrowest `item_categoryN`
 this time), and a document is titled by the `title` attribute of its link
@@ -224,7 +224,7 @@ the specification is (a list of `em`/`strong` pairs rather than a table),
 `#opis` is the prose, and `#galeria` bounds the carousel — which matters,
 because further down the page are photographs of four other machines.
 
-Three things it settles. The heading is written in two parts, the kind of tool
+Three things it settles. The heading is written in two parts, the kind of item
 and then the model in a span of its own, and that span is **how a product page
 is told from a shelf**: `/kosiarki/` is a post too, and reading it would make a
 card of empty fields. The documents are the icon boxes that link a PDF, which
@@ -280,8 +280,8 @@ minute.
 
 ## Manuals
 
-`catalog.manual` holds the PDFs that belong beside a tool: the one from the
-box, a parts diagram, a safety sheet. Its own table with `manual_tool` beside
+`catalog.manual` holds the PDFs that belong beside an item: the one from the
+box, a parts diagram, a safety sheet. Its own table with `manual_item` beside
 it, exactly like the photos — a manual describes a model rather than one
 machine, so three identical grinders share one file, a duplicated card costs a
 link, and deleting a card takes with it only what no other card keeps.
@@ -319,9 +319,9 @@ this product's. Where nothing matches, the card gets no manuals rather than
 somebody else's — nobody re-reads a document they believe they already have.
 
 `GET /api/manuals` is the shelf rather than the drawer — every document,
-whichever tool keeps it, with the cards that keep it rolled up per row. The
+whichever item keeps it, with the cards that keep it rolled up per row. The
 same split the photo library makes, and the screen behind it answers the
-question a card's panel cannot: which tools is this the manual for, and has the
+question a card's panel cannot: which items is this the manual for, and has the
 same PDF been uploaded three times under three names. Deleting from there is
 not the bin on a card: it takes the file out of the catalog and off every card
 at once, which is why the confirmation names them.
@@ -331,40 +331,82 @@ The file is served by the manual's own id, `inline`, with two file names in the
 the real title. A header is bytes, and "Instrukcja obsługi" cannot be written
 in one — which is how the first version answered 500.
 
-## What a tool is
+## One card for everything owned
 
-`catalog.tool_attribute` holds the parameters of one tool — mains voltage,
+`catalog.item` was `catalog.tool`. The catalog began as a tool shed and stopped
+being only one: a drill and a washing machine want the same card — a name, a
+maker, a model, a serial number, a condition, photographs, a manual, a spec
+sheet, an address, the page it was imported from — and every one of those was
+already here. A second table with the same twelve columns under another name
+would have been the same thing twice.
+
+`kind` is `tool`, `appliance` or `case`. It is **not a category**: a category is
+free text and somebody's own word for a shelf, while this is the handful of
+sorts the catalog itself behaves differently about. `case` has nothing using it
+yet, and is in the CHECK anyway — the boxes are their own table today, and a
+constraint that has to be widened on the day of is one more thing to remember
+on the day of.
+
+**Only a tool goes in an organizer**, and that is a constraint rather than a
+check in a handler, like every other rule of that feature. `organizer_item`
+carries a `kind` fixed to `'tool'` and points at `(id, kind)` on the card, so
+the database refuses an appliance — and refuses turning a tool that is in a
+drawer into one, which is the half a handler check would have missed. Both
+arrive as 409s: `ITEM_IS_NOT_A_TOOL` and `ITEM_IN_ORGANIZER`.
+
+The **maker is one column now**. A card used to carry `brand_id` and a `brand`
+string beside it, and keeping two spellings of one fact in step took three
+mechanisms: matching a typed name back to a row on every write, rewriting the
+string on every card when a brand was renamed, and a backfill in the DDL
+quietly repairing whatever those two missed. One pointer and a LEFT JOIN — left,
+because a card with no maker is normal and an inner join would drop it out of
+the catalog. The screens get the name without a second request, which is what
+the string was really for, and the colour comes with it: a field the makers
+already had and no card ever showed.
+
+Two consequences worth knowing. **An import may create a maker**
+(`brandIdForImportedName`): a product page names "Festool" and, with no string
+to fall back on, matching-and-pointing-at-nothing would mean reading a maker
+and then losing it. A person editing a card picks from the list instead,
+because a typo there would otherwise become a maker. And **23503 now means
+four things** on the item writers — a missing address, a missing maker, and
+either direction of the organizer rule — so the constraint name is read rather
+than guessed.
+
+## What an item is
+
+`catalog.tool_attribute` holds the parameters of one item — mains voltage,
 speed, chuck, working height — as a name and a value, both free text, `n` rows
-per card. Columns on the tool would have been a table of mostly nulls: no two
-kinds of tool share a spec sheet, and a new kind of thing would mean a
+per card. Columns on the item would have been a table of mostly nulls: no two
+kinds of item share a spec sheet, and a new kind of thing would mean a
 migration rather than a row.
 
 The value carries its unit. "230 V" rather than 230 with a unit column, because
 half these parameters have no unit anybody agrees on — "SDS-plus", "3 tryby" —
 and a number nobody can read is worse than a string somebody can.
 
-They live under the card in the API: `POST /api/tools/:id/attributes`, `PATCH`
-and `DELETE` on one of them, each answering with the whole tool the way a case
-answers with itself when a label slot is added. The list at `GET /api/tools`
+They live under the card in the API: `POST /api/items/:id/attributes`, `PATCH`
+and `DELETE` on one of them, each answering with the whole item the way a case
+answers with itself when a label slot is added. The list at `GET /api/items`
 deliberately leaves them out — a grid shows a name, a maker and a condition —
-while every single-tool answer carries them.
+while every single-item answer carries them.
 
 One card cannot list the same parameter twice; the unique index folds case and
 trims, and the parser collapses runs of spaces so that "napięcie sieciowe"
-cannot slip past it as a second row. `GET /api/tools/attributes` is the
-vocabulary in use, read from the tools themselves like the category list, so
+cannot slip past it as a second row. `GET /api/items/attributes` is the
+vocabulary in use, read from the items themselves like the category list, so
 the form can offer what other cards already call the same thing.
 
 ## Cases
 
-`catalog.tool_case` is the box the tools live in, and it is a thing rather than
+`catalog.tool_case` is the box the items live in, and it is a thing rather than
 an attribute: a case has its own dimensions, its own barcode and its own
 photograph, and a crew talks about "skrzynka 04" as often as about the drill
 inside it. Name and manufacturer are required; every measurement is nullable,
 because a spec sheet is something you have or you do not, and `0` would be a
 claim about a box with no height.
 
-The EAN and the SKU are not unique, unlike a tool's serial number. They
+The EAN and the SKU are not unique, unlike an item's serial number. They
 identify the product, and owning two identical cases is normal.
 
 `catalog.case_label_slot` is where a label goes: a size in millimetres, unique
@@ -384,8 +426,8 @@ answers a different question, and all three are pure enough to test:
 outbound request in the server goes through one of those three.
 
 A `catalog.photo` row is one **picture**, once — `checksum` is unique. Which
-cards show it lives in `photo_tool` and `photo_case`, because the same
-photograph legitimately illustrates several tools, several cases, and a tool
+cards show it lives in `photo_item` and `photo_case`, because the same
+photograph legitimately illustrates several items, several cases, and an item
 together with the case it lives in. Carrying the owner on the photo row would
 mean a row per card, and with it a copy of the attribution, the source and the
 cutout lineage, which then drift apart.
@@ -404,11 +446,11 @@ Two consequences worth knowing before changing the delete paths. Taking a
 picture off a card removes the link and then deletes the picture **if nothing
 else holds it**, because a bin on a card has to mean the photograph is gone
 rather than that it moved to a library nobody asked to fill. Deleting a whole
-tool or case does the same through `dropOrphanedPhotos`, which is application
+item or case does the same through `dropOrphanedPhotos`, which is application
 code on purpose: a foreign key cannot say "delete the parent when its last
 child goes".
 
-Three things hold a picture, not two: a tool, a case, and **a maker whose logo
+Three things hold a picture, not two: an item, a case, and **a maker whose logo
 it is**. `photo_brand` cascades on the photo, so a rule that only knew about
 cards did not fail — it quietly took the logo off a brand that had nothing to
 do with the card being deleted. `exclusivePhotoIds` asks the same three holds
@@ -449,22 +491,22 @@ AI service is a different error and a different status.
 
 ## Brands
 
-`catalog.brand` is a maker: one row, many tools, pointed at by
-`catalog.tool.brand_id`. The logo lives in `catalog.photo_brand`, one to one in
+`catalog.brand` is a maker: one row, many items, pointed at by
+`catalog.item.brand_id`. The logo lives in `catalog.photo_brand`, one to one in
 both directions, for the same reason the photo links exist — a picture carries
 no idea of what it is being used for.
 
-The tool still carries its maker as free text as well. That column is what the
+The item still carries its maker as free text as well. That column is what the
 catalog searches and what a card shows, and the two are kept in step from both
-ends: renaming a brand rewrites the text on its tools in the same transaction,
-and creating or editing a tool matches the typed name back to a row
+ends: renaming a brand rewrites the text on its items in the same transaction,
+and creating or editing an item matches the typed name back to a row
 (`brandIdForName`), pointing at nothing rather than inventing a brand from a
-typo. Collapsing them into one column, with the tool form picking from a list,
+typo. Collapsing them into one column, with the item form picking from a list,
 is the obvious next step and has not been taken — say so before doing it, since
-it changes what `GET /api/tools` means.
+it changes what `GET /api/items` means.
 
-The DDL backfills: every distinct non-empty `tool.brand` became a row and every
-tool was pointed at its own, idempotently.
+The DDL backfills: every distinct non-empty `item.brand` became a row and every
+item was pointed at its own, idempotently.
 
 Cases are deliberately not part of this. `tool_case.manufacturer` stays free
 text — it was asked for and declined, not overlooked, so leave it alone unless
@@ -482,22 +524,22 @@ Only `name` is required, and it is the part a picker shows: a crew says
 because a yard on a site has a name and no street and refusing to record it
 until somebody invents one means it is not recorded at all.
 
-`tool.address_id` and `organizer.address_id` are columns rather than a link
+`item.address_id` and `organizer.address_id` are columns rather than a link
 table: a thing is in one place, which is single-valued on this side and needs
 no row of its own. The same reasoning as `brand_id`, the opposite of the
 photos. `ON DELETE SET NULL`, so closing a site does not delete the kit that
-was on it — and every answer carries `toolCount` and `organizerCount` so the
+was on it — and every answer carries `itemCount` and `organizerCount` so the
 delete confirmation can say how many cards are about to lose their location.
 
 Two things worth knowing before changing this.
 
-**The two are independent, on purpose.** A tool in an arrangement carries its
+**The two are independent, on purpose.** An item in an arrangement carries its
 own address and it can disagree with the arrangement's. A drill taken to a site
 while its box stays in the workshop is genuinely two places; the catalog
 records both rather than choosing which one to call the lie. If that is ever
 made to inherit, it is a decision about the domain, not a bug fix.
 
-**23503 now means two things.** A tool points at a place as well as at a maker,
+**23503 now means two things.** An item points at a place as well as at a maker,
 and an organizer at a place as well as at a case, so a foreign key that matched
 nothing has to be told apart by `error.constraint` — without that, a bad
 address id reported a missing case.
@@ -505,25 +547,25 @@ address id reported a missing case.
 ## Organizer
 
 `catalog.organizer` is one arrangement — a case, a name and an ordinal number —
-and `catalog.organizer_tool` says which tools are in it. Every rule of the
+and `catalog.organizer_item` says which items are in it. Every rule of the
 feature is a constraint rather than a check in a handler:
 
 - one case per organizer, several organizers per case (a toolbox with three
   drawers is three arrangements of the same box) — a `case_id` column with
   `ON DELETE CASCADE`, so deleting the box takes the arrangements;
-- a tool is in at most one organizer — a **unique index on `tool_id` alone** in
-  the link table, which is what "1:1 from the tool's side" means in SQL;
-- deleting a tool takes it out — `ON DELETE CASCADE` on the other end.
+- an item is in at most one organizer — a **unique index on `item_id` alone** in
+  the link table, which is what "1:1 from the item's side" means in SQL;
+- deleting an item takes it out — `ON DELETE CASCADE` on the other end.
 
-The link table rather than an `organizer_id` on the tool is deliberate:
-`catalog.tool` knows nothing about organizers, and removing the feature would
-not touch a tool card. The same reasoning as the photo links.
+The link table rather than an `organizer_id` on the item is deliberate:
+`catalog.item` knows nothing about organizers, and removing the feature would
+not touch an item card. The same reasoning as the photo links.
 
-`GET /api/tools?inOrganizer=false` is what the wizard offers in its second
-step. It is a filter on the tool list rather than an endpoint of its own,
-because "tools not in an organizer" is a question about tools.
+`GET /api/items?inOrganizer=false` is what the wizard offers in its second
+step. It is a filter on the item list rather than an endpoint of its own,
+because "items not in an organizer" is a question about items.
 
-The list query pulls the case, its main photo, and every tool with its own in
+The list query pulls the case, its main photo, and every item with its own in
 one statement — a screen of twenty organizers would otherwise be forty-one
 requests. Watch the shape of it: the window count has to sit between the column
 list and the `FROM`, which is why those are two constants and not one.
@@ -535,7 +577,7 @@ shelf of old and new labels has to look like one set. `number` is rounded
 corners, the number on top, the maker under it, the second maker in a wedge
 along the bottom with a white seam. `contents` is Qbrick's `label_tool` —
 a white card in a navy frame, pictures filling the top, the organizer's name
-over a rule and the tool names in caps under it. `pdf.ts` carries the
+over a rule and the item names in caps under it. `pdf.ts` carries the
 rounded-rectangle and wedge paths, because pdf-lib's drawRectangle has no
 corner radius, and the shared corner radius, because one label rounder than the
 next looks like two batches.
@@ -547,14 +589,14 @@ is therefore checked in the route rather than in the parser: the parser knows
 the ceiling, only the resolved slot knows the shape.
 
 Both lines of type on a `contents` label can be typed instead of worked out,
-and the lower one has a third source: `namesSource` picks the tool names,
+and the lower one has a third source: `namesSource` picks the item names,
 their models, or the typed `namesText`. A model is what is written on the
 machine — "POF 1200 F5" says more about a box than the category name does.
 That field becomes a column name, so it is validated against a fixed map on
 the way out of jsonb rather than trusted: the same rule as `SORT_COLUMNS`.
 An empty `titleText` still means the organizer's name, and an absent
 `namesSource` still means what it used to: a text is a typed line, no text is
-the tool names. Empty as absence rather than as a value is the `brand.color`
+the item names. Empty as absence rather than as a value is the `brand.color`
 convention, and it is what keeps labels made before any of these fields
 existed meaning what they meant — a redraw of one still puts the catalog's own
 words on.
@@ -571,7 +613,7 @@ draw; `generate.ts` is the only module there that touches the database, which
 is what keeps the geometry testable without a catalog.
 
 `assets/fonts/` holds DejaVu Sans because the fourteen fonts built into every
-reader are WinAnsi and have no `ł`, `ą` or `ę`. A label carrying a Polish tool
+reader are WinAnsi and have no `ł`, `ą` or `ę`. A label carrying a Polish item
 name needs an embedded font, and pdf-lib subsets it to the glyphs used.
 
 Sizes come from the case's `case_label_slot` rows and are checked against them
@@ -648,7 +690,7 @@ itself stays ours to change.
 
 ## Duplicating a card
 
-`POST /api/tools/:id/duplicate` is one `INSERT ... SELECT`, so a copy cannot
+`POST /api/items/:id/duplicate` is one `INSERT ... SELECT`, so a copy cannot
 drift from its original between a read and a write, and the columns are named
 once. The serial number is the single field not copied — it is one physical
 machine, and the unique index would refuse the second card anyway.
@@ -689,7 +731,7 @@ It costs two requests — find the product card, then take that card's gallery �
 and gives back one model shot from every side at full size, which is what a
 catalog card wants and what a general image search is worst at. Three rules keep
 it honest: the gallery is anchored on the hash in the page's `og:image`, so a
-cross-sold tool on the same page contributes nothing; a search that finds
+cross-sold item on the same page contributes nothing; a search that finds
 nothing is retried on the last two words of the query, because the shop ANDs
 every word and a brand it spells differently ("BOSCH" against "Bosch Home &
 Garden") matches nothing at all; and a result is used only when its name
@@ -719,8 +761,8 @@ that stopped working. Done properly, the seeder would have gone on writing the
 parameter for one release.
 
 **The check is switched off right now**, and `compatibility.test.ts` says why:
-the catalog is being renamed from `tool` to `item`, which moves every route
-under `/api/tools` and is one deliberate break from beginning to end. Left on,
+the catalog is being renamed from `item` to `item`, which moves every route
+under `/api/items` and is one deliberate break from beginning to end. Left on,
 it would fire on every commit of that and be answered by running
 `openapi:baseline` without reading the output — which is the habit it exists to
 prevent. Turning it back on is `npm run openapi:baseline` and changing one
@@ -965,7 +1007,7 @@ it parses.
 ## VS Code
 
 `npm run db:adminer` starts a table browser on http://localhost:8080 behind the
-`tools` compose profile; the SQLTools connection to the same database is in
+`items` compose profile; the SQLTools connection to the same database is in
 `.vscode/settings.json`. Both use the throwaway local credentials.
 
 `.vscode/` carries tasks (`typecheck`, `test`, `format`, `dev`, the `openapi:`

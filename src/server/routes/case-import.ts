@@ -4,7 +4,7 @@
 //   POST /api/cases/import          catalog.write
 //   POST /api/cases/:id/import      catalog.write
 //
-// The same three routes a tool has, for the same reasons, with one difference
+// The same three routes an item has, for the same reasons, with one difference
 // that is not cosmetic: a case has no parameters and no documents, so what
 // comes with it is the photographs and nothing else.
 //
@@ -22,7 +22,7 @@ import { replaceAttributes } from './attributes-store'
 import { createCase, getCase, updateCase } from './cases-store'
 import { fetchPage } from './page-fetch'
 import { importPhotoLinks } from './photos'
-import { parseImportInput } from './tools-input'
+import { parseImportInput } from './items-input'
 
 // A gallery of a box runs to a dozen shots of the same lid. Each one is
 // fetched, decoded and stored, so the ceiling is what keeps an import from
@@ -121,7 +121,7 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
 
   if (!updated) return errorResponse(404, 'CASE_NOT_FOUND', t('Nie ma takiej skrzynki'))
 
-  // Cleared and written again, the same as a tool's sheet: the page is the
+  // Cleared and written again, the same as an item's sheet: the page is the
   // source of truth for what the box is, so a row the maker has dropped should
   // leave the case too. That is the opposite of what the seeder does, and
   // deliberately — a seeder run months later has no business deleting a line

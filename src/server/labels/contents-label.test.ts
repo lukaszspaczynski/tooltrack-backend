@@ -31,7 +31,7 @@ test('a number label is a PDF of the size that was asked for', async () => {
 })
 
 test('a number label draws with no brands at all', async () => {
-  // An organizer whose tools have no maker recorded still gets a label; it is
+  // An organizer whose items have no maker recorded still gets a label; it is
   // white with a number on it, which is better than a 500.
   const bytes = await drawNumberLabel({
     brands: [],
@@ -50,7 +50,7 @@ test('a contents label draws with no photos and no names', async () => {
     heightMm: 40,
     photos: [],
     title: 'Wiertarki',
-    toolNames: [],
+    itemNames: [],
     widthMm: 30,
   })
 
@@ -64,7 +64,7 @@ test('Polish names reach the PDF rather than being dropped', async () => {
     heightMm: 60,
     photos: [],
     title: 'Ładowarki i akumulatory',
-    toolNames: ['Szlifierka kątowa', 'Wiertarka udarowa'],
+    itemNames: ['Szlifierka kątowa', 'Wiertarka udarowa'],
     widthMm: 200,
   })
 
@@ -72,14 +72,14 @@ test('Polish names reach the PDF rather than being dropped', async () => {
 })
 
 test('eleven names shrink and then give way to a count', async () => {
-  // The caption is one run of text under the rule, and eleven tool names do not
+  // The caption is one run of text under the rule, and eleven item names do not
   // fit three lines at a size anybody can read. What must not happen is a throw
   // or a loop that never ends looking for a size that does not exist.
   const bytes = await drawContentsLabel({
     heightMm: 40,
     photos: [],
     title: 'Elektronarzędzia',
-    toolNames: Array.from({ length: 11 }, (_, i) => `Wiertarka udarowa GSB 18V-${i + 1}`),
+    itemNames: Array.from({ length: 11 }, (_, i) => `Wiertarka udarowa GSB 18V-${i + 1}`),
     widthMm: 30,
   })
 
@@ -104,7 +104,7 @@ test('six pictures fit across a lid', async () => {
     heightMm: 60,
     photos: Array.from({ length: 6 }, () => photo),
     title: 'Akumulatory i ładowarki',
-    toolNames: ['18 V + 12 V, Li-Ion'],
+    itemNames: ['18 V + 12 V, Li-Ion'],
     widthMm: 200,
   })
 
@@ -119,7 +119,7 @@ test('a caption too long for the band ends in an ellipsis rather than vanishing'
     heightMm: 40,
     photos: [],
     title: 'Akumulatory',
-    toolNames: ['18 V + 12 V, Li-Ion, ładowarki szybkie i standardowe, adaptery oraz stacje'],
+    itemNames: ['18 V + 12 V, Li-Ion, ładowarki szybkie i standardowe, adaptery oraz stacje'],
     widthMm: 30,
   })
 
@@ -134,7 +134,7 @@ test('a slot smaller than the measured one scales the type with it', async () =>
     heightMm: 20,
     photos: [],
     title: 'Klucze',
-    toolNames: ['Klucz płaski', 'Klucz nasadowy'],
+    itemNames: ['Klucz płaski', 'Klucz nasadowy'],
     widthMm: 15,
   })
 

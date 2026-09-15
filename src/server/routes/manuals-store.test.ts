@@ -100,7 +100,7 @@ test('renaming is scoped to the card that asked', async () => {
   const manual = await renameManual(7, 5, 'Schemat części', pool)
 
   assert.equal(manual?.title, 'Schemat części')
-  assert.match(calls[0].text, /FROM "catalog"\."manual_tool"[\s\S]*"tool_id" = \$1/)
+  assert.match(calls[0].text, /FROM "catalog"\."manual_item"[\s\S]*"item_id" = \$1/)
   assert.deepEqual(calls[0].params, [7, 5, 'Schemat części'])
 })
 
@@ -116,7 +116,7 @@ test('taking a manual off its last card deletes the document', async () => {
 
   assert.equal(await unlinkManual(7, 5, pool), true)
   assert.match(calls[2].text, /DELETE FROM "catalog"\."manual"/)
-  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."manual_tool"/)
+  assert.match(calls[2].text, /NOT EXISTS \(SELECT 1 FROM "catalog"\."manual_item"/)
 })
 
 test('a manual another card keeps survives being taken off this one', async () => {
@@ -131,7 +131,7 @@ test('what a card is the only keeper of is asked before it is deleted', async ()
   const { calls, pool } = fakePool([[{ manual_id: '5' }]])
 
   assert.deepEqual(await exclusiveManualIds(7, pool), [5])
-  assert.match(calls[0].text, /"other"\."tool_id" <> \$1/)
+  assert.match(calls[0].text, /"other"\."item_id" <> \$1/)
 })
 
 test('the bytes decide whether a file is a PDF', () => {
@@ -147,7 +147,7 @@ test('the bytes decide whether a file is a PDF', () => {
 test('a file name is a poor title, and better than none', () => {
   assert.equal(titleFromFileName('instrukcja_obslugi_pl.pdf'), 'instrukcja obslugi pl')
   // A hyphen is not an underscore: "185-LI" is a model number, and a title
-  // reading "185 LI" names a tool that does not exist.
+  // reading "185 LI" names an item that does not exist.
   assert.equal(titleFromFileName('/tmp/GSB 185-LI.PDF'), 'GSB 185-LI')
   assert.equal(
     titleFromFileName('sao-hg-citymower-original-pdf.pdf'),

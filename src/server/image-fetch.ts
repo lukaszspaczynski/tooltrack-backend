@@ -21,7 +21,7 @@ const FETCH_TIMEOUT_MS = 10_000
 // Sent on every outbound request. Some hosts — Wikimedia among them — answer
 // 400 to a client that does not identify itself, and an operator reading their
 // own access log deserves to see who is asking.
-const USER_AGENT = 'ToolTrack/0.1 (tool catalog; +https://github.com/)'
+const USER_AGENT = 'ToolTrack/0.1 (item catalog; +https://github.com/)'
 
 export class ImageFetchError extends Error {
   readonly code: ErrorCode
@@ -124,7 +124,7 @@ export async function assertPublicHost(url: URL): Promise<void> {
   //
   // This is checked before the request, and the name could in principle
   // resolve differently when the request is made. Closing that gap means
-  // dialling the address ourselves; for a tool catalog behind a login, the
+  // dialling the address ourselves; for an item catalog behind a login, the
   // check plus the protocol and size limits is the proportionate answer.
   let addresses: { address: string }[]
   try {

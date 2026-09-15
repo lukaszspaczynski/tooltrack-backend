@@ -161,7 +161,7 @@ test('the two rows that are not columns go on the sheet', () => {
 })
 
 test('an imported case carries the address it was read from', () => {
-  // The same field a tool card gets, and what the "update from the page"
+  // The same field an item card gets, and what the "update from the page"
   // button on a case looks for. The analytics tail is not part of it: it says
   // nothing about the box, and the card would show it as its source for ever.
   const fitted = fitCaseToCard(parseQbrickCase(page(), `${PAGE_URL}?utm_source=nl`)!)
@@ -199,7 +199,7 @@ test('a measurement nobody could have taken is dropped, not stored', () => {
   assert.equal(fitCaseToCard(absurd!).diagonalMm, null)
 })
 
-test('a case source is its own registry, not the tool one', () => {
+test('a case source is its own registry, not the item one', () => {
   // A page that sells drills has nothing to say about a box, and the dialog
   // asking where this one is from should never offer one.
   assert.equal(caseImporterFor(PAGE_URL)?.label, 'qbricksystem.com')

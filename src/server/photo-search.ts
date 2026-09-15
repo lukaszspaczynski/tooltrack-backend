@@ -1,5 +1,5 @@
-// "Find me pictures of this tool" — the on-demand image search behind
-// GET /api/tools/:id/photo-suggestions.
+// "Find me pictures of this item" — the on-demand image search behind
+// GET /api/items/:id/photo-suggestions.
 //
 // It runs here and not in the browser for three reasons: the API keys stay on
 // the server, the browser is not exposed to whatever a provider returns, and
@@ -57,7 +57,7 @@ export type PhotoSearchResult = {
 
 const SEARCH_TIMEOUT_MS = 8000
 
-const USER_AGENT = 'ToolTrack/0.1 (tool catalog; +https://github.com/)'
+const USER_AGENT = 'ToolTrack/0.1 (item catalog; +https://github.com/)'
 
 export class PhotoSearchUnavailableError extends Error {
   readonly code: ErrorCode
@@ -72,9 +72,13 @@ export class PhotoSearchUnavailableError extends Error {
 // What to search for when the caller does not say. Brand and model are what
 // identify the machine; the name alone would find a category, and the notes
 // would find nothing.
-export function defaultQuery(tool: { brand: string; model: string; name: string }): string {
-  const parts = [tool.brand, tool.model].map((part) => part.trim()).filter(Boolean)
-  if (parts.length === 0) return tool.name.trim()
+export function defaultQuery(item: {
+  brand: null | { name: string }
+  model: string
+  name: string
+}): string {
+  const parts = [item.brand?.name ?? '', item.model].map((part) => part.trim()).filter(Boolean)
+  if (parts.length === 0) return item.name.trim()
 
   return parts.join(' ')
 }
@@ -321,7 +325,7 @@ export type MistamaProduct = { path: string; title: string }
 
 // The products the shop ranked, in its order, ignoring its articles —
 // /webpage/... is a guarantee or a buying guide, never a thing with
-// photographs of a tool.
+// photographs of an item.
 export function mistamaProducts(html: string): MistamaProduct[] {
   const pattern = /<a\s+href="(\/[^"]+\.html)"[^>]*class="product_name"[^>]*>([^<]*)</gi
 
@@ -366,7 +370,7 @@ function normalise(value: string): string {
 //
 // Anchored on the hash in og:image rather than on every product path in the
 // page: a card that cross-sells something else would otherwise contribute the
-// other tool's photographs, and a suggestion of the wrong machine is worse
+// other item's photographs, and a suggestion of the wrong machine is worse
 // than one fewer suggestion.
 //
 // The shop serves each picture in three sizes. The grid gets `large_`, which

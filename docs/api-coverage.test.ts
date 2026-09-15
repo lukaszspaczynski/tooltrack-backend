@@ -13,9 +13,9 @@ const API_MD = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'api.m
 // The file has conventions, and they are good ones for prose even though they
 // are awkward to compare against a list:
 //
-//   ### `GET /api/tools`                    a heading per route
+//   ### `GET /api/items`                    a heading per route
 //   ### `GET|PATCH|DELETE /api/brands/:id`  three routes that read as one
-//   **`POST /api/{tools,cases}/:id/photos`** the two parallel families at once
+//   **`POST /api/{items,cases}/:id/photos`** the two parallel families at once
 //   **`GET .../cutout/preview/:checksum`**   a suffix, under a section heading
 //
 // So they are expanded here rather than banned there. A test that made the

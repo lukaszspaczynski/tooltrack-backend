@@ -1,7 +1,7 @@
 // Template 2: what is inside.
 //
-// A white card with a navy frame: the pictures of the tools filling the top,
-// the organizer's name under them, a rule, and the tool names in caps along
+// A white card with a navy frame: the pictures of the items filling the top,
+// the organizer's name under them, a rule, and the item names in caps along
 // the bottom. Every measurement is read off the Qbrick `label_tool` sticker
 // rather than chosen — a 30 x 40 mm label from here goes on the shelf next to
 // one from there, and the two have to look like one set.
@@ -43,7 +43,7 @@ export type ContentsLabelInput = {
   // Up to three, already read from disk. PNG, because everything stored is.
   photos: Uint8Array[]
   title: null | string
-  toolNames: string[]
+  itemNames: string[]
   widthMm: number
 }
 
@@ -93,8 +93,8 @@ export async function drawContentsLabel(input: ContentsLabelInput): Promise<Uint
   drawCard(label)
 
   const caption =
-    input.toolNames.length > 0
-      ? captionBlock(input.toolNames, label.fonts.bold, metric.caption * scale, minSize, inner)
+    input.itemNames.length > 0
+      ? captionBlock(input.itemNames, label.fonts.bold, metric.caption * scale, minSize, inner)
       : null
   const title = input.title
     ? titleBlock(input.title, label.fonts.bold, metric.title * scale, minSize, inner)
@@ -219,7 +219,7 @@ function titleBlock(
 
 // What is in the box, in caps under the rule, the way "18 V + 12 V, LI-ION"
 // runs along the bottom of the Qbrick stickers. An organizer can hold eleven
-// tools and eleven names do not fit three lines at a size anybody can read, so
+// items and eleven names do not fit three lines at a size anybody can read, so
 // the tail becomes "+3 więcej": that is information, where a list that simply
 // stops is a label somebody has to check against the box.
 function captionBlock(
@@ -244,7 +244,7 @@ function captionBlock(
   }
 
   // Nothing fits, not even one name at the smallest size — a caption somebody
-  // typed by hand, or a single tool with a very long name. Three lines of it
+  // typed by hand, or a single item with a very long name. Three lines of it
   // ending in an ellipsis beats the band vanishing, which is what dropping the
   // caption here used to do.
   if (smallest.length === 0) return null

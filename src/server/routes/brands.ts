@@ -72,7 +72,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   const id = parseId(context.params.id)
   if (id === null) return notFound()
 
-  // The tools keep the maker's name as text and simply stop pointing at a row.
+  // The items keep the maker's name as text and simply stop pointing at a row.
   // Deleting the grouping is not a claim about who made them.
   const deleted = await deleteBrand(id)
   if (!deleted) return notFound()

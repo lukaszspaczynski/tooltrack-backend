@@ -16,7 +16,7 @@ import { PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib'
 export const MM = 72 / 25.4
 
 // The fourteen fonts every reader has are WinAnsi, which has no ł, ą or ę. A
-// label carrying a Polish tool name has to bring its own — see
+// label carrying a Polish item name has to bring its own — see
 // assets/fonts/README.md.
 const FONT_DIR = join(dirname(fileURLToPath(import.meta.url)), '../../../assets/fonts')
 

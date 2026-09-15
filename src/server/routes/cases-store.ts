@@ -51,7 +51,7 @@ export type ToolCase = {
   name: string
   notes: string
   // Where an import read this box from, empty when nobody imported it. The
-  // same field a tool card has, and it was the same parameter before that.
+  // same field an item card has, and it was the same parameter before that.
   referenceUrl: string
   outerHeightMm: null | number
   outerLengthMm: null | number
@@ -68,7 +68,7 @@ export type ToolCase = {
 // The grid needs a thumbnail, fetched for the whole page in one query rather
 // than per row, and the route hangs it on every item — so the list item is a
 // wider thing than the case. Named here rather than left as a literal in the
-// handler for the same reason `ToolListItem` is: the OpenAPI schemas are
+// handler for the same reason `ItemSummary` is: the OpenAPI schemas are
 // generated from these types, and a shape the API returns and no type
 // describes is a shape the contract would get wrong.
 export type CaseListItem = ToolCase & {
@@ -220,7 +220,7 @@ export async function getCase(id: number, pool: PgPool = db()): Promise<null | T
   const row = result.rows[0]
   if (!row) return null
 
-  // The detail read is the one that carries everything, the way getToolDetail
+  // The detail read is the one that carries everything, the way getItemDetail
   // does: a list shows a name and a maker, and sending every box's spec sheet
   // to draw that would be paying for what nobody reads.
   return { ...toCase(row), attributes: await listAttributes('tool_case', Number(row.id), pool) }
@@ -338,7 +338,7 @@ export async function removeLabelSlot(
 }
 
 // What the system filter offers, read from the cases themselves — the same
-// reasoning as tool categories: the shelf is where the systems come from.
+// reasoning as item categories: the shelf is where the systems come from.
 export async function listSystems(pool: PgPool = db()): Promise<SystemCount[]> {
   const result = await pool.query<{ count: string; system: string }>(
     `
@@ -363,7 +363,7 @@ function likePattern(search: string): string {
 function toCase(row: CaseRow): ToolCase {
   return {
     // Filled in by whoever read the case; a row on its own carries no spec
-    // sheet, the same way a tool row does not.
+    // sheet, the same way an item row does not.
     attributes: [],
     // numeric(8,2) comes back from pg as a string, because a float would round
     // 4.5 litres into something almost but not quite 4.5.

@@ -50,7 +50,7 @@ Every failed call answers with the same two fields, and they have two different
 jobs.
 
 ```json
-{ "code": "SERIAL_NUMBER_TAKEN", "error": "Serial number 3AB77 is already on another tool" }
+{ "code": "SERIAL_NUMBER_TAKEN", "error": "Serial number 3AB77 is already on another item" }
 ```
 
 `error` is prose for a person, in whatever language the request asked for. **Do
@@ -80,7 +80,7 @@ replacements — `code` and `error` are always there.
 | Capability                                                  | viewer | editor | admin |
 | ----------------------------------------------------------- | :----: | :----: | :---: |
 | `catalog.read` — browse and search the catalog              |   ●    |   ●    |   ●   |
-| `catalog.write` — add, edit, delete tools, cases and photos |        |   ●    |   ●   |
+| `catalog.write` — add, edit, delete items, cases and photos |        |   ●    |   ●   |
 | `users.manage` — list users, change roles                   |        |        |   ●   |
 
 New accounts are always `viewer`.
@@ -179,9 +179,37 @@ Render menus from `capabilities`, not by comparing role strings.
 account is ended, including the caller's, so the client has to log in again.
 `403` if the current password is wrong.
 
-## Tools
+## Items
 
-### `GET /api/tools` — `catalog.read`
+The catalog holds what somebody owns. That began as tools and is not only tools
+any more: a drill and a washing machine want the same card — a name, a maker, a
+model, a serial number, a condition, photographs, a manual, a spec sheet, an
+address and the page it was imported from — so they are one table and `kind`
+says which sort each row is.
+
+| `kind`      | what it is                                          |
+| ----------- | --------------------------------------------------- |
+| `tool`      | the default, and what everything in a tool shed is  |
+| `appliance` | the washing machine, the fridge, the television     |
+| `case`      | reserved; the boxes are still their own thing today |
+
+Only a **tool** goes in an organizer, and the database is what refuses the
+rest: `409 ITEM_IS_NOT_A_TOOL` on the way in, and `409 ITEM_IN_ORGANIZER` when
+something already in a drawer is asked to stop being a tool. Take it out first.
+
+The **maker** is the row it is, not a string beside a pointer at one:
+
+```json
+"brand": { "id": 4, "name": "Bosch Professional", "color": "#122447" }
+```
+
+`null` when nobody has said, which is normal — most hand tools have no maker
+worth recording. Writing it is `brandId`, and an id that names no maker is a
+`404 BRAND_NOT_FOUND` rather than a card quietly pointing at nothing. It used
+to be both a `brand` string and a `brand_id`, kept in step by three separate
+mechanisms; the colour arriving for free is what the string could never do.
+
+### `GET /api/items` — `catalog.read`
 
 Query parameters, all optional:
 
@@ -190,18 +218,18 @@ Query parameters, all optional:
 | `q`           | Substring match over name, brand, model, serial number, category and notes | —           |
 | `category`    | Exact category, case-insensitive                                           | —           |
 | `condition`   | One of `new`, `good`, `worn`, `needs_repair`, `retired`                    | —           |
-| `inOrganizer` | `false` for tools in no organizer — what the organizer wizard offers       | —           |
+| `inOrganizer` | `false` for items in no organizer — what the organizer wizard offers       | —           |
 | `sort`        | `updatedAt`, `createdAt` or `name`                                         | `updatedAt` |
 | `order`       | `asc` or `desc`                                                            | `desc`      |
 | `limit`       | 1–200                                                                      | 50          |
 | `offset`      | ≥ 0                                                                        | 0           |
 
 ```json
-{ "items": [/* tools */], "total": 128, "limit": 50, "offset": 0 }
+{ "items": [/* items */], "total": 128, "limit": 50, "offset": 0 }
 ```
 
-Each item is a tool plus two things the grid needs and would otherwise ask for
-per card: `primaryPhotoUrl`, and `organizer` — where the tool lies.
+Each item is an item plus two things the grid needs and would otherwise ask for
+per card: `primaryPhotoUrl`, and `organizer` — where the item lies.
 
 ```json
 {
@@ -215,22 +243,22 @@ per card: `primaryPhotoUrl`, and `organizer` — where the tool lies.
 }
 ```
 
-`null` for a tool nobody has put anywhere. Both are one query for the whole
-page, so a screen of tools costs three statements rather than one per row.
+`null` for an item nobody has put anywhere. Both are one query for the whole
+page, so a screen of items costs three statements rather than one per row.
 
 A malformed `limit`, `offset` or `sort` is clamped or ignored rather than
 refused — a pasted link should still show the catalog. An unknown `condition`
 is a `400`, because silently listing everything would look like an answer.
 
-### `GET /api/tools/categories` — `catalog.read`
+### `GET /api/items/categories` — `catalog.read`
 
 `{ "categories": [{ "category": "Wiertarki", "count": 12 }] }`, read from the
-tools themselves. That is the list to offer in a filter.
+items themselves. That is the list to offer in a filter.
 
-### `GET /api/tools/attributes` — `catalog.read`
+### `GET /api/items/attributes` — `catalog.read`
 
 `{ "names": [{ "name": "Napięcie sieciowe", "count": 12 }] }`, most used first.
-What the form offers while somebody types a parameter name, read from the tools
+What the form offers while somebody types a parameter name, read from the items
 themselves like the category list above — the names in use are the vocabulary,
 and one typed the same way on every card is what makes the catalog answerable
 later. Names that differ only in case or spacing count as one.
@@ -252,7 +280,7 @@ it would be a CORS and cookie problem for the one feature worth having.
 
 - `GET /api/docs/:asset` — the two files the page loads, by name.
 
-`docs/api.http` is still the better tool for a sequence of calls, because it
+`docs/api.http` is still the better item for a sequence of calls, because it
 keeps the session and the variables between them. This is the better one for
 reading.
 
@@ -276,7 +304,7 @@ Coverage is partial and deliberately so: `src/openapi/operations.ts` keeps a
 `PENDING` list of routes not yet described, and a test asserts that every route
 is in exactly one of the two lists, so a gap is visible rather than silent.
 
-### `GET /api/tools/import/sources` — `catalog.read`
+### `GET /api/items/import/sources` — `catalog.read`
 
 ```json
 {
@@ -296,15 +324,15 @@ is in exactly one of the two lists, so a gap is visible rather than silent.
 The pages this server can read — two shops and six makers' own sites. The address is remembered without its analytics tail:
 `?_gl=…` and `utm_*` say nothing about the product.
 `manuals` says whether that page publishes documents at all: a shop sells the
-tool and leaves the manual to the maker, so a screen asking for one offers only
+item and leaves the manual to the maker, so a screen asking for one offers only
 the sources that have any. The import dialog lists them before asking for an address,
 so it never offers a source this installation does not have.
 
-### `POST /api/tools/import` — `catalog.write`
+### `POST /api/items/import` — `catalog.write`
 
 `{ "url": "https://mistama.com/…" }` — a product page, read into a card.
 
-`201 { tool, imported }`, where `imported` is what came with it:
+`201 { item, imported }`, where `imported` is what came with it:
 
 ```json
 {
@@ -329,7 +357,7 @@ rename the thing three screens read.
 
 The manuals come too, at most 8 of them, where the page publishes any — most
 shops publish none. They go through the same path as
-`POST /api/tools/:id/manuals`, so a PDF that will not download is reported
+`POST /api/items/:id/manuals`, so a PDF that will not download is reported
 rather than failing the card.
 
 The card is created with `condition: "new"` and **no serial number** — that
@@ -342,10 +370,10 @@ the message names the ones it can. `422` when the page could not be fetched, or
 when there is no product on it. Expect the call to take around ten seconds for a
 gallery of a dozen photographs: each one is fetched, converted and stored.
 
-### `POST /api/tools/:id/import` — `catalog.write`
+### `POST /api/items/:id/import` — `catalog.write`
 
 `{ "url": "https://…" }` — reading the page again into a card that exists.
-Answers like the import above: `200 { tool, imported }`.
+Answers like the import above: `200 { item, imported }`.
 
 What the page knows, it **overwrites**: the maker, the model, the category, the
 description, the whole spec sheet and the documents. What it cannot know, it
@@ -364,7 +392,7 @@ Same refusals as the import: `400` for an address this server cannot read,
 `422` when the page cannot be fetched or holds no product. None of them touch
 the card.
 
-### `POST /api/tools` — `catalog.write`
+### `POST /api/items` — `catalog.write`
 
 ```json
 {
@@ -379,12 +407,12 @@ the card.
 ```
 
 `name` is the only required field; the rest default to `""` and `condition` to
-`good`. `201 { tool }`. `409` if another card already claims that serial
+`good`. `201 { item }`. `409` if another card already claims that serial
 number (blank serial numbers are exempt).
 
-### `GET /api/tools/:id` — `catalog.read`
+### `GET /api/items/:id` — `catalog.read`
 
-`200 { tool }` or `404`. A single tool carries `attributes` as well — what this
+`200 { item }` or `404`. A single item carries `attributes` as well — what this
 particular machine is — which the list deliberately does not:
 
 ```json
@@ -399,16 +427,16 @@ particular machine is — which the list deliberately does not:
 In the order they were typed, which is the order a spec sheet is copied in. A
 grid of cards shows a name, a maker and a condition, so sending every card's
 parameters to draw it would be paying for what nobody reads — every **single**
-tool answer carries them, including `POST /api/tools` (empty) and a duplicate.
+item answer carries them, including `POST /api/items` (empty) and a duplicate.
 
-### `PATCH /api/tools/:id` — `catalog.write`
+### `PATCH /api/items/:id` — `catalog.write`
 
 Send only what changes. `""` clears a field; omitting it leaves it alone. The
-name cannot be cleared. `200 { tool }`, `404`, or `409` on a duplicate serial.
+name cannot be cleared. `200 { item }`, `404`, or `409` on a duplicate serial.
 
-### `POST /api/tools/:id/duplicate` — `catalog.write`
+### `POST /api/items/:id/duplicate` — `catalog.write`
 
-Another card just like this one. `201 { tool }`.
+Another card just like this one. `201 { item }`.
 
 Everything is copied except the **serial number**, which starts blank: it
 identifies one physical machine, and the unique index would refuse a second
@@ -419,7 +447,7 @@ The photos come along as links to the same pictures, main photo included. Two
 of the same model look the same, and since the pairing is a row this costs a
 row rather than a second file.
 
-### `DELETE /api/tools/:id` — `catalog.write`
+### `DELETE /api/items/:id` — `catalog.write`
 
 `200 { "ok": true }` or `404` if it was already gone.
 
@@ -428,7 +456,7 @@ another card shows, or that is a maker's logo, stays. `GET .../photos?exclusive=
 answers which those are, which is what the delete confirmation counts before
 asking.
 
-### The tool object
+### The item object
 
 ```json
 {
@@ -447,13 +475,13 @@ asking.
 }
 ```
 
-### `GET /api/tools/:id/manuals` — `catalog.read`
+### `GET /api/items/:id/manuals` — `catalog.read`
 
-`200 { manuals }` — the PDFs kept beside this tool, oldest attachment first.
+`200 { manuals }` — the PDFs kept beside this item, oldest attachment first.
 Each carries `title`, `byteSize`, `source` (`upload` \| `url` \| `import`),
 `sourceUrl`, `createdBy`, `createdAt` and a `url` to read it at.
 
-### `POST /api/tools/:id/manuals` — `catalog.write`
+### `POST /api/items/:id/manuals` — `catalog.write`
 
 Two request shapes on one route.
 
@@ -471,10 +499,10 @@ the common one this catches. `409` when this card already keeps that exact
 file: the checksum is the identity, so the same document from two directions is
 one row.
 
-### `POST /api/tools/:id/manuals/from-page` — `catalog.write`
+### `POST /api/items/:id/manuals/from-page` — `catalog.write`
 
 `{ "url": "https://…" }` — every manual a product page publishes, at most 8.
-Read by the same importers as `POST /api/tools/import`, so an address from a
+Read by the same importers as `POST /api/items/import`, so an address from a
 page this server cannot read is refused in the same words.
 
 `201 { manuals, failed }` — one document that will not download does not lose
@@ -484,24 +512,24 @@ the others. `422` when the page publishes none.
 that publishes no documents — `mistama.com` is refused here by name rather than
 fetched and then reported empty, since that round trip helps nobody.
 
-### `PATCH /api/tools/:id/manuals/:manualId` — `catalog.write`
+### `PATCH /api/items/:id/manuals/:manualId` — `catalog.write`
 
 `{ "title": "Instrukcja obsługi" }` → `200 { manual }`. Blank is a `400`:
 "instrukcja_pl_v2_final" is a poor title and an empty one is not a title.
 
-### `DELETE /api/tools/:id/manuals/:manualId` — `catalog.write`
+### `DELETE /api/items/:id/manuals/:manualId` — `catalog.write`
 
 `200 { "ok": true }`. Takes the manual off **this** card; the document itself
 goes when no card keeps it any more.
 
 ### `GET /api/manuals` — `catalog.read`
 
-The library: every manual there is, whichever tool keeps it. `?q=` matches the
-title **and** the tools it belongs to — a document called "Instrukcja obsługi"
+The library: every manual there is, whichever item keeps it. `?q=` matches the
+title **and** the items it belongs to — a document called "Instrukcja obsługi"
 is findable only by the machine it is for. `?limit=` 1–200 (24), `?offset=`.
 
 `200 { items, total, limit, offset }`, newest first. Each item is a manual plus
-`tools: [{ id, name }]` — the cards that keep it, which is the question this
+`items: [{ id, name }]` — the cards that keep it, which is the question this
 screen exists to answer, and one query rather than one per row.
 
 ### `PATCH /api/manuals/:id` — `catalog.write`
@@ -511,13 +539,13 @@ document is not being looked at through any one card.
 
 ### `POST /api/manuals/delete` — `catalog.write`
 
-`{ "ids": [1, 2] }`, at most 50 → `200 { deleted, tools }`. Off every card at
+`{ "ids": [1, 2] }`, at most 50 → `200 { deleted, items }`. Off every card at
 once and off the disk. A different decision from
-`DELETE /api/tools/:id/manuals/:manualId`, which takes one off **one** card and
-leaves the file where another card still keeps it. `tools` names the cards that
+`DELETE /api/items/:id/manuals/:manualId`, which takes one off **one** card and
+leaves the file where another card still keeps it. `items` names the cards that
 lost something, so the screen can say so.
 
-### `POST /api/tools/:id/manuals/attach` — `catalog.write`
+### `POST /api/items/:id/manuals/attach` — `catalog.write`
 
 `{ "ids": [1, 2] }` → `201 { attached, manuals }`. Documents the catalog
 already has, put onto another card: one manual, several machines.
@@ -527,31 +555,31 @@ already has, put onto another card: one manual, several machines.
 The PDF, `inline`. By the manual's own id rather than through a card, because
 several cards share one document and none of them owns it.
 
-### `POST /api/tools/:id/attributes` — `catalog.write`
+### `POST /api/items/:id/attributes` — `catalog.write`
 
 `{ "name": "Napięcie sieciowe", "value": "230 V" }` — one parameter of this
-tool. Both halves are required and neither may be blank: a parameter with no
+item. Both halves are required and neither may be blank: a parameter with no
 name says nothing, and one with no value is a question rather than an answer.
 The value carries its unit (`"230 V"`, not `230`), because half of these have
 no unit anybody agrees on and a number without one cannot be read.
 
-`201 { tool }` — the whole card, so a screen showing the list does not have to
+`201 { item }` — the whole card, so a screen showing the list does not have to
 merge one row into a list it already holds, the same as a case answering with
-itself when a label slot is added. `404` when there is no such tool, `409` when
+itself when a label slot is added. `404` when there is no such item, `409` when
 this card already lists that parameter: the second "napięcie" is somebody
 correcting the first, not a second fact about the machine. Names are compared
 trimmed, case-folded and with runs of spaces collapsed.
 
-### `PATCH /api/tools/:id/attributes/:attributeId` — `catalog.write`
+### `PATCH /api/items/:id/attributes/:attributeId` — `catalog.write`
 
 `{ "name"?, "value"? }` — send either half or both; sending neither is a `400`
 rather than an answer with the row unchanged, which would look like it saved.
-`200 { tool }`, `404` when the parameter is not this tool's — which is the same
+`200 { item }`, `404` when the parameter is not this item's — which is the same
 answer as one that never existed — and `409` on a name the card already lists.
 
-### `DELETE /api/tools/:id/attributes/:attributeId` — `catalog.write`
+### `DELETE /api/items/:id/attributes/:attributeId` — `catalog.write`
 
-`200 { tool }` or `404`. Deleting the last parameter leaves an empty list, not
+`200 { item }` or `404`. Deleting the last parameter leaves an empty list, not
 a card without the field.
 
 ## Saying which build is calling
@@ -584,7 +612,7 @@ A header this server cannot read is treated as absent, not as old.
 { "sources": [{ "host": "qbricksystem.com", "label": "qbricksystem.com" }] }
 ```
 
-A different list from the tool one, and a shorter one. A page that sells drills
+A different list from the item one, and a shorter one. A page that sells drills
 has nothing to say about a box, so the two registries are separate and a dialog
 asking "where is this case from" never offers one.
 
@@ -594,7 +622,7 @@ asking "where is this case from" never offers one.
 
 `201 { case, imported }`, where `imported` is `{ photos, photosFailed, sourceUrl }`
 — the photographs and nothing else. A case has no documents, which is part of
-why it has its own importer type rather than sharing the tool one.
+why it has its own importer type rather than sharing the item one.
 
 Almost everything worth knowing about a box is a measurement, and the page
 writes the units into the values — `450 [L] x 322 [W] x 126 [H] mm`, `15kg`. A
@@ -602,7 +630,7 @@ measurement that reads outside what a case can be is dropped rather than
 stored: a number nobody can have measured looks like a fact.
 
 The rows that are **not** a measurement the catalog has a column for become
-**parameters** on the case, the same way a tool's spec sheet does — the weight,
+**parameters** on the case, the same way an item's spec sheet does — the weight,
 and how many fit on a pallet. The address the page was read from is the case's
 own `referenceUrl`, which is what the "update from the page" button looks for.
 The **note** is the maker's own description and nothing else: it
@@ -614,7 +642,7 @@ was a bare link.
 The same page, read again into a case that exists. What the page knows it
 overwrites: the maker, the name, the system, every measurement, the note and
 the parameters — those are cleared and written again rather than merged, as a
-tool's are, because a row the maker has dropped should leave the case too.
+item's are, because a row the maker has dropped should leave the case too.
 
 What it cannot know it leaves alone. The **label slots** are where a sticker
 goes on this particular box in this particular van, and no product page has an
@@ -624,7 +652,7 @@ always 0 here.
 
 ## Cases
 
-A case is the box the tools live in. Name and manufacturer are required;
+A case is the box the items live in. Name and manufacturer are required;
 everything else comes off a spec sheet, and a spec sheet is something you have
 or you do not. Measurements are `null` when nobody has taken them — never `0`,
 which would be a claim about a box with no height.
@@ -658,7 +686,7 @@ spec sheet.
 
 ### `DELETE /api/cases/:id/attributes/:attributeId` — `catalog.write`
 
-One line off the spec sheet of a box. The same three routes a tool's parameters
+One line off the spec sheet of a box. The same three routes an item's parameters
 have, with the same rules — both halves required, whitespace collapsed to one
 space, one name per case — and each answers with the whole case rather than the
 row that changed.
@@ -671,7 +699,7 @@ kind of box turns out to state.
 ### `GET /api/cases/systems` — `catalog.read`
 
 `200 { systems: [{ system, count }] }` — read from the cases themselves, the
-same way tool categories are.
+same way item categories are.
 
 ### `POST /api/cases` — `catalog.write`
 
@@ -742,7 +770,7 @@ the point of a modular system.
 
 The EAN and the SKU identify the product, not this box: two identical cases on
 the shelf are two rows carrying the same barcode, so neither is unique. That is
-the difference from a tool's serial number, which is one machine.
+the difference from an item's serial number, which is one machine.
 
 ## Photos
 
@@ -754,21 +782,21 @@ The bytes are always stored by this server. A URL or a search result is a
 source, not a link the catalog keeps depending on: a page that disappears next
 year must not empty the shed.
 
-Everything in this section exists twice, under `/api/tools/:id/…` and under
+Everything in this section exists twice, under `/api/items/:id/…` and under
 `/api/cases/:id/…`. They are the same routes, served by the same handler, and
 the only difference is which link table the pairing lands in. `:id` below means
 either.
 
 A **picture** and **a card showing a picture** are two different things. The
 photo object is the picture: it has no owner and no `isPrimary`, because the
-same photograph can illustrate several tools, several cases, and a tool
+same photograph can illustrate several items, several cases, and an item
 together with the case it lives in. The per-card routes add `isPrimary`, which
 belongs to the pairing.
 
-### `GET /api/{tools,cases}/:id/photos` — `catalog.read`
+### `GET /api/{items,cases}/:id/photos` — `catalog.read`
 
 ```json
-{ "photos": [{ "id": 3, "url": "/api/tools/7/photos/3/file", "isPrimary": true }] }
+{ "photos": [{ "id": 3, "url": "/api/items/7/photos/3/file", "isPrimary": true }] }
 ```
 
 Main photo first, then in the order the pictures were attached to **this**
@@ -782,14 +810,14 @@ of — what deleting the card would take with it. Not the whole gallery: one tha
 another card shows, or that a maker uses as its logo, survives the card. This
 is what the delete confirmation counts before asking.
 
-### `POST /api/{tools,cases}/:id/photos` — `catalog.write`
+### `POST /api/{items,cases}/:id/photos` — `catalog.write`
 
 Two request shapes on one endpoint.
 
 **An uploaded file** — the raw bytes as the body, with the file's own type:
 
 ```
-POST /api/tools/7/photos
+POST /api/items/7/photos
 Content-Type: image/jpeg
 
 <bytes>
@@ -815,37 +843,37 @@ Whatever arrives — JPEG, GIF, WebP — is **converted to PNG before it is
 stored**, so every photo this API serves back is `image/png`. A PNG is kept
 byte for byte.
 
-Refusals worth handling: `409` the same image is already on this tool
+Refusals worth handling: `409` the same image is already on this item
 (compared by checksum of the stored PNG, not by URL), `415` the file is not a
 JPEG, PNG, GIF or WebP — decided by reading the file, not by trusting its
 content type — and `413` above the size cap. An address pointing into a private network is
 refused as a failed item, never fetched.
 
-### `POST /api/{tools,cases}/:id/photos/attach` — `catalog.write`
+### `POST /api/{items,cases}/:id/photos/attach` — `catalog.write`
 
 ```json
 { "photoIds": [24, 25] }
 ```
 
-Puts photos that already exist on this tool — the other half of being able to
+Puts photos that already exist on this item — the other half of being able to
 upload a picture before deciding what it is. Two different things depending on
 where the photo is now:
 
 - **unattached** — it is _moved_: it keeps its id and leaves the unassigned
   shelf, which is what "assign" means to the person doing it;
-- **on another tool** — it is _copied_. The same picture can legitimately
-  illustrate two tools, and since files are addressed by checksum the copy is a
+- **on another item** — it is _copied_. The same picture can legitimately
+  illustrate two items, and since files are addressed by checksum the copy is a
   row, not another megabyte.
 
 `201 { photos, failed }`; one id that no longer exists does not lose the rest.
 `409` when none of them could be attached — already on this card, or gone.
 
-### `GET /api/{tools,cases}/:id/photos/:photoId/file` — `catalog.read`
+### `GET /api/{items,cases}/:id/photos/:photoId/file` — `catalog.read`
 
 The bytes, with `cache-control: private, immutable` and the checksum as `ETag`.
 Use it directly as an `<img src>`.
 
-### `PATCH /api/{tools,cases}/:id/photos/:photoId` — `catalog.write`
+### `PATCH /api/{items,cases}/:id/photos/:photoId` — `catalog.write`
 
 ```json
 { "isPrimary": true }
@@ -853,18 +881,18 @@ Use it directly as an `<img src>`.
 
 The only edit a photo has. Everything else about it is a fact about the file.
 
-### `DELETE /api/{tools,cases}/:id/photos/:photoId` — `catalog.write`
+### `DELETE /api/{items,cases}/:id/photos/:photoId` — `catalog.write`
 
 `200 { "ok": true }`. Takes the picture off **this** card. If no other card
 shows it, the picture and its file go too — a bin on a card has to mean the
 photograph is gone, not that it moved to a library nobody asked to fill.
 
-Deleting a whole tool or case does the same for everything it showed: its
+Deleting a whole item or case does the same for everything it showed: its
 pairings go with it, and the pictures no other card uses go with those.
 
-### `POST /api/{tools,cases}/:id/photos/:photoId/cutout` — `catalog.write`
+### `POST /api/{items,cases}/:id/photos/:photoId/cutout` — `catalog.write`
 
-Take this photo and give back the tool alone, without the workbench, the case
+Take this photo and give back the item alone, without the workbench, the case
 or the hands holding it.
 
 `201 { photo, provider }`. It **adds** a photo rather than replacing one: the
@@ -891,7 +919,7 @@ photo it was started from.
 One-click is not always what you want. These two split the same work so a
 person can see the result before anything is written.
 
-**`POST /api/{tools,cases}/:id/photos/:photoId/cutout/preview`** — `catalog.write`
+**`POST /api/{items,cases}/:id/photos/:photoId/cutout/preview`** — `catalog.write`
 
 ```json
 { "method": "local", "threshold": 700, "padding": 20, "removeBgType": "product" }
@@ -945,7 +973,7 @@ Turns a preview into a photo: `source: "edit"`, `derivedFrom` the original,
 cache — in which case it is generated again rather than half-saved; or if that
 exact cutout is already on the card.
 
-### `GET /api/{tools,cases}/:id/photo-suggestions` — `catalog.write`
+### `GET /api/{items,cases}/:id/photo-suggestions` — `catalog.write`
 
 `?source=page` answers from the **product page this card was imported from**
 instead of from the engines: the address is the card's `referenceUrl`, so it is
@@ -953,11 +981,11 @@ the one source that cannot come back with somebody else's machine.
 `providers: ["page"]`, and each suggestion is attributed to the page's host.
 
 `422` when the card has no such address, when this server cannot read that
-page, or when the page cannot be fetched. Tools only — a case is not imported
+page, or when the page cannot be fetched. Items only — a case is not imported
 from anywhere.
 
-Up to ten images found on the web for this tool. `?q=` overrides the query,
-which otherwise is the tool's brand and model.
+Up to ten images found on the web for this item. `?q=` overrides the query,
+which otherwise is the item's brand and model.
 
 ```json
 {
@@ -992,7 +1020,7 @@ fail is it a `503`.
 question: instead of pictures that look like the words, it finds the product
 card for this model and hands back that card's gallery — one machine
 photographed from every side, at the size the manufacturer shot it. It is the
-best engine here for a tool it sells and useless for one it does not. Its
+best engine here for an item it sells and useless for one it does not. Its
 search wants every word to match, so a query it cannot place is retried on the
 last two words alone, which is where the model number sits.
 
@@ -1134,13 +1162,13 @@ starts on the cutout screen. 1 to 765, where 765 is pure white.
 
 ## Producers
 
-A brand is a maker: one row, many tools. The logo is a picture from the same
+A brand is a maker: one row, many items. The logo is a picture from the same
 library everything else draws from, linked one to one — a brand has at most one
 logo, and a picture is the logo of at most one brand.
 
-Tools carry the maker twice on purpose, for now: `brand` is the text the card
+Items carry the maker twice on purpose, for now: `brand` is the text the card
 shows and the catalog searches, `brandId` points at the row. Creating or
-editing a tool matches the typed name against the brands, case-insensitively,
+editing an item matches the typed name against the brands, case-insensitively,
 and points the card at one when it recognises it — a name it does not know
 points at nothing rather than inventing a brand from a typo.
 
@@ -1149,20 +1177,20 @@ points at nothing rather than inventing a brand from a typo.
 | Parameter | Meaning           | Default |
 | --------- | ----------------- | ------- |
 | `q`       | Name or notes     | —       |
-| `sort`    | `name` or `tools` | `name`  |
+| `sort`    | `name` or `items` | `name`  |
 | `order`   | `asc` or `desc`   | `asc`   |
 | `limit`   | 1–500             | 100     |
 | `offset`  | ≥ 0               | 0       |
 
 `200 { items, total, limit, offset }`. Each item carries `logoUrl` and
-`toolCount`, both aggregates of the one query, so the screen costs one
+`itemCount`, both aggregates of the one query, so the screen costs one
 statement rather than two per row.
 
 ### `POST /api/brands` — `catalog.write`
 
 `{ "name": "Makita", "notes": "", "color": "0 158 224" }` → `201 { brand }`.
 `409` when the name is taken: "Bosch" and "BOSCH" typed on two days are the same
-company, and two rows would split its tools in half.
+company, and two rows would split its items in half.
 
 `color` is the maker's leading colour and is optional. It arrives as
 `#rrggbb`, as `rrggbb`, or as three numbers — `"18 36 71"`, `"18,36,71"`,
@@ -1175,10 +1203,10 @@ not a colour, is a `400` rather than a silently dropped field.
 ### `GET|PATCH|DELETE /api/brands/:id` — `catalog.read` / `catalog.write`
 
 A `PATCH` takes `name`, `notes` and `color`. **Renaming rewrites the maker on
-its tools** in the same transaction — the card carries the name as text, and
+its items** in the same transaction — the card carries the name as text, and
 renaming one without the other leaves them telling different stories.
 
-`DELETE` removes the row. The tools stay and keep the maker's name as text;
+`DELETE` removes the row. The items stay and keep the maker's name as text;
 they simply stop pointing at it. Deleting the grouping is not a claim about who
 made them.
 
@@ -1203,7 +1231,7 @@ Only `name` is required, and it is the part a picker shows: a crew says
 `postalCode`, `city` — is for when somebody has to drive there, and every field
 of it is optional, because a yard on a site has a name and no street.
 
-Every answer carries `toolCount` and `organizerCount`, on the list as well as
+Every answer carries `itemCount` and `organizerCount`, on the list as well as
 on one address. That is what makes the list readable and what a delete
 confirmation has to say out loud.
 
@@ -1212,7 +1240,7 @@ confirmation has to say out loud.
 | Parameter | Meaning                             | Default |
 | --------- | ----------------------------------- | ------- |
 | `q`       | Name, city, street, postcode, notes | —       |
-| `sort`    | `name`, `city`, `tools`             | `name`  |
+| `sort`    | `name`, `city`, `items`             | `name`  |
 | `order`   | `asc` or `desc`                     | `asc`   |
 | `limit`   | 1–500                               | 100     |
 | `offset`  | Records to skip                     | 0       |
@@ -1247,38 +1275,38 @@ Any subset of the create body. `200 { address }`, `404`, `409`.
 
 ### `DELETE /api/addresses/:id` — `catalog.write`
 
-`200 { ok: true, cleared: { tools, organizers } }`.
+`200 { ok: true, cleared: { items, organizers } }`.
 
-The tools and arrangements that were there **stay in the catalog** and stop
+The items and arrangements that were there **stay in the catalog** and stop
 pointing at anything — closing a site must not take the kit with it. `cleared`
 says how many lost their place, because "delete" on a list of places reads as
 tidying up and forty cards quietly losing their location does not.
 
 ### Saying where something is
 
-There is no endpoint for it. A tool is at one place and an arrangement is at
+There is no endpoint for it. An item is at one place and an arrangement is at
 one place, so it is **`addressId`** on each — set by the `PATCH` that already
 edits them, cleared with `null`.
 
 ```
-PATCH /api/tools/7        { "addressId": 3 }
+PATCH /api/items/7        { "addressId": 3 }
 PATCH /api/organizers/2   { "addressId": null }
 ```
 
 `404 ADDRESS_NOT_FOUND` when the id names no place.
 
-`GET /api/tools?addressId=3` is what is at a place, and `?addressId=none` the
-tools nobody has located — a different question, and the one a tidy-up starts
+`GET /api/items?addressId=3` is what is at a place, and `?addressId=none` the
+items nobody has located — a different question, and the one a tidy-up starts
 from.
 
-The two are **independent**: a tool in an arrangement carries its own address,
+The two are **independent**: an item in an arrangement carries its own address,
 and it can disagree with the arrangement's. That is on purpose — a drill taken
 to a site while its box stays in the workshop is two places, and the catalog
 records both rather than choosing which one to call the lie.
 
 ## Organizer
 
-Which tools live in which case. An organizer row is one arrangement: a case, a
+Which items live in which case. An organizer row is one arrangement: a case, a
 name, and an ordinal **number** — the one painted on the box and said out loud,
 deliberately not the id.
 
@@ -1286,9 +1314,9 @@ The rules, all of them in the database rather than in a handler:
 
 - one case per organizer, and **a case may hold several organizers** (a toolbox
   with three drawers is three arrangements of the same box);
-- **a tool is in at most one organizer**, by a unique index on the link table's
-  `tool_id`;
-- deleting a tool takes it out of its organizer and changes nothing else;
+- **an item is in at most one organizer**, by a unique index on the link table's
+  `item_id`;
+- deleting an item takes it out of its organizer and changes nothing else;
 - deleting a case deletes its organizers — the arrangement has no meaning
   without the box, and the screen warns before it happens.
 
@@ -1304,7 +1332,7 @@ The rules, all of them in the database rather than in a handler:
 | `offset`  | ≥ 0                                       | 0        |
 
 `200 { items, total, limit, offset }`. Each item carries its case (with the
-case's main photo) and every tool in it (each with its own), so the list screen
+case's main photo) and every item in it (each with its own), so the list screen
 can draw a tile per organizer without a request per row.
 
 `caseId` is what a case's delete confirmation asks with.
@@ -1312,16 +1340,16 @@ can draw a tile per organizer without a request per row.
 ### `POST /api/organizers` — `catalog.write`
 
 ```json
-{ "name": "Wiertarki", "caseId": 2, "description": "", "toolIds": [7, 9] }
+{ "name": "Wiertarki", "caseId": 2, "description": "", "itemIds": [7, 9] }
 ```
 
-`name` and `caseId` are required; `toolIds` is optional, because the wizard
+`name` and `caseId` are required; `itemIds` is optional, because the wizard
 lets somebody set a case aside before deciding what goes in it. `number` may be
 given, and when it is not the server takes the next free one — inside the same
 transaction, so two people creating at once cannot both read the same maximum.
 
-`201 { organizer }`. `409` when the number is taken or one of the tools is
-already in another organizer — moving a tool out of somebody else's
+`201 { organizer }`. `409` when the number is taken or one of the items is
+already in another organizer — moving an item out of somebody else's
 arrangement is a decision, not something to do silently. `404` when the case
 does not exist.
 
@@ -1330,20 +1358,20 @@ does not exist.
 A `PATCH` takes any of `name`, `description`, `number`, `caseId`. `caseId`
 cannot be cleared: an arrangement of nothing is not an arrangement.
 
-`DELETE` removes the arrangement only. The tools and the case stay; they simply
+`DELETE` removes the arrangement only. The items and the case stay; they simply
 stop being connected.
 
-### `POST /api/organizers/:id/tools` — `catalog.write`
+### `POST /api/organizers/:id/items` — `catalog.write`
 
 ```json
-{ "toolIds": [7, 9] }
+{ "itemIds": [7, 9] }
 ```
 
 `200 { organizer }`, or `409` if one of them is already somewhere else.
 
-### `DELETE /api/organizers/:id/tools/:toolId` — `catalog.write`
+### `DELETE /api/organizers/:id/items/:itemId` — `catalog.write`
 
-Takes one tool out. `200 { ok: true }`, or `404` if it was not in there.
+Takes one item out. `200 { ok: true }`, or `404` if it was not in there.
 
 ## Labels
 
@@ -1399,8 +1427,8 @@ the number and the maker stand side by side instead of stacked, because a
 number a fifth of the height of a 200 mm label is a number nobody reads.
 
 **`contents`** is a white card in a navy frame: up to three pictures of the
-tools filling the top, the organizer's name under them, a rule, and the tool
-names in caps along the bottom — the same drawing as the Qbrick tool stickers,
+items filling the top, the organizer's name under them, a rule, and the item
+names in caps along the bottom — the same drawing as the Qbrick item stickers,
 so a label from here sits on the shelf next to one from there. Both lines of
 type are options; a card with neither is the pictures alone. The arrangement of
 the pictures is chosen, not fixed: every split into rows and columns is
@@ -1410,17 +1438,17 @@ then the tail becomes "+N więcej".
 
 `withTitle` and `withNames` say whether each line is there at all.
 
-`namesSource` says where the line under the rule comes from: `tools` (the tool
+`namesSource` says where the line under the rule comes from: `items` (the item
 names, the default), `models` (their model numbers) or `text` (`namesText`).
 The models are what is written on the machine and what a spare belt is ordered
 by — "POF 1200 F5" identifies a box more sharply than "Frezarka
-górnowrzecionowa", which is a category. Duplicates are dropped and a tool with
-no model recorded is skipped. An unknown value is treated as `tools` rather
+górnowrzecionowa", which is a category. Duplicates are dropped and an item with
+no model recorded is skipped. An unknown value is treated as `items` rather
 than refused, because the same field is read back out of jsonb on a redraw and
 a row can hold anything; below it, the answer picks a column name.
 
 Omitting `namesSource` means the old rule — a `namesText` is a typed line, its
-absence is the tool names — which is what labels made before the choice
+absence is the item names — which is what labels made before the choice
 existed still mean when they are drawn again.
 
 `titleText` is the line over the rule: **empty means work it out** — the
@@ -1435,7 +1463,7 @@ until nobody can read it, so it is a `400`.
 A typed line cannot be shortened by dropping a name from it the way a list can,
 so one too long for the band is cut and ends in an ellipsis.
 
-`photoIds` must belong to tools in this organizer — checked in the database,
+`photoIds` must belong to items in this organizer — checked in the database,
 not trusted from the request. **How many fit depends on the shape**: a label at
 least twice as wide as it is tall takes six, anything else three, because six
 across a 200 × 60 lid still come out bigger than three down a 30 × 40 front.
@@ -1472,7 +1500,7 @@ and the list has to cope with that rather than assume.
 `200 { organizer, refreshed, failed: [{ id, error }] }` — draws the chosen
 labels again from the options they were kept with. The row keeps its id, its
 size and its options; only the file underneath changes. That is what the stored
-options are for: a label made before a tool was added, or before a maker got
+options are for: a label made before an item was added, or before a maker got
 its logo, becomes current without anybody retyping the wizard.
 
 The size comes off the label rather than the slot, so a label whose slot has
@@ -1597,7 +1625,7 @@ selection is a `400` from the parser.
 ## The photo library
 
 The same photos seen from the other side: everything on disk, across all
-tools. A separate surface from `/api/tools/:id/photos` because it answers a
+items. A separate surface from `/api/items/:id/photos` because it answers a
 different question — what did we import — and it exists for the cleanup after
 a batch that pulled in the wrong pictures.
 
@@ -1605,9 +1633,9 @@ a batch that pulled in the wrong pictures.
 
 | Parameter  | Meaning                                                                   | Default |
 | ---------- | ------------------------------------------------------------------------- | ------- |
-| `q`        | Matches the **tool** — name, brand, model. A photo has no name of its own | —       |
+| `q`        | Matches the **item** — name, brand, model. A photo has no name of its own | —       |
 | `source`   | `upload`, `url`, `search` or `edit`                                       | —       |
-| `assigned` | `true` for photos that belong to a tool, `false` for those still waiting  | both    |
+| `assigned` | `true` for photos that belong to an item, `false` for those still waiting | both    |
 | `order`    | `asc` or `desc` by upload time                                            | `desc`  |
 | `limit`    | 1–200                                                                     | 48      |
 | `offset`   | ≥ 0                                                                       | 0       |
@@ -1619,7 +1647,7 @@ a batch that pulled in the wrong pictures.
       "id": 5,
       "url": "…",
       "owners": [
-        { "kind": "tool", "id": 9, "name": "Szlifierka kątowa", "isPrimary": true },
+        { "kind": "item", "id": 9, "name": "Szlifierka kątowa", "isPrimary": true },
         { "kind": "case", "id": 2, "name": "Toolbox 2.0", "isPrimary": false }
       ]
     }
@@ -1689,7 +1717,7 @@ Up to 200 at a time. `200 { deleted, requested, promoted }`.
 between the screen loading and the button being pressed. `promoted` lists the
 cards whose main photo was among them and which now show a different one, each
 as `{ kind, id }` — the same promotion a single delete does, applied per card.
-The kind is part of it because tool 4 and case 4 are different cards that
+The kind is part of it because item 4 and case 4 are different cards that
 happen to share a number.
 
 A `POST` rather than `DELETE` with a body: a body on `DELETE` is legal but not
@@ -1719,7 +1747,7 @@ Disabling an account also ends its open sessions.
 ### `DELETE /api/users/:id`
 
 `200 { "ok": true }`. `403` on your own account, `409` on the last active
-admin. Tool cards the account created stay, with `createdBy` set to `null`.
+admin. Item cards the account created stay, with `createdBy` set to `null`.
 
 ## Service
 

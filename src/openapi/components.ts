@@ -2,7 +2,7 @@
 // back, and the query parameters that mean the same thing on every list.
 
 import { ERROR_CODES } from '../server/error-codes'
-import { TOOL_PAGING, type Paging } from '../server/routes/paging'
+import { ITEM_PAGING, type Paging } from '../server/routes/paging'
 import { jsonResponse, object, queryParam, ref } from './operation'
 import type { Parameter, Response, Schema } from './types'
 
@@ -82,7 +82,7 @@ export const ERROR_RESPONSES: Record<string, Response> = Object.fromEntries(
 )
 
 // Paging, built from the object the parser clamps with, so the ceiling the
-// contract publishes is the ceiling the server enforces. `TOOL_PAGING` and its
+// contract publishes is the ceiling the server enforces. `ITEM_PAGING` and its
 // neighbours live in src/server/routes/paging.ts.
 export function limitParam(paging: Paging): Parameter {
   return queryParam(
@@ -93,7 +93,7 @@ export function limitParam(paging: Paging): Parameter {
   )
 }
 
-export const LIMIT_PARAM: Parameter = limitParam(TOOL_PAGING)
+export const LIMIT_PARAM: Parameter = limitParam(ITEM_PAGING)
 
 export const OFFSET_PARAM: Parameter = queryParam(
   'offset',
@@ -129,10 +129,10 @@ export const CLIENT_PARAM: Parameter = {
 export const TAGS = [
   { description: 'Liveness and what is running. No session needed.', name: 'public' },
   { description: 'Registering, logging in, and the account in hand.', name: 'auth' },
-  { description: 'The tool cards themselves, and their parameters.', name: 'tools' },
+  { description: 'The item cards themselves, and their parameters.', name: 'items' },
   { description: 'Reading a product page into a card.', name: 'import' },
   { description: 'Photographs, wherever they hang.', name: 'photos' },
-  { description: 'The documents that belong beside a tool.', name: 'manuals' },
+  { description: 'The documents that belong beside an item.', name: 'manuals' },
   { description: 'Cases, and the slots a label goes in.', name: 'cases' },
   { description: 'Organizers, and what is placed in them.', name: 'organizers' },
   { description: 'Where the kit is kept: a workshop, a yard, a site.', name: 'addresses' },

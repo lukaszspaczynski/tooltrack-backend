@@ -1,7 +1,7 @@
-// Cutting the tool out of a catalogue photo without an AI service.
+// Cutting the item out of a catalogue photo without an AI service.
 //
 // The method is the one from the Qbrick labelling project (przytnij.py): on a
-// product photo — tool on a plain light background — the object is simply
+// product photo — item on a plain light background — the object is simply
 // everything that is not the background, and the background is everything
 // light that touches the edge of the frame. No model, no API key, no waiting.
 //
@@ -10,7 +10,7 @@
 //
 // Two deliberate differences from the original. It floods the background in
 // from the border instead of taking the largest dark blob, so a white sticker
-// or a light label in the middle of a drill stays part of the tool rather than
+// or a light label in the middle of a drill stays part of the item rather than
 // becoming a hole. And it writes real transparency instead of painting the
 // background white, so the result sits on any page.
 //
@@ -25,7 +25,7 @@ export type CutoutOptions = {
   // Largest share of the frame the object may cover. Above it there is nothing
   // to cut away — the photo is already a close-up.
   maxCoverage: number
-  // Smallest share worth calling a tool. Below it the threshold found dust.
+  // Smallest share worth calling an item. Below it the threshold found dust.
   minCoverage: number
   padding: number
   // Sum of R+G+B at or above which a pixel counts as background-light. 735 is
@@ -41,7 +41,7 @@ export const DEFAULT_CUTOUT_OPTIONS: CutoutOptions = {
 }
 
 // How much of the frame's edge has to be light before the photo is treated as
-// having a plain background at all. Four fifths leaves room for a tool that
+// having a plain background at all. Four fifths leaves room for an item that
 // runs off one side of the frame.
 const MIN_LIGHT_BORDER = 0.8
 
@@ -114,7 +114,7 @@ export function planCutout(
   }
 
   // Background is light and connected to the edge of the frame. Anything light
-  // that is enclosed by the tool is therefore not background.
+  // that is enclosed by the item is therefore not background.
   const background = floodBackground(light, width, height)
 
   const object = new Uint8Array(total)
@@ -193,7 +193,7 @@ export async function cutoutLocally(
   if (!plan.ok) throw new PhotoNotSuitableError(plan.reason)
 
   // Transparent everywhere the mask is not: a fresh buffer is already zeroed,
-  // so only the tool has to be written into it.
+  // so only the item has to be written into it.
   const output = new Uint8Array(plan.box.width * plan.box.height * 4)
 
   for (let y = 0; y < plan.box.height; y += 1) {
@@ -335,7 +335,7 @@ function sweep(
   return vertical
 }
 
-// Eight-connected labelling. The largest component is the tool; a drill bit or
+// Eight-connected labelling. The largest component is the item; a drill bit or
 // a manufacturer's logo lying next to it in the frame is a smaller one and
 // falls away.
 function largestComponent(

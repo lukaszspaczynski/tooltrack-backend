@@ -14,7 +14,7 @@ export const MAX_MEDIA_LIMIT = MEDIA_PAGING.max
 export const MAX_DELETE_IDS = 200
 
 export type MediaQuery = {
-  // Null means both: photos with a tool and photos still waiting for one.
+  // Null means both: photos with an item and photos still waiting for one.
   assigned: boolean | null
   direction: 'asc' | 'desc'
   limit: number
@@ -44,14 +44,14 @@ export function parseMediaQuery(params: URLSearchParams): Parsed<MediaQuery> {
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
     limit: clamp(params.get('limit'), DEFAULT_MEDIA_LIMIT, 1, MAX_MEDIA_LIMIT),
     offset: clamp(params.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER),
-    // Matches the tool the photo belongs to, not the photo: a picture has no
-    // name of its own, and "which tool was this" is the question people ask.
+    // Matches the item the photo belongs to, not the photo: a picture has no
+    // name of its own, and "which item was this" is the question people ask.
     search: params.get('q')?.trim() || null,
     source: source ? (source as PhotoSource) : null,
   })
 }
 
-// The body of an attach: which existing photos to put on a tool. Same shape
+// The body of an attach: which existing photos to put on an item. Same shape
 // and same cap as a delete — it is a selection from the same screen.
 // One shape, two field names: an attach is a selection from the same screen as
 // a delete and is capped the same way.

@@ -1,14 +1,14 @@
-// The documents that belong beside a tool.
+// The documents that belong beside an item.
 //
 // Split in two the same way the photographs are: the panel on a card answers
-// "what does this tool come with", and `/api/manuals` answers "what documents
+// "what does this item come with", and `/api/manuals` answers "what documents
 // do we have" — which is the question somebody asks when a manual is missing
 // from a card that should have it.
 //
 // A document is **shared, not owned**. The same PDF sits on every card of that
 // model, stored once and reached by its own id rather than through any one of
 // them, which is why the bytes are served from `/api/manuals/:id/file` and not
-// from a path under a tool.
+// from a path under an item.
 //
 // As with a photograph, the declared content-type is a claim: the first bytes
 // decide, and a shop answering with an error page under a `.pdf` address is
@@ -36,22 +36,22 @@ const ID_LIST = ref('ManualIdsBody')
 export const MANUAL_OPERATIONS: OperationSpec[] = [
   {
     description:
-      'What this tool comes with: the manual, maybe a parts diagram, maybe a safety sheet.',
-    operationId: 'listToolManuals',
-    pathParams: { id: 'The tool card.' },
+      'What this item comes with: the manual, maybe a parts diagram, maybe a safety sheet.',
+    operationId: 'listItemManuals',
+    pathParams: { id: 'The item card.' },
     responses: {
       200: jsonResponse('The documents on this card.', object({ manuals: arrayOf(ref('Manual')) })),
       ...errors(401, 403, 404, 503),
     },
-    route: 'GET /api/tools/:id/manuals',
+    route: 'GET /api/items/:id/manuals',
     summary: 'The documents on a card',
     tag: 'manuals',
   },
   {
     description:
       'Two request shapes on one route, like the photographs.\n\nWith `application/pdf` (or `application/octet-stream`) the body is the file, and `?name=` carries the file name to take a title from.\n\nWith `application/json` the body is an address this server fetches.\n\nEither way the bytes are checked before anything is stored: an empty body is a 400, one over the size limit a 413, and anything whose first bytes are not a PDF a 415 — whatever the content-type or the `.pdf` on the end of the address claimed.',
-    operationId: 'addToolManual',
-    pathParams: { id: 'The tool card.' },
+    operationId: 'addItemManual',
+    pathParams: { id: 'The item card.' },
     query: [
       queryParam(
         'name',
@@ -77,15 +77,15 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
       422: jsonResponse('The address would not download.', ref('Error')),
       ...errors(400, 401, 403, 404, 503),
     },
-    route: 'POST /api/tools/:id/manuals',
+    route: 'POST /api/items/:id/manuals',
     summary: 'Add a document to a card',
     tag: 'manuals',
   },
   {
     description:
-      'The documents a product page offers, read by the same scripts that import a whole card — so a shop this server cannot read is refused here in the same words, and at most eight are taken (a page offering thirty is listing somebody’s whole catalogue).\n\nOnly sources that publish documents at all are accepted. Fetching a shop’s page to say afterwards that it has no manuals is a round trip nobody needed, which is what `manuals` on `GET /api/tools/import/sources` is for.\n\nOne document that will not download does not lose the others; `failed` reports each. When every one fails the status is 422 and nothing was stored.',
-    operationId: 'addToolManualsFromPage',
-    pathParams: { id: 'The tool card.' },
+      'The documents a product page offers, read by the same scripts that import a whole card — so a shop this server cannot read is refused here in the same words, and at most eight are taken (a page offering thirty is listing somebody’s whole catalogue).\n\nOnly sources that publish documents at all are accepted. Fetching a shop’s page to say afterwards that it has no manuals is a round trip nobody needed, which is what `manuals` on `GET /api/items/import/sources` is for.\n\nOne document that will not download does not lose the others; `failed` reports each. When every one fails the status is 422 and nothing was stored.',
+    operationId: 'addItemManualsFromPage',
+    pathParams: { id: 'The item card.' },
     requestBody: jsonBody(URL_BODY, 'The product page to read.'),
     responses: {
       201: jsonResponse('At least one document was stored.', ref('ManualImportResponse')),
@@ -105,15 +105,15 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
       ),
       ...errors(401, 403, 404, 503),
     },
-    route: 'POST /api/tools/:id/manuals/from-page',
+    route: 'POST /api/items/:id/manuals/from-page',
     summary: 'Take the documents a product page publishes',
     tag: 'manuals',
   },
   {
     description:
       'Documents the catalog already has. The same PDF belongs on every card of that model, and attaching costs a row rather than a second copy of a 7 MB file.',
-    operationId: 'attachToolManuals',
-    pathParams: { id: 'The tool card.' },
+    operationId: 'attachItemManuals',
+    pathParams: { id: 'The item card.' },
     requestBody: jsonBody(ID_LIST),
     responses: {
       201: jsonResponse(
@@ -122,16 +122,16 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
       ),
       ...errors(400, 401, 403, 404, 503),
     },
-    route: 'POST /api/tools/:id/manuals/attach',
+    route: 'POST /api/items/:id/manuals/attach',
     summary: 'Put existing documents on a card',
     tag: 'manuals',
   },
   {
     description:
       'Renaming as this card calls it. The title is the only thing about a document anybody edits — everything else is a fact about the file.',
-    operationId: 'renameToolManual',
+    operationId: 'renameItemManual',
     pathParams: {
-      id: 'The tool card.',
+      id: 'The item card.',
       manualId: 'The document, which must be on this card.',
     },
     requestBody: jsonBody(ref('ManualTitleBody')),
@@ -139,32 +139,32 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
       200: jsonResponse('The document, renamed.', object({ manual: ref('Manual') })),
       ...errors(400, 401, 403, 404, 503),
     },
-    route: 'PATCH /api/tools/:id/manuals/:manualId',
+    route: 'PATCH /api/items/:id/manuals/:manualId',
     summary: 'Rename a document on a card',
     tag: 'manuals',
   },
   {
     description:
       'Off this card. The file stays as long as another card keeps it — to take a document out of the catalog entirely, use `POST /api/manuals/delete`.',
-    operationId: 'removeToolManual',
+    operationId: 'removeItemManual',
     pathParams: {
-      id: 'The tool card.',
+      id: 'The item card.',
       manualId: 'The document, which must be on this card.',
     },
     responses: {
       200: jsonResponse('Removed.', object({ ok: { const: true, type: 'boolean' } })),
       ...errors(401, 403, 404, 503),
     },
-    route: 'DELETE /api/tools/:id/manuals/:manualId',
+    route: 'DELETE /api/items/:id/manuals/:manualId',
     summary: 'Take a document off a card',
     tag: 'manuals',
   },
   {
     description:
-      'The shelf rather than the drawer. Every item carries the tools that keep it, because "what is this a manual for" is the question this screen exists to answer and asking it per row would be a query per document.\n\nA bad value in the query string is clamped or dropped rather than refused, like every other list here.',
+      'The shelf rather than the drawer. Every item carries the items that keep it, because "what is this a manual for" is the question this screen exists to answer and asking it per row would be a query per document.\n\nA bad value in the query string is clamped or dropped rather than refused, like every other list here.',
     operationId: 'listManualLibrary',
     query: [
-      queryParam('q', 'Matches the document and the tools that keep it.', { type: 'string' }),
+      queryParam('q', 'Matches the document and the items that keep it.', { type: 'string' }),
       limitParam(MANUAL_PAGING),
       OFFSET_PARAM,
     ],
@@ -173,7 +173,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
       ...errors(401, 403, 503),
     },
     route: 'GET /api/manuals',
-    summary: 'Every document, with the tools that keep it',
+    summary: 'Every document, with the items that keep it',
     tag: 'manuals',
   },
   {
@@ -192,7 +192,7 @@ export const MANUAL_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'Off every card at once and off the disk. A different decision from taking one off a single card, and made about several at a time — which is why it is a batch and why it is capped at fifty.\n\n`tools` names the cards the delete took a document from, so a screen showing them can say so rather than quietly refreshing.',
+      'Off every card at once and off the disk. A different decision from taking one off a single card, and made about several at a time — which is why it is a batch and why it is capped at fifty.\n\n`items` names the cards the delete took a document from, so a screen showing them can say so rather than quietly refreshing.',
     operationId: 'deleteManuals',
     requestBody: jsonBody(ID_LIST),
     responses: {

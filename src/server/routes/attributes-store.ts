@@ -1,8 +1,8 @@
-// Everything that touches `catalog.attribute`: the spec sheet of a tool, and
+// Everything that touches `catalog.attribute`: the spec sheet of an item, and
 // now of a case as well.
 //
-// It was `tool_attribute`, keyed by `tool_id`, and every statement below lived
-// in tools-store.ts. A case turned out to want exactly the same thing — a list
+// It was `tool_attribute`, keyed by `item_id`, and every statement below lived
+// in items-store.ts. A case turned out to want exactly the same thing — a list
 // of names and values that nobody can agree a column list for — so the table
 // says which kind of thing each row belongs to and the SQL is written once.
 //
@@ -17,7 +17,7 @@ import type { ErrorCode } from '../error-codes'
 import { t } from '../i18n'
 
 // Which kind of thing a row is about. The same two words the column checks.
-export const ATTRIBUTE_REFERENCES = ['tool', 'tool_case'] as const
+export const ATTRIBUTE_REFERENCES = ['item', 'tool_case'] as const
 
 export type AttributeReference = (typeof ATTRIBUTE_REFERENCES)[number]
 

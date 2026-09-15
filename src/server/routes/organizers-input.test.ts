@@ -7,7 +7,7 @@ import {
   parseOrganizerCreate,
   parseOrganizerPatch,
   parseOrganizerQuery,
-  parseToolIds,
+  parseItemIds,
 } from './organizers-input'
 
 test('an organizer needs a name and a case', () => {
@@ -48,14 +48,14 @@ test('a patch can move an organizer to another case but not empty it', () => {
   assert.equal(parseOrganizerPatch({}).ok, false)
 })
 
-test('tool ids are whole numbers, deduplicated, and not an empty list', () => {
-  const parsed = parseToolIds({ toolIds: [3, 3, 9] })
+test('item ids are whole numbers, deduplicated, and not an empty list', () => {
+  const parsed = parseItemIds({ itemIds: [3, 3, 9] })
 
   assert.ok(parsed.ok)
   assert.deepEqual(parsed.value, [3, 9])
-  assert.equal(parseToolIds({ toolIds: [] }).ok, false)
-  assert.equal(parseToolIds({ toolIds: ['siedem'] }).ok, false)
-  assert.equal(parseToolIds({}).ok, false)
+  assert.equal(parseItemIds({ itemIds: [] }).ok, false)
+  assert.equal(parseItemIds({ itemIds: ['siedem'] }).ok, false)
+  assert.equal(parseItemIds({}).ok, false)
 })
 
 test('the list reads by number, because that is the order they are stacked in', () => {
@@ -113,11 +113,11 @@ test('the caption says outright where it comes from', () => {
   })
 
   assert.ok(rubbish.ok)
-  assert.equal(rubbish.value.options.namesSource, 'tools')
+  assert.equal(rubbish.value.options.namesSource, 'items')
 })
 
 test('a request from before the choice existed still means what it meant', () => {
-  // A typed text meant a typed line; its absence meant the tool names.
+  // A typed text meant a typed line; its absence meant the item names.
   const typed = parseLabelRequest({
     namesText: '18 V, Li-Ion',
     slotId: 4,
@@ -129,7 +129,7 @@ test('a request from before the choice existed still means what it meant', () =>
   assert.ok(typed.ok)
   assert.ok(plain.ok)
   assert.equal(typed.value.options.namesSource, 'text')
-  assert.equal(plain.value.options.namesSource, 'tools')
+  assert.equal(plain.value.options.namesSource, 'items')
 })
 
 test('a typed line travels as itself, trimmed', () => {

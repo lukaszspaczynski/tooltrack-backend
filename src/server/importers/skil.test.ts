@@ -6,7 +6,7 @@ import { categoryOf, manualsOf, nameOf, parseSkilProduct, photosOf, specificatio
 
 const PAGE_URL = 'https://www.skileurope.com/pl/7615ab'
 
-// The shape this shop has: a Product that names the kind of tool, a Magento
+// The shape this shop has: a Product that names the kind of item, a Magento
 // table, a category only the analytics payload knows, and documents titled in
 // the `title` of their links.
 function page(
@@ -55,7 +55,7 @@ test('a product page becomes a card', () => {
 })
 
 test('the card is named for the machine, not for its kind alone', () => {
-  // "Szlifierka taśmowa" is three of the tools in the shed; "7615 AB" is none
+  // "Szlifierka taśmowa" is three of the items in the shed; "7615 AB" is none
   // of them until somebody remembers what it is.
   assert.equal(nameOf('Szlifierka taśmowa', '7615 AB'), 'Szlifierka taśmowa 7615 AB')
   // Unless the shop already said it.

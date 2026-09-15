@@ -45,16 +45,16 @@ Content-Type: application/json
 GET {{host}}/api/auth/me
 
 ### The catalog.
-GET {{host}}/api/tools
+GET {{host}}/api/items
 
 ### Search, filter and sort. An unknown condition is a 400; a broken limit is ignored.
-GET {{host}}/api/tools?q=makita&condition=needs_repair&sort=name&order=asc&limit=20
+GET {{host}}/api/items?q=makita&condition=needs_repair&sort=name&order=asc&limit=20
 
-### The categories to offer in a filter, derived from the tools themselves.
-GET {{host}}/api/tools/categories
+### The categories to offer in a filter, derived from the items themselves.
+GET {{host}}/api/items/categories
 
-### Add a tool. Needs catalog.write, so a viewer gets 403 here.
-POST {{host}}/api/tools
+### Add an item. Needs catalog.write, so a viewer gets 403 here.
+POST {{host}}/api/items
 Content-Type: application/json
 
 {
@@ -68,10 +68,10 @@ Content-Type: application/json
 }
 
 ### One card.
-GET {{host}}/api/tools/1
+GET {{host}}/api/items/1
 
 ### Edit. Send only what changes; "" clears a field, omitting it leaves it alone.
-PATCH {{host}}/api/tools/1
+PATCH {{host}}/api/items/1
 Content-Type: application/json
 
 {
@@ -80,7 +80,7 @@ Content-Type: application/json
 }
 
 ### Delete.
-DELETE {{host}}/api/tools/1
+DELETE {{host}}/api/items/1
 
 ### Users. Needs users.manage, so only an admin gets past this.
 GET {{host}}/api/users

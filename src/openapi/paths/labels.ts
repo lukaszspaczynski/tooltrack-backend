@@ -2,7 +2,7 @@
 //
 // A label is **artwork, not a record of what was printed**. It is drawn from
 // the arrangement it belongs to, so redrawing it is how it stops being wrong
-// after somebody moved a tool — and a sheet is drawn from scratch every time
+// after somebody moved an item — and a sheet is drawn from scratch every time
 // rather than stored, because keeping one would mean a second thing to redraw
 // whenever any label on it changed.
 //
@@ -84,7 +84,7 @@ export const LABEL_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'Draws the chosen labels again, wherever they live. This is how a label stops being wrong after somebody moved a tool between boxes.\n\nThe selection spans arrangements, so the answer cannot be one of them the way the per-organizer refresh’s is — the screen re-reads the list instead. What it does say is how many were drawn and which were not, because a label whose photographs have been deleted since is the one thing somebody has to act on.',
+      'Draws the chosen labels again, wherever they live. This is how a label stops being wrong after somebody moved an item between boxes.\n\nThe selection spans arrangements, so the answer cannot be one of them the way the per-organizer refresh’s is — the screen re-reads the list instead. What it does say is how many were drawn and which were not, because a label whose photographs have been deleted since is the one thing somebody has to act on.',
     operationId: 'refreshLabels',
     requestBody: jsonBody(ref('LabelIdsBody')),
     responses: {

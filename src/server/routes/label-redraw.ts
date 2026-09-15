@@ -3,7 +3,7 @@
 //
 // The row keeps its id, its size and its options; only the file underneath it
 // changes. That is the whole point of storing what the generator was told: a
-// label made before a tool was added, or before a maker got its logo, becomes
+// label made before an item was added, or before a maker got its logo, becomes
 // current without anybody retyping the wizard.
 
 import { generateLabel, LabelDataError, type LabelOptions } from '../labels/generate'

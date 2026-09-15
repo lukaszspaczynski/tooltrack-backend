@@ -1,7 +1,7 @@
-// Everything that touches `catalog.manual` and `catalog.manual_tool`.
+// Everything that touches `catalog.manual` and `catalog.manual_item`.
 // src/server/manual-storage.ts owns the bytes; this module owns the rows.
 //
-// A manual row is one document, once. Which tools it belongs to lives in the
+// A manual row is one document, once. Which items it belongs to lives in the
 // link table, so one PDF can be the manual of three identical grinders with
 // its title and its provenance written down a single time.
 
@@ -67,29 +67,29 @@ export function manualUrl(manualId: number): string {
   return `/api/manuals/${manualId}/file`
 }
 
-export async function listManuals(toolId: number, pool: PgPool = db()): Promise<Manual[]> {
+export async function listManuals(itemId: number, pool: PgPool = db()): Promise<Manual[]> {
   const result = await pool.query<ManualRow>(
     `
       SELECT ${PREFIXED_COLUMNS}
-      FROM "catalog"."manual_tool" AS "l"
+      FROM "catalog"."manual_item" AS "l"
       JOIN "catalog"."manual" AS "m" ON "m"."id" = "l"."manual_id"
-      WHERE "l"."tool_id" = $1
+      WHERE "l"."item_id" = $1
       ORDER BY "l"."created_at" ASC, "m"."id" ASC
     `,
-    [toolId],
+    [itemId],
   )
 
   return result.rows.map(toManual)
 }
 
-// Every manual there is, whichever tool keeps it — the library screen, the
+// Every manual there is, whichever item keeps it — the library screen, the
 // same relation to a card's list as the photo library has to a gallery.
 //
-// Each row carries the cards that keep it, because "which tools is this the
+// Each row carries the cards that keep it, because "which items is this the
 // manual for" is the question the screen exists to answer, and asking it per
 // row would be a query per manual.
 export type ManualLibraryPage = {
-  items: (Manual & { tools: { id: number; model: string; name: string }[] })[]
+  items: (Manual & { items: { id: number; model: string; name: string }[] })[]
   limit: number
   offset: number
   total: number
@@ -101,7 +101,7 @@ export async function listAllManuals(
 ): Promise<ManualLibraryPage> {
   const result = await pool.query<
     ManualRow & {
-      tools: null | { id: number | string; model: string; name: string }[]
+      items: null | { id: number | string; model: string; name: string }[]
       total_count: string
     }
   >(
@@ -113,18 +113,21 @@ export async function listAllManuals(
                -- apart by the model and by nothing else.
                jsonb_agg(jsonb_build_object('id', "t"."id", 'name', "t"."name",
                                             'model', "t"."model")
-                         ORDER BY "t"."name") AS "tools",
-               string_agg("t"."name" || ' ' || "t"."brand" || ' ' || "t"."model", ' ') AS "text"
-        FROM "catalog"."manual_tool" AS "l"
-        JOIN "catalog"."tool" AS "t" ON "t"."id" = "l"."tool_id"
+                         ORDER BY "t"."name") AS "items",
+               string_agg(
+                 "t"."name" || ' ' || coalesce("b"."name", '') || ' ' || "t"."model", ' '
+               ) AS "text"
+        FROM "catalog"."manual_item" AS "l"
+        JOIN "catalog"."item" AS "t" ON "t"."id" = "l"."item_id"
+        LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "t"."brand_id"
         GROUP BY "l"."manual_id"
       )
       SELECT ${PREFIXED_COLUMNS},
-             COALESCE("k"."tools", '[]'::jsonb) AS "tools",
+             COALESCE("k"."items", '[]'::jsonb) AS "items",
              count(*) OVER () AS "total_count"
       FROM "catalog"."manual" AS "m"
       LEFT JOIN "kept_by" AS "k" ON "k"."manual_id" = "m"."id"
-      -- Searched by its own title and by the tools it belongs to: a document
+      -- Searched by its own title and by the items it belongs to: a document
       -- called "Instrukcja obsługi" is findable only by the machine it is for.
       WHERE ($1::text IS NULL OR "m"."title" ILIKE $1 OR "k"."text" ILIKE $1)
       ORDER BY "m"."created_at" DESC, "m"."id" DESC
@@ -140,10 +143,10 @@ export async function listAllManuals(
   return {
     items: result.rows.map((row) => ({
       ...toManual(row),
-      tools: (row.tools ?? []).map((tool) => ({
-        id: Number(tool.id),
-        model: tool.model ?? '',
-        name: tool.name,
+      items: (row.items ?? []).map((item) => ({
+        id: Number(item.id),
+        model: item.model ?? '',
+        name: item.name,
       })),
     })),
     limit: query.limit,
@@ -172,7 +175,7 @@ export async function retitleManual(
 //
 // Unlike the bin on a card, this is not "take it off here" — it is "this
 // document should not be in the catalog", which is why it does not ask whether
-// another tool still keeps it.
+// another item still keeps it.
 export async function deleteManualsByIds(
   manualIds: number[],
   pool: PgPool = db(),
@@ -206,7 +209,7 @@ export async function deleteManualsByIds(
 // operation as attaching an existing photo, and for the same reason: one
 // manual, several machines.
 export async function attachManualsTo(
-  toolId: number,
+  itemId: number,
   manualIds: number[],
   actorId: number,
   pool: PgPool = db(),
@@ -215,11 +218,11 @@ export async function attachManualsTo(
 
   const result = await pool.query(
     `
-      INSERT INTO "catalog"."manual_tool" ("tool_id", "manual_id", "created_by")
+      INSERT INTO "catalog"."manual_item" ("item_id", "manual_id", "created_by")
       SELECT $1, "id", $3 FROM "catalog"."manual" WHERE "id" = ANY($2::bigint[])
       ON CONFLICT DO NOTHING
     `,
-    [toolId, manualIds, actorId],
+    [itemId, manualIds, actorId],
   )
 
   return result.rowCount ?? 0
@@ -282,25 +285,25 @@ export async function insertManual(
 }
 
 export async function linkManual(
-  toolId: number,
+  itemId: number,
   manualId: number,
   actorId: number,
   pool: PgPool = db(),
 ): Promise<void> {
   const result = await pool.query(
     `
-      INSERT INTO "catalog"."manual_tool" ("tool_id", "manual_id", "created_by")
+      INSERT INTO "catalog"."manual_item" ("item_id", "manual_id", "created_by")
       VALUES ($1, $2, $3)
       ON CONFLICT DO NOTHING
     `,
-    [toolId, manualId, actorId],
+    [itemId, manualId, actorId],
   )
 
   if ((result.rowCount ?? 0) === 0) throw new ManualAlreadyOnCardError()
 }
 
 export async function renameManual(
-  toolId: number,
+  itemId: number,
   manualId: number,
   title: string,
   pool: PgPool = db(),
@@ -313,12 +316,12 @@ export async function renameManual(
       SET "title" = $3
       WHERE "m"."id" = $2
         AND EXISTS (
-          SELECT 1 FROM "catalog"."manual_tool"
-          WHERE "manual_id" = "m"."id" AND "tool_id" = $1
+          SELECT 1 FROM "catalog"."manual_item"
+          WHERE "manual_id" = "m"."id" AND "item_id" = $1
         )
       RETURNING ${MANUAL_COLUMNS}
     `,
-    [toolId, manualId, title],
+    [itemId, manualId, title],
   )
 
   const row = result.rows[0]
@@ -329,14 +332,14 @@ export async function renameManual(
 // any more — a bin on a card has to mean the file is gone rather than that it
 // moved to a library nobody asked to fill.
 export async function unlinkManual(
-  toolId: number,
+  itemId: number,
   manualId: number,
   pool: PgPool = db(),
 ): Promise<boolean> {
   return withTransaction(pool, async (client) => {
     const removed = await client.query(
-      `DELETE FROM "catalog"."manual_tool" WHERE "tool_id" = $1 AND "manual_id" = $2`,
-      [toolId, manualId],
+      `DELETE FROM "catalog"."manual_item" WHERE "item_id" = $1 AND "manual_id" = $2`,
+      [itemId, manualId],
     )
 
     if ((removed.rowCount ?? 0) === 0) return false
@@ -351,17 +354,17 @@ export async function unlinkManual(
 // What an update from a product page does before fetching the new ones: the
 // page is the source of truth, and a manual it no longer publishes is one the
 // card should stop claiming to have.
-export async function clearManuals(toolId: number, pool: PgPool = db()): Promise<number> {
-  const manualIds = await manualIdsOf(toolId, pool)
+export async function clearManuals(itemId: number, pool: PgPool = db()): Promise<number> {
+  const manualIds = await manualIdsOf(itemId, pool)
   if (manualIds.length === 0) return 0
 
-  await pool.query(`DELETE FROM "catalog"."manual_tool" WHERE "tool_id" = $1`, [toolId])
+  await pool.query(`DELETE FROM "catalog"."manual_item" WHERE "item_id" = $1`, [itemId])
   await dropOrphanedManuals(manualIds, pool)
 
   return manualIds.length
 }
 
-// Called when a whole tool goes: its links cascade away with it, and this
+// Called when a whole item goes: its links cascade away with it, and this
 // clears the documents nothing keeps any more.
 export async function dropOrphanedManuals(
   manualIds: number[],
@@ -375,10 +378,10 @@ export async function dropOrphanedManuals(
   return keys.length
 }
 
-export async function manualIdsOf(toolId: number, pool: PgPool = db()): Promise<number[]> {
+export async function manualIdsOf(itemId: number, pool: PgPool = db()): Promise<number[]> {
   const result = await pool.query<{ manual_id: number | string }>(
-    `SELECT "manual_id" FROM "catalog"."manual_tool" WHERE "tool_id" = $1`,
-    [toolId],
+    `SELECT "manual_id" FROM "catalog"."manual_item" WHERE "item_id" = $1`,
+    [itemId],
   )
 
   return result.rows.map((row) => Number(row.manual_id))
@@ -387,20 +390,20 @@ export async function manualIdsOf(toolId: number, pool: PgPool = db()): Promise<
 // Puts every manual one card keeps onto another. Cheap now that a pairing is a
 // row: a duplicated card costs a link rather than a second copy of a 7 MB PDF.
 export async function copyManualLinks(
-  fromToolId: number,
-  toToolId: number,
+  fromItemId: number,
+  toItemId: number,
   actorId: number,
   pool: PgPool = db(),
 ): Promise<number> {
   const result = await pool.query(
     `
-      INSERT INTO "catalog"."manual_tool" ("tool_id", "manual_id", "created_by")
+      INSERT INTO "catalog"."manual_item" ("item_id", "manual_id", "created_by")
       SELECT $2, "manual_id", $3
-      FROM "catalog"."manual_tool"
-      WHERE "tool_id" = $1
+      FROM "catalog"."manual_item"
+      WHERE "item_id" = $1
       ON CONFLICT DO NOTHING
     `,
-    [fromToolId, toToolId, actorId],
+    [fromItemId, toItemId, actorId],
   )
 
   return result.rowCount ?? 0
@@ -408,18 +411,18 @@ export async function copyManualLinks(
 
 // The manuals this card is the only keeper of: what deleting it would take
 // with it. The same question the photographs answer before a delete.
-export async function exclusiveManualIds(toolId: number, pool: PgPool = db()): Promise<number[]> {
+export async function exclusiveManualIds(itemId: number, pool: PgPool = db()): Promise<number[]> {
   const result = await pool.query<{ manual_id: number | string }>(
     `
       SELECT "l"."manual_id"
-      FROM "catalog"."manual_tool" AS "l"
-      WHERE "l"."tool_id" = $1
+      FROM "catalog"."manual_item" AS "l"
+      WHERE "l"."item_id" = $1
         AND NOT EXISTS (
-          SELECT 1 FROM "catalog"."manual_tool" AS "other"
-          WHERE "other"."manual_id" = "l"."manual_id" AND "other"."tool_id" <> $1
+          SELECT 1 FROM "catalog"."manual_item" AS "other"
+          WHERE "other"."manual_id" = "l"."manual_id" AND "other"."item_id" <> $1
         )
     `,
-    [toolId],
+    [itemId],
   )
 
   return result.rows.map((row) => Number(row.manual_id))
@@ -435,7 +438,7 @@ async function dropIfUnused(
     `
       DELETE FROM "catalog"."manual" AS "m"
       WHERE "m"."id" = ANY($1::bigint[])
-        AND NOT EXISTS (SELECT 1 FROM "catalog"."manual_tool" WHERE "manual_id" = "m"."id")
+        AND NOT EXISTS (SELECT 1 FROM "catalog"."manual_item" WHERE "manual_id" = "m"."id")
       RETURNING "storage_key"
     `,
     [manualIds],

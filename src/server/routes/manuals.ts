@@ -1,14 +1,14 @@
-// The manuals of a tool: the PDF from the box, a parts diagram, a safety sheet.
+// The manuals of an item: the PDF from the box, a parts diagram, a safety sheet.
 //
-//   GET    /api/tools/:id/manuals            catalog.read
-//   POST   /api/tools/:id/manuals            catalog.write
-//   POST   /api/tools/:id/manuals/from-page  catalog.write
-//   PATCH  /api/tools/:id/manuals/:manualId  catalog.write
-//   DELETE /api/tools/:id/manuals/:manualId  catalog.write
+//   GET    /api/items/:id/manuals            catalog.read
+//   POST   /api/items/:id/manuals            catalog.write
+//   POST   /api/items/:id/manuals/from-page  catalog.write
+//   PATCH  /api/items/:id/manuals/:manualId  catalog.write
+//   DELETE /api/items/:id/manuals/:manualId  catalog.write
 //   GET    /api/manuals/:id/file             catalog.read
 //
 // Three ways in, because that is how a manual actually reaches somebody: the
-// file is on the laptop that came with the tool, or it is one link away on the
+// file is on the laptop that came with the item, or it is one link away on the
 // maker's website, or it is on the product page the card was imported from and
 // nobody should have to go and find it.
 //
@@ -43,18 +43,18 @@ import {
   type ManualSource,
 } from './manuals-store'
 import { parseManualIds, parseManualQuery, parseManualTitle, parseManualUrl } from './manuals-input'
-import { getTool } from './tools-store'
+import { getItem } from './items-store'
 
 // A page offering thirty documents is a page listing somebody's whole
-// catalogue; a tool has a manual, maybe a diagram, maybe a safety sheet.
+// catalogue; an item has a manual, maybe a diagram, maybe a safety sheet.
 const MAX_IMPORT_MANUALS = 8
 
 export async function listGET(_request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return notFound()
+  const itemId = parseId(context.params.id)
+  if (itemId === null) return notFound()
 
   return Response.json(
-    { manuals: await listManuals(toolId) },
+    { manuals: await listManuals(itemId) },
     { headers: { 'cache-control': 'no-store' } },
   )
 }
@@ -62,9 +62,9 @@ export async function listGET(_request: Request, context: RouteContext): Promise
 // Two request shapes on one route, like the photos: the bytes of a file, or an
 // address to fetch them from.
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return notFound()
-  if (!(await getTool(toolId))) return notFound()
+  const itemId = parseId(context.params.id)
+  if (itemId === null) return notFound()
+  if (!(await getItem(itemId))) return notFound()
 
   const actorId = context.user?.id ?? 0
   const contentType = request.headers.get('content-type') ?? ''
@@ -76,7 +76,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
 
     return answering(() =>
       saveManualBytesFor(
-        toolId,
+        itemId,
         bytes,
         { source: 'upload', title: titleFromFileName(title) },
         actorId,
@@ -88,20 +88,20 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
   return answering(() =>
-    saveManualFromUrl(toolId, parsed.value.url, parsed.value.title, 'url', actorId),
+    saveManualFromUrl(itemId, parsed.value.url, parsed.value.title, 'url', actorId),
   )
 }
 
-// POST /api/tools/:id/manuals/from-page — the documents a product page offers.
+// POST /api/items/:id/manuals/from-page — the documents a product page offers.
 //
 // The address is read by the same scripts that import a whole card, so a shop
 // this server cannot read is refused here in the same words. A page that has
 // no documents is not an error: most shops publish none, and saying so is the
 // answer.
 export async function fromPagePOST(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return notFound()
-  if (!(await getTool(toolId))) return notFound()
+  const itemId = parseId(context.params.id)
+  if (itemId === null) return notFound()
+  if (!(await getItem(itemId))) return notFound()
 
   const parsed = parseManualUrl(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
@@ -157,7 +157,7 @@ export async function fromPagePOST(request: Request, context: RouteContext): Pro
   for (const manual of offered) {
     try {
       manuals.push(
-        await saveManualFromUrl(toolId, manual.url, manual.title, 'import', context.user?.id ?? 0),
+        await saveManualFromUrl(itemId, manual.url, manual.title, 'import', context.user?.id ?? 0),
       )
     } catch (error) {
       // One document that will not download must not lose the others.
@@ -183,10 +183,10 @@ export async function fromPagePOST(request: Request, context: RouteContext): Pro
   return Response.json({ failed, manuals }, { status: 201 })
 }
 
-// GET /api/manuals — every manual there is, whichever tool keeps it.
+// GET /api/manuals — every manual there is, whichever item keeps it.
 //
 // The shelf rather than the drawer, the same split the photo library makes:
-// the panel on a card answers "what does this tool come with", this answers
+// the panel on a card answers "what does this item come with", this answers
 // "what documents do we have", which is the question somebody asks when a
 // manual is missing from a card that should have it.
 export async function libraryGET(request: Request): Promise<Response> {
@@ -226,43 +226,43 @@ export async function libraryDeletePOST(request: Request): Promise<Response> {
 
   // What the delete took off which cards, so a screen showing them can say so
   // rather than quietly refreshing.
-  return Response.json({ deleted: parsed.value.length, tools: kept })
+  return Response.json({ deleted: parsed.value.length, items: kept })
 }
 
-// POST /api/tools/:id/manuals/attach — documents the catalog already has.
+// POST /api/items/:id/manuals/attach — documents the catalog already has.
 export async function attachPOST(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
-  if (toolId === null) return notFound()
-  if (!(await getTool(toolId))) return notFound()
+  const itemId = parseId(context.params.id)
+  if (itemId === null) return notFound()
+  if (!(await getItem(itemId))) return notFound()
 
   const parsed = parseManualIds(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
-  const attached = await attachManualsTo(toolId, parsed.value, context.user?.id ?? 0)
+  const attached = await attachManualsTo(itemId, parsed.value, context.user?.id ?? 0)
 
-  return Response.json({ attached, manuals: await listManuals(toolId) }, { status: 201 })
+  return Response.json({ attached, manuals: await listManuals(itemId) }, { status: 201 })
 }
 
 export async function detailPATCH(request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
+  const itemId = parseId(context.params.id)
   const manualId = parseId(context.params.manualId)
-  if (toolId === null || manualId === null) return notFound()
+  if (itemId === null || manualId === null) return notFound()
 
   const parsed = parseManualTitle(await readJson(request))
   if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
 
-  const manual = await renameManual(toolId, manualId, parsed.value)
+  const manual = await renameManual(itemId, manualId, parsed.value)
   if (!manual) return notFound()
 
   return Response.json({ manual })
 }
 
 export async function detailDELETE(_request: Request, context: RouteContext): Promise<Response> {
-  const toolId = parseId(context.params.id)
+  const itemId = parseId(context.params.id)
   const manualId = parseId(context.params.manualId)
-  if (toolId === null || manualId === null) return notFound()
+  if (itemId === null || manualId === null) return notFound()
 
-  if (!(await unlinkManual(toolId, manualId))) return notFound()
+  if (!(await unlinkManual(itemId, manualId))) return notFound()
 
   return Response.json({ ok: true })
 }
@@ -311,7 +311,7 @@ export class ManualRejectedError extends Error {
 // arriving from a URL is fetched, checked and refused on exactly the same
 // terms whichever screen asked for it.
 export async function saveManualFromUrl(
-  toolId: number,
+  itemId: number,
   url: string,
   title: string,
   source: ManualSource,
@@ -329,7 +329,7 @@ export async function saveManualFromUrl(
   }
 
   return saveManualBytesFor(
-    toolId,
+    itemId,
     file.bytes,
     { source, sourceUrl: file.sourceUrl, title: title || titleFromFileName(url) },
     actorId,
@@ -337,7 +337,7 @@ export async function saveManualFromUrl(
 }
 
 export async function saveManualBytesFor(
-  toolId: number,
+  itemId: number,
   bytes: Uint8Array,
   about: { source: ManualSource; sourceUrl?: string; title: string },
   actorId: number,
@@ -366,7 +366,7 @@ export async function saveManualBytesFor(
   )
 
   try {
-    await linkManual(toolId, manual.id, actorId)
+    await linkManual(itemId, manual.id, actorId)
   } catch (error) {
     if (error instanceof ManualAlreadyOnCardError) {
       throw new ManualRejectedError(error.message, 409, 'MANUAL_ALREADY_ON_CARD')
@@ -386,7 +386,7 @@ async function listKeptBy(manualIds: number[]): Promise<{ id: number; name: stri
   const byId = new Map<number, { id: number; name: string }>()
   for (const manual of page.items) {
     if (!wanted.has(manual.id)) continue
-    for (const tool of manual.tools) byId.set(tool.id, tool)
+    for (const item of manual.items) byId.set(item.id, item)
   }
 
   return [...byId.values()]

@@ -1,12 +1,12 @@
 # ToolTrack Backend
 
-The Node API behind ToolTrack — a catalog of construction tools. Every tool has
+The Node API behind ToolTrack — a catalog of construction items. Every item has
 a card: name, category, brand, model, serial number, condition and notes. You
 browse and search it from a phone, on site, and know what you own and what
 state it is in.
 
 Node 22 + TypeScript, a plain `node:http` server, raw Postgres. No framework,
-no ORM, no migration tool. The web client lives in the sibling `Frontend/`
+no ORM, no migration item. The web client lives in the sibling `Frontend/`
 directory.
 
 - [HTTP contract](docs/api.md) — every endpoint, written for the client.
@@ -18,7 +18,7 @@ directory.
 | Capability                    | viewer | editor | admin |
 | ----------------------------- | :----: | :----: | :---: |
 | browse and search the catalog |   ●    |   ●    |   ●   |
-| add, edit and delete tools    |        |   ●    |   ●   |
+| add, edit and delete items    |        |   ●    |   ●   |
 | manage users and their roles  |        |        |   ●   |
 
 Signing up is open and every new account is a **viewer**. An admin promotes
@@ -72,9 +72,9 @@ is the authority.
 
 ## Photos
 
-Every tool can have several photos, one of them the main one. They arrive three
+Every item can have several photos, one of them the main one. They arrive three
 ways — an upload from a phone, a pasted URL, or a pick from the web search
-behind `GET /api/tools/:id/photo-suggestions` — and all three end the same way:
+behind `GET /api/items/:id/photo-suggestions` — and all three end the same way:
 the bytes stored by this server, under `TOOLTRACK_MEDIA_DIR` (`.local/media` by
 default), named by their own checksum. A link is where a photo came from, not
 something the catalog keeps depending on.
@@ -118,23 +118,23 @@ through the screen wins over them. Credentials never leave the server — the
 settings API reports only whether a key is set and its last four characters.
 
 `GET /api/photos` is the same collection from the other side — every picture on
-disk with the tool it belongs to, or with none — and `POST /api/photos/delete`
+disk with the item it belongs to, or with none — and `POST /api/photos/delete`
 removes up to two hundred of them at once. That pair exists for the cleanup
-after an import that pulled in the wrong pictures, which the per-tool gallery
+after an import that pulled in the wrong pictures, which the per-item gallery
 is the wrong shape for.
 
-A photo does not have to belong to a tool. `POST /api/photos` uploads one that
+A photo does not have to belong to an item. `POST /api/photos` uploads one that
 does not: pictures arrive before anyone decides what they are — a batch off a
-phone at the end of a day — and forcing a tool at that moment is how photos end
+phone at the end of a day — and forcing an item at that moment is how photos end
 up on the wrong card. `?assigned=false` finds them again, and
-`POST /api/tools/:id/photos/attach` is the way out of that shelf: an unattached
-photo is **moved** onto the tool, keeping its id, while one that already
-belongs to another tool is **copied**, which costs a row rather than a second
+`POST /api/items/:id/photos/attach` is the way out of that shelf: an unattached
+photo is **moved** onto the item, keeping its id, while one that already
+belongs to another item is **copied**, which costs a row rather than a second
 file.
 
-### Cutting the tool out
+### Cutting the item out
 
-`POST /api/tools/:id/photos/:photoId/cutout` returns the tool alone, without
+`POST /api/items/:id/photos/:photoId/cutout` returns the item alone, without
 the bench it was photographed on. It adds a photo and links it to the original
 (`source: "edit"`, `derivedFrom`), so an unconvincing cutout is one delete away
 from undone.
@@ -142,20 +142,20 @@ from undone.
 **The default needs no key and no service.** `src/server/cutout-local.ts`
 carries the method from the Qbrick labelling project: everything light that
 touches the edge of the frame is background, what is left is the object, the
-largest such object is the tool, and the result is cropped to its outline with
+largest such object is the item, and the result is cropped to its outline with
 a transparent background. It answers in milliseconds and costs nothing.
 
-It works on catalogue photos — a tool on a plain light background, which is
+It works on catalogue photos — an item on a plain light background, which is
 exactly what the web search imports — and **refuses everything else with a
 422** rather than returning half a cut-out workbench. Two differences from the
 original script: the background is flooded in from the border rather than taken
 as the largest dark blob, so a white label in the middle of a drill stays part
-of the tool; and the background becomes real transparency instead of white
+of the item; and the background becomes real transparency instead of white
 paint.
 
 For photographs taken on site there are two paid providers: **remove.bg**,
 built for exactly this and returning a transparent PNG, and **Gemini**, a
-general model that returns the tool on a plain white background instead. Which
+general model that returns the item on a plain white background instead. Which
 methods may be used, and their keys, are set on the **Ustawienia** screen, like
 the search engines — `REMOVE_BG_API_KEY`, `GEMINI_API_KEY` and
 `TOOLTRACK_CUTOUT_THRESHOLD` remain as the bootstrap for the keys and the
@@ -177,9 +177,9 @@ always PNG. It still refuses a photograph with no plain background — that is a
 statement about the picture, not the format, and the 422 says so, so the person
 at the wand can pick a paid method for that one photo.
 
-The AI prompt is deliberately narrow: keep the tool exactly as it is, remove
-everything else, invent nothing. A cutout that "improves" the tool is a picture
-of a tool we do not own.
+The AI prompt is deliberately narrow: keep the item exactly as it is, remove
+everything else, invent nothing. A cutout that "improves" the item is a picture
+of an item we do not own.
 
 Two things this deliberately does not do: it does not resize or re-encode
 anything (no image library, no native dependency — the cap is the size limit),
@@ -187,7 +187,7 @@ and it does not check whether a photo from the web may be republished.
 `attribution` is stored when the provider states one; what may be done with a
 picture is a decision for the person ticking the box.
 
-## Importing the Qbrick tool list
+## Importing the Qbrick item list
 
 The fifteen labelled Qbrick boxes from `~/Projects/Qbrick` are the first real
 content of this catalog. The list is frozen into
@@ -201,8 +201,8 @@ npm run qbrick:import              # validate and report, writes nothing
 npm run qbrick:import -- --apply   # insert what is missing
 ```
 
-One manifest entry is one physical tool, not one box: boxes 01 and 11 hold two
-tools, 14 and 15 hold three, so fifteen boxes import as twenty-one cards. The
+One manifest entry is one physical item, not one box: boxes 01 and 11 hold two
+items, 14 and 15 hold three, so fifteen boxes import as twenty-one cards. The
 box number goes into the notes, because a card has no location field yet.
 
 Re-running it is safe. Nothing here has a serial number, so the importer
@@ -212,12 +212,12 @@ account named with `--actor`, or by the oldest active admin.
 
 Catalog and part numbers (`SR1E7615AB`, `0611910000`, `6-TRE650`) are kept in
 the notes rather than in the serial number field: they identify a model, not
-the individual machine, and that field is unique per tool.
+the individual machine, and that field is unique per item.
 
 ## Importing the Qbrick cases
 
 The boxes themselves come from the manufacturer's product pages, frozen into
-`scripts/data/qbrick-cases.json` for the same reason the tool list is frozen: a
+`scripts/data/qbrick-cases.json` for the same reason the item list is frozen: a
 catalog that changed because a shop restyled its spec table is a catalog nobody
 could trust twice. Each entry carries the page it was read from.
 
@@ -230,7 +230,7 @@ It writes **parameters**, the **note** and the **address** as well as cases. The
 pages state nine rows and seven of them are columns; the weight and the pallet
 count are not, so those two are frozen into the manifest as attributes. The page
 each entry was read from lands in the case's own `referenceUrl`, the same field
-an imported tool has.
+an imported item has.
 
 A case already in the catalog gets all of it, which is what makes a second run
 worth anything.
@@ -254,7 +254,7 @@ The manifest holds a remark about the catalog instead — that the capacity on a
 drawer unit is the sum of its drawers — which is a thing no product page can
 know and no description would ever say. Pressing "update from the page" on one
 of those two cases replaces the remark with the maker's prose, which is the
-same bargain a tool card makes and the reason the button is not a background
+same bargain an item card makes and the reason the button is not a background
 job.
 
 The catalog keeps one value per measurement, and two of these products do not
@@ -293,7 +293,7 @@ enough:
 docker compose exec postgres psql -U tooltrack -d tooltrack
 # \dn                    schemas
 # \dt account.* catalog.*  tables
-# select * from catalog.tool;
+# select * from catalog.item;
 ```
 
 `npm run db:down` stops everything, Adminer included.
@@ -329,7 +329,7 @@ curl -s -c cookies.txt -H 'content-type: application/json' \
 curl -s -b cookies.txt localhost:37411/api/auth/me
 
 # the catalog
-curl -s -b cookies.txt 'localhost:37411/api/tools?q=makita&condition=needs_repair'
+curl -s -b cookies.txt 'localhost:37411/api/items?q=makita&condition=needs_repair'
 ```
 
 The session is an HttpOnly cookie holding an opaque token; only its SHA-256 is
@@ -436,7 +436,7 @@ Four things in it are derived rather than written, because each is a fact the
 server already holds and a second copy of a fact is a copy that goes stale:
 
 - the **entity schemas**, generated from the TypeScript types the handlers
-  return — add a column to `Tool` and the schema grows with it;
+  return — add a column to `Item` and the schema grows with it;
 - the **request bodies**, generated from the Zod schemas in `*-input.ts` that
   refuse a bad body at runtime — the object that rejects a 201-character name
   is the object that writes `"maxLength": 200`;
@@ -452,7 +452,7 @@ with `?limit=banana` still shows the catalog, clamped — and a schema that
 forgives accepts anything, which says less than the parameter list already
 does.
 
-A **path** is written once, in `ROUTES`. `compileRoute` turns `/api/tools/:id`
+A **path** is written once, in `ROUTES`. `compileRoute` turns `/api/items/:id`
 into the pattern that matches it, so the router no longer keeps a second copy as
 a regular expression of its own.
 

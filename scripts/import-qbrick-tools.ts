@@ -1,4 +1,4 @@
-// Imports the tool list from the Qbrick labelling project into the catalog.
+// Imports the item list from the Qbrick labelling project into the catalog.
 //
 //   npm run qbrick:import                      # validate and report, writes nothing
 //   npm run qbrick:import -- --apply           # insert what is missing
@@ -12,8 +12,8 @@
 // is a PDF label generator with its own release cycle; a catalog import must
 // not change because someone re-numbered a sticker.
 //
-// One manifest entry is one physical tool, not one box. Boxes 01 and 11 hold
-// two tools, 14 and 15 hold three, so fifteen boxes import as twenty-one cards.
+// One manifest entry is one physical item, not one box. Boxes 01 and 11 hold
+// two items, 14 and 15 hold three, so fifteen boxes import as twenty-one cards.
 
 import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -23,11 +23,12 @@ import 'dotenv/config'
 
 import pg from 'pg'
 
-import { TOOL_CONDITIONS, type ToolCondition } from '../src/server/routes/tools-input'
-import { createTool } from '../src/server/routes/tools-store'
+import { ITEM_CONDITIONS, type ItemCondition } from '../src/server/routes/items-input'
+import { brandIdForImportedName } from '../src/server/routes/brands-store'
+import { createItem } from '../src/server/routes/items-store'
 import type { PgPool } from '../src/server/db'
 
-type ManifestTool = {
+type ManifestItem = {
   box: string
   brand: string
   category: string
@@ -42,7 +43,7 @@ type Manifest = {
   generatedAt: string
   note: string
   source: string
-  tools: ManifestTool[]
+  items: ManifestItem[]
 }
 
 const MANIFEST_PATH = join(dirname(fileURLToPath(import.meta.url)), 'data/qbrick-tools.json')
@@ -58,7 +59,7 @@ async function main(): Promise<void> {
     throw new Error(`Manifest has ${problems.length} problem(s)`)
   }
 
-  console.log(`[qbrick] ${manifest.tools.length} narzędzi w manifeście (${manifest.generatedAt})`)
+  console.log(`[qbrick] ${manifest.items.length} narzędzi w manifeście (${manifest.generatedAt})`)
 
   const apply = process.argv.includes('--apply')
   const client = new pg.Client({ connectionString })
@@ -72,12 +73,12 @@ async function main(): Promise<void> {
     let inserted = 0
     let skipped = 0
 
-    for (const entry of manifest.tools) {
-      // The catalog has no unique key for a tool without a serial number, and
+    for (const entry of manifest.items) {
+      // The catalog has no unique key for an item without a serial number, and
       // none of these have one, so the importer dedupes on what a person would
       // read as "the same card": brand, model and name. Re-running it must not
       // produce a second copy of the whole shed.
-      const key = toolKey(entry)
+      const key = itemKey(entry)
       if (existing.has(key)) {
         skipped += 1
         continue
@@ -89,18 +90,20 @@ async function main(): Promise<void> {
         continue
       }
 
-      await createTool(
+      await createItem(
         {
-          // The stocktake says which box a tool is in, not which yard the box
+          // The stocktake says which box an item is in, not which yard the box
           // is standing in. Nobody has said, so nobody says.
           addressId: null,
-          brand: entry.brand,
+          brandId: await brandIdForImportedName(entry.brand, actorId, pool),
           category: entry.category,
-          condition: entry.condition as ToolCondition,
+          condition: entry.condition as ItemCondition,
+          // A stocktake of a tool shed. Nothing in it is a washing machine.
+          kind: 'tool',
           model: entry.model,
           name: entry.name,
           notes: entry.notes,
-          // The tool manifest is a stocktake rather than a set of pages: these
+          // The item manifest is a stocktake rather than a set of pages: these
           // cards were counted in a van, not read from anywhere.
           referenceUrl: '',
           serialNumber: entry.serialNumber,
@@ -127,20 +130,20 @@ function validate(manifest: Manifest): string[] {
   const problems: string[] = []
   const seen = new Set<string>()
 
-  if (!Array.isArray(manifest.tools) || manifest.tools.length === 0) {
+  if (!Array.isArray(manifest.items) || manifest.items.length === 0) {
     return ['manifest zawiera zero narzędzi']
   }
 
-  for (const [index, entry] of manifest.tools.entries()) {
+  for (const [index, entry] of manifest.items.entries()) {
     const where = `pozycja ${index + 1} (${entry.name || 'bez nazwy'})`
 
     if (!entry.name?.trim()) problems.push(`${where}: brak nazwy`)
-    if (!TOOL_CONDITIONS.includes(entry.condition as ToolCondition)) {
+    if (!ITEM_CONDITIONS.includes(entry.condition as ItemCondition)) {
       problems.push(`${where}: nieznany stan "${entry.condition}"`)
     }
     if (!entry.box?.trim()) problems.push(`${where}: brak numeru skrzynki`)
 
-    const key = toolKey(entry)
+    const key = itemKey(entry)
     if (seen.has(key)) problems.push(`${where}: duplikat w manifeście`)
     seen.add(key)
   }
@@ -174,19 +177,26 @@ async function resolveActor(client: pg.Client, email: null | string): Promise<nu
   return Number(id)
 }
 
+// The maker is a row the card points at rather than a string on it, so "the
+// same card" is read through the join like everything else. COALESCE keeps a
+// card with no maker comparable with a manifest entry that names none.
 async function existingKeys(client: pg.Client): Promise<Set<string>> {
   const result = await client.query<{ brand: string; model: string; name: string }>(
-    `SELECT "name", "brand", "model" FROM "catalog"."tool"`,
+    `
+      SELECT "i"."name", coalesce("b"."name", '') AS "brand", "i"."model"
+      FROM "catalog"."item" AS "i"
+      LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "i"."brand_id"
+    `,
   )
 
-  return new Set(result.rows.map(toolKey))
+  return new Set(result.rows.map(itemKey))
 }
 
-function toolKey(entry: { brand: string; model: string; name: string }): string {
+function itemKey(entry: { brand: string; model: string; name: string }): string {
   return [entry.name, entry.brand, entry.model].map((part) => part.trim().toLowerCase()).join(' | ')
 }
 
-function label(entry: ManifestTool): string {
+function label(entry: ManifestItem): string {
   const model = entry.model ? ` ${entry.model}` : ''
   return `${entry.name} — ${entry.brand}${model} (skrzynka ${entry.box})`
 }

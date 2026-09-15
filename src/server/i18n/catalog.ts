@@ -14,6 +14,10 @@ export const EN: Record<string, string> = {
   'Nieprawidłowy e-mail lub hasło': 'Invalid email or password',
   'Nie ma takiej sesji': 'No such session',
   'Nie ma takiego adresu': 'No such address',
+  'Nie ma takiego producenta': 'No such maker',
+  'Do organizera trafiają tylko narzędzia': 'Only tools go in an organizer',
+  'Ta pozycja leży w organizerze. Najpierw ją wyjmij.':
+    'This card is in an organizer. Take it out first.',
   'Adres o tej nazwie już istnieje: {name}': 'A place is already called that: {name}',
   'Ta wersja aplikacji jest za stara. Zaktualizuj ją, żeby korzystać dalej.':
     'This version of the app is too old. Update it to carry on.',
@@ -25,12 +29,12 @@ export const EN: Record<string, string> = {
 
   // Not found, taken, already there
   'Nie ma takiego zdjęcia': 'There is no such photo',
-  'Nie ma takiego narzędzia': 'There is no such tool',
+  'Nie ma takiego narzędzia': 'There is no such item',
   'Nie ma takich etykiet': 'There are no such labels',
   'Skrzynka tego organizera nie ma takiego miejsca na etykietę':
     'The case of this arrangement has no such place for a label',
-  'Tego narzędzia nie ma w tym organizerze': 'That tool is not in this arrangement',
-  'To narzędzie jest już w innym organizerze': 'That tool is already in another arrangement',
+  'Tego narzędzia nie ma w tym organizerze': 'That item is not in this arrangement',
+  'To narzędzie jest już w innym organizerze': 'That item is already in another arrangement',
   'To zdjęcie jest już na tej karcie': 'That photo is already on this card',
   'Ta instrukcja jest już na tej karcie': 'That manual is already on this card',
   'Ten parametr jest już na tej karcie: {name}': 'That parameter is already on this card: {name}',
@@ -54,7 +58,7 @@ export const EN: Record<string, string> = {
   'Maksymalnie {max} etykiet naraz': 'At most {max} labels at a time',
   'Maksymalnie {max} zdjęć naraz': 'At most {max} photos at a time',
   'Maksymalnie {max} zdjęcia': 'At most {max} photos',
-  'Maksymalnie 200 narzędzi naraz': 'At most 200 tools at a time',
+  'Maksymalnie 200 narzędzi naraz': 'At most 200 items at a time',
   'Własny tekst może mieć najwyżej {max} znaków':
     'Your own text can be at most {max} characters long',
   'Etykieta {width} × {height} mm mieści {allowed} zdjęcia':
@@ -99,7 +103,7 @@ export const EN: Record<string, string> = {
   'Podgląd jest uszkodzony': 'The preview is damaged',
   'Podgląd wygasł — wygeneruj go ponownie': 'The preview has expired — generate it again',
 
-  // Cutting the tool out of a photo
+  // Cutting the item out of a photo
   'Żadna metoda wycinania nie jest włączona — sprawdź Ustawienia':
     'No cutout method is switched on — see Settings',
   'Metoda {provider} nie jest dostępna — włącz ją i uzupełnij klucz w Ustawieniach':
@@ -112,11 +116,11 @@ export const EN: Record<string, string> = {
     'The cutout returned something that is not an image',
   'Model nie zwrócił obrazu — spróbuj z innym zdjęciem':
     'The model returned no image — try another photo',
-  'Nie znaleziono narzędzia na tym zdjęciu': 'No tool was found in this photo',
+  'Nie znaleziono narzędzia na tym zdjęciu': 'No item was found in this photo',
   'Narzędzie wypełnia już całe zdjęcie — nie ma czego wycinać':
-    'The tool already fills the whole photo — there is nothing to cut out',
+    'The item already fills the whole photo — there is nothing to cut out',
   'Obiekt na zdjęciu jest za mały — sprawdź, czy to zdjęcie narzędzia':
-    'The object in the photo is too small — check that this is a photo of a tool',
+    'The object in the photo is too small — check that this is a photo of an item',
   'To zdjęcie nie ma jednolitego jasnego tła — wycinanie bez AI zadziała tylko na zdjęciach katalogowych':
     'This photo has no even, light background — cutting out without AI works on catalog photos only',
 
@@ -136,13 +140,13 @@ export const EN: Record<string, string> = {
   'Wyszukiwarka grafiki z własnym indeksem. Klucz z api-dashboard.search.brave.com, darmowy pakiet miesięczny.':
     'An image search with an index of its own. Key from api-dashboard.search.brave.com, with a free monthly allowance.',
   'Sklep z elektronarzędziami. Nie szuka obrazków w sieci — znajduje kartę produktu i bierze zdjęcia z jej galerii, więc dostaje się komplet ujęć jednego modelu w pełnej rozdzielczości. Bez klucza. Zna tylko to, czym sklep handluje.':
-    'A power tool shop. It does not search the web for pictures — it finds the product page and takes the photos from its gallery, so you get a full set of shots of one model at full resolution. No key. It knows only what the shop sells.',
+    'A power item shop. It does not search the web for pictures — it finds the product page and takes the photos from its gallery, so you get a full set of shots of one model at full resolution. No key. It knows only what the shop sells.',
   'Bez klucza, odpowiedź w ułamku sekundy, przezroczyste tło. Działa na zdjęciach katalogowych — narzędzie na jasnym, jednolitym tle; inne odrzuca.':
-    'No key, an answer in a fraction of a second, a transparent background. It works on catalog photos — a tool on a light, even ground; anything else it refuses.',
+    'No key, an answer in a fraction of a second, a transparent background. It works on catalog photos — an item on a light, even ground; anything else it refuses.',
   'Usługa zbudowana do wycinania. Radzi sobie ze zdjęciami z ręki i z warsztatu, zwraca przezroczyste PNG. Klucz z remove.bg/api, 50 zdjęć miesięcznie za darmo.':
     'A service built for cutting out. It copes with handheld and workshop photos and returns a transparent PNG. Key from remove.bg/api, 50 photos a month free.',
   'Model ogólny. Zwraca narzędzie na jednolitym białym tle, bez przezroczystości. Klucz z aistudio.google.com — inny niż ten do wyszukiwarki.':
-    'A general model. It returns the tool on an even white ground, with no transparency. Key from aistudio.google.com — a different one from the search key.',
+    'A general model. It returns the item on an even white ground, with no transparency. Key from aistudio.google.com — a different one from the search key.',
   'Lokalny skrypt': 'Local script',
   'Klucz remove.bg': 'remove.bg key',
   'Klucz Gemini': 'Gemini key',
