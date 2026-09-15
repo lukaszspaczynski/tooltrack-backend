@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS "catalog_address_city_idx" ON "catalog"."address" (lo
 -- ON DELETE SET NULL, so closing a site does not delete the tools that were on
 -- it. They read as "nowhere recorded", which is true and is what the address
 -- list's delete confirmation says out loud before anybody agrees to it.
-ALTER TABLE "catalog"."tool"
+ALTER TABLE "catalog"."item"
   ADD COLUMN IF NOT EXISTS "address_id" bigint
   REFERENCES "catalog"."address"("id") ON DELETE SET NULL;
 
@@ -66,19 +66,19 @@ ALTER TABLE "catalog"."organizer"
 
 -- Read by "what is at this address", which is the question the feature exists
 -- for and the one that would otherwise scan the whole catalog.
-CREATE INDEX IF NOT EXISTS "catalog_tool_address_id_idx" ON "catalog"."tool" ("address_id");
+CREATE INDEX IF NOT EXISTS "catalog_item_address_id_idx" ON "catalog"."item" ("address_id");
 CREATE INDEX IF NOT EXISTS "catalog_organizer_address_id_idx"
   ON "catalog"."organizer" ("address_id");
 
 COMMENT ON TABLE "catalog"."address" IS 'Places tools and arrangements are kept: a workshop, a yard, a site.';
 COMMENT ON COLUMN "catalog"."address"."name" IS 'What the crew calls it. The part people pick from.';
 COMMENT ON COLUMN "catalog"."address"."color" IS 'Identifying colour as #rrggbb, or empty when nobody picked one.';
-COMMENT ON COLUMN "catalog"."tool"."address_id" IS 'Where this tool is. Null when nobody has said.';
+COMMENT ON COLUMN "catalog"."item"."address_id" IS 'Where this card is kept. Null when nobody has said.';
 COMMENT ON COLUMN "catalog"."organizer"."address_id" IS 'Where this arrangement is. Null when nobody has said.';
 `
 
 export const ADDRESS_DROP_DDL = `
-ALTER TABLE IF EXISTS "catalog"."tool" DROP COLUMN IF EXISTS "address_id";
+ALTER TABLE IF EXISTS "catalog"."item" DROP COLUMN IF EXISTS "address_id";
 ALTER TABLE IF EXISTS "catalog"."organizer" DROP COLUMN IF EXISTS "address_id";
 DROP TABLE IF EXISTS "catalog"."address";
 `

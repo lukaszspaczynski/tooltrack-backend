@@ -40,11 +40,11 @@ CREATE TABLE IF NOT EXISTS "catalog"."photo_brand" (
 -- One brand, many tools. A column here rather than a link table, because the
 -- relation is single-valued on the tool's side and nothing about it needs a row
 -- of its own. ON DELETE SET NULL: removing a brand must not remove its tools.
-ALTER TABLE "catalog"."tool"
+ALTER TABLE "catalog"."item"
   ADD COLUMN IF NOT EXISTS "brand_id" bigint
   REFERENCES "catalog"."brand"("id") ON DELETE SET NULL;
 
-CREATE INDEX IF NOT EXISTS "catalog_tool_brand_id_idx" ON "catalog"."tool" ("brand_id");
+CREATE INDEX IF NOT EXISTS "catalog_item_brand_id_idx" ON "catalog"."item" ("brand_id");
 
 -- Databases that predate the colour.
 ALTER TABLE "catalog"."brand" ADD COLUMN IF NOT EXISTS "color" text NOT NULL DEFAULT '';
@@ -54,32 +54,51 @@ ALTER TABLE "catalog"."brand"
   CHECK ("color" = '' OR "color" ~ '^#[0-9a-f]{6}$');
 
 -- The catalog held its brands as free text long before this table existed, and
--- those strings are real data: every distinct one becomes a row, and every tool
--- is pointed at its own. Both statements are idempotent, so a second run adds
--- nothing and repoints nothing.
-INSERT INTO "catalog"."brand" ("name", "created_by")
-SELECT DISTINCT ON (lower(btrim("brand"))) btrim("brand"), NULL
-FROM "catalog"."tool"
-WHERE btrim("brand") <> ''
-  AND NOT EXISTS (
-    SELECT 1 FROM "catalog"."brand" AS "b" WHERE lower("b"."name") = lower(btrim("catalog"."tool"."brand"))
-  )
-ORDER BY lower(btrim("brand")), "brand";
+-- those strings were real data: every distinct one became a row, and every card
+-- was pointed at its own.
+--
+-- That column is gone now, so this is a one-time repair that runs only on a
+-- database old enough to still have it. A card carried its maker twice — as a
+-- row it pointed at and as a string beside it — and keeping the two in step
+-- took three separate mechanisms: matching a typed name back to a row on every
+-- write, rewriting the string on every card when a brand was renamed, and this
+-- backfill quietly repairing whatever the first two missed. One column needs
+-- none of them.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'catalog' AND table_name = 'item' AND column_name = 'brand'
+  ) THEN
+    INSERT INTO "catalog"."brand" ("name", "created_by")
+    SELECT DISTINCT ON (lower(btrim("brand"))) btrim("brand"), NULL
+    FROM "catalog"."item"
+    WHERE btrim("brand") <> ''
+      AND NOT EXISTS (
+        SELECT 1 FROM "catalog"."brand" AS "b"
+        WHERE lower("b"."name") = lower(btrim("catalog"."item"."brand"))
+      )
+    ORDER BY lower(btrim("brand")), "brand";
 
-UPDATE "catalog"."tool" AS "t"
-SET "brand_id" = "b"."id"
-FROM "catalog"."brand" AS "b"
-WHERE "t"."brand_id" IS NULL
-  AND btrim("t"."brand") <> ''
-  AND lower("b"."name") = lower(btrim("t"."brand"));
+    UPDATE "catalog"."item" AS "t"
+    SET "brand_id" = "b"."id"
+    FROM "catalog"."brand" AS "b"
+    WHERE "t"."brand_id" IS NULL
+      AND btrim("t"."brand") <> ''
+      AND lower("b"."name") = lower(btrim("t"."brand"));
+
+    ALTER TABLE "catalog"."item" DROP COLUMN "brand";
+  END IF;
+END
+$$;
 
 COMMENT ON TABLE "catalog"."brand" IS 'One row per maker. Tools point at it; the logo is linked through photo_brand.';
 COMMENT ON TABLE "catalog"."photo_brand" IS 'The logo of a brand. One to one in both directions.';
-COMMENT ON COLUMN "catalog"."tool"."brand_id" IS 'The maker. The free-text brand column is kept in step by the API.';
+COMMENT ON COLUMN "catalog"."item"."brand_id" IS 'The maker. The only place a card records one.';
 `
 
 export const BRAND_DROP_DDL = `
-ALTER TABLE IF EXISTS "catalog"."tool" DROP COLUMN IF EXISTS "brand_id";
+ALTER TABLE IF EXISTS "catalog"."item" DROP COLUMN IF EXISTS "brand_id";
 DROP TABLE IF EXISTS "catalog"."photo_brand";
 DROP TABLE IF EXISTS "catalog"."brand";
 `

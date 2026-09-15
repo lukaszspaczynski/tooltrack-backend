@@ -3,7 +3,99 @@
 export const CATALOG_DDL = `
 CREATE SCHEMA IF NOT EXISTS "catalog";
 
-CREATE TABLE IF NOT EXISTS "catalog"."tool" (
+-- The catalog held tools. It holds what somebody owns: a drill, a washing
+-- machine, and — when the boxes are folded in too — a case. All of it has the
+-- same card, because everything that makes a card is the same for all three:
+-- a name, a maker, a model, a serial number, a condition, photographs, a
+-- manual, a spec sheet, an address, and the page it was imported from.
+--
+-- So the table is item and kind says which sort of thing it is, rather
+-- than a second table with the same twelve columns under another name.
+--
+-- Renamed rather than recreated: the rows are somebody's catalog. Each step is
+-- guarded on its own, so running the schema twice is the same as running it
+-- once, and a database halfway through one run finishes on the next.
+DO $$
+BEGIN
+  IF to_regclass('"catalog"."tool"') IS NOT NULL
+     AND to_regclass('"catalog"."item"') IS NULL THEN
+    ALTER TABLE "catalog"."tool" RENAME TO "item";
+  END IF;
+
+  IF to_regclass('"catalog"."manual_tool"') IS NOT NULL
+     AND to_regclass('"catalog"."manual_item"') IS NULL THEN
+    ALTER TABLE "catalog"."manual_tool" RENAME TO "manual_item";
+    ALTER TABLE "catalog"."manual_item" RENAME COLUMN "tool_id" TO "item_id";
+  END IF;
+
+  -- The spec sheet says which kind of thing each row is about, as a word. The
+  -- word was 'tool' and the table it names is now item.
+  IF to_regclass('"catalog"."attribute"') IS NOT NULL THEN
+    UPDATE "catalog"."attribute" SET "reference" = 'item' WHERE "reference" = 'tool';
+  END IF;
+END
+$$;
+
+-- Renaming a table renames nothing else. Its indexes and its constraints keep
+-- the names they were born with, and both matter here.
+--
+-- The indexes matter because the CREATE INDEX IF NOT EXISTS statements below
+-- name the new ones: left alone, a migrated database would end up with two of
+-- each, one under each name, and pay for both on every write.
+--
+-- The **constraint** names matter more, because the code reads one. A foreign
+-- key that matched nothing is answered as "no such address" rather than as a
+-- 500, and which key it was is known only from error.constraint. A migrated
+-- database saying tool_address_id_fkey where a fresh one says
+-- item_address_id_fkey is the same server behaving differently depending on
+-- how old the database is, which is the worst kind of difference to debug.
+DO $$
+DECLARE
+  "old_name" text;
+  "new_name" text;
+BEGIN
+  -- Nothing to rename on a database that has never had the old names, and
+  -- 'catalog.item'::regclass below would throw rather than answer null.
+  IF to_regclass('"catalog"."item"') IS NULL THEN RETURN; END IF;
+
+  FOR "old_name", "new_name" IN
+    SELECT unnest(ARRAY[
+      'catalog_tool_serial_number_idx', 'catalog_tool_category_idx',
+      'catalog_tool_condition_idx', 'catalog_tool_name_idx',
+      'catalog_tool_brand_id_idx', 'catalog_tool_address_id_idx',
+      'catalog_manual_tool_manual_idx'
+    ]),
+    unnest(ARRAY[
+      'catalog_item_serial_number_idx', 'catalog_item_category_idx',
+      'catalog_item_condition_idx', 'catalog_item_name_idx',
+      'catalog_item_brand_id_idx', 'catalog_item_address_id_idx',
+      'catalog_manual_item_manual_idx'
+    ])
+  LOOP
+    IF to_regclass('"catalog".' || quote_ident("old_name")) IS NOT NULL
+       AND to_regclass('"catalog".' || quote_ident("new_name")) IS NULL THEN
+      EXECUTE format('ALTER INDEX "catalog".%I RENAME TO %I', "old_name", "new_name");
+    END IF;
+  END LOOP;
+
+  FOR "old_name", "new_name" IN
+    SELECT unnest(ARRAY['tool_pkey', 'tool_address_id_fkey', 'tool_brand_id_fkey',
+                        'tool_created_by_fkey', 'tool_updated_by_fkey', 'tool_condition_check']),
+           unnest(ARRAY['item_pkey', 'item_address_id_fkey', 'item_brand_id_fkey',
+                        'item_created_by_fkey', 'item_updated_by_fkey', 'item_condition_check'])
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conrelid = 'catalog.item'::regclass AND conname = "old_name"
+    ) THEN
+      EXECUTE format('ALTER TABLE "catalog"."item" RENAME CONSTRAINT %I TO %I',
+                     "old_name", "new_name");
+    END IF;
+  END LOOP;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS "catalog"."item" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   "name" text NOT NULL CHECK (btrim("name") <> ''),
   -- Category, brand, model and serial number are free text rather than
@@ -13,9 +105,18 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool" (
   -- written on paper instead. Empty string means "not filled in"; the column
   -- is NOT NULL so no query has to handle both.
   "category" text NOT NULL DEFAULT '',
-  "brand" text NOT NULL DEFAULT '',
   "model" text NOT NULL DEFAULT '',
   "serial_number" text NOT NULL DEFAULT '',
+  -- What sort of thing this is. Not a category — a category is free text and
+  -- somebody's own word for a shelf, while this is the handful of sorts the
+  -- catalog itself behaves differently about.
+  --
+  -- 'case' is here before anything uses it, deliberately: the boxes are their
+  -- own table today and folding them in is a decision for later, but a check
+  -- constraint that has to be widened on the day of is one more thing to
+  -- remember on the day of.
+  "kind" text NOT NULL DEFAULT 'tool'
+    CHECK ("kind" IN ('tool', 'appliance', 'case')),
   "condition" text NOT NULL DEFAULT 'good'
     CHECK ("condition" IN ('new', 'good', 'worn', 'needs_repair', 'retired')),
   "notes" text NOT NULL DEFAULT '',
@@ -36,13 +137,41 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool" (
 -- A serial number identifies one physical machine, so two cards claiming the
 -- same one is a duplicate someone should merge, not two tools. Blank is
 -- exempt: most hand tools have no serial at all.
-CREATE UNIQUE INDEX IF NOT EXISTS "catalog_tool_serial_number_idx"
-  ON "catalog"."tool" (lower("serial_number"))
+-- Databases that predate the kind. Everything already in a catalog of tools is
+-- a tool; what is not gets said afterwards, by somebody looking at it.
+ALTER TABLE "catalog"."item" ADD COLUMN IF NOT EXISTS "kind" text NOT NULL DEFAULT 'tool';
+
+ALTER TABLE "catalog"."item" DROP CONSTRAINT IF EXISTS "item_kind_check";
+ALTER TABLE "catalog"."item"
+  ADD CONSTRAINT "item_kind_check" CHECK ("kind" IN ('tool', 'appliance', 'case'));
+
+-- Redundant on its own — id is already unique — and here so that another table
+-- can point at "this row, and it is a tool" in one foreign key. See
+-- organizer-schema.ts, which is the only thing that uses it.
+--
+-- Added only when missing, never dropped and re-added. The organizer's foreign
+-- key depends on the index behind it, so a second run of this file would be
+-- refused — which is how this was found.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'catalog.item'::regclass AND conname = 'item_id_kind_key'
+  ) THEN
+    ALTER TABLE "catalog"."item" ADD CONSTRAINT "item_id_kind_key" UNIQUE ("id", "kind");
+  END IF;
+END
+$$;
+
+CREATE INDEX IF NOT EXISTS "catalog_item_kind_idx" ON "catalog"."item" ("kind");
+
+CREATE UNIQUE INDEX IF NOT EXISTS "catalog_item_serial_number_idx"
+  ON "catalog"."item" (lower("serial_number"))
   WHERE "serial_number" <> '';
 
-CREATE INDEX IF NOT EXISTS "catalog_tool_category_idx" ON "catalog"."tool" (lower("category"));
-CREATE INDEX IF NOT EXISTS "catalog_tool_condition_idx" ON "catalog"."tool" ("condition");
-CREATE INDEX IF NOT EXISTS "catalog_tool_name_idx" ON "catalog"."tool" (lower("name"));
+CREATE INDEX IF NOT EXISTS "catalog_item_category_idx" ON "catalog"."item" (lower("category"));
+CREATE INDEX IF NOT EXISTS "catalog_item_condition_idx" ON "catalog"."item" ("condition");
+CREATE INDEX IF NOT EXISTS "catalog_item_name_idx" ON "catalog"."item" (lower("name"));
 
 -- The boxes the tools live in. A crew talks about "skrzynka 04" as often as
 -- about the drill inside it, and a case is a thing with its own price, its own
@@ -111,16 +240,16 @@ CREATE TABLE IF NOT EXISTS "catalog"."manual" (
   "created_at" timestamp with time zone NOT NULL DEFAULT now()
 );
 
-CREATE TABLE IF NOT EXISTS "catalog"."manual_tool" (
-  "tool_id" bigint NOT NULL REFERENCES "catalog"."tool"("id") ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS "catalog"."manual_item" (
+  "item_id" bigint NOT NULL REFERENCES "catalog"."item"("id") ON DELETE CASCADE,
   "manual_id" bigint NOT NULL REFERENCES "catalog"."manual"("id") ON DELETE CASCADE,
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
-  PRIMARY KEY ("tool_id", "manual_id")
+  PRIMARY KEY ("item_id", "manual_id")
 );
 
-CREATE INDEX IF NOT EXISTS "catalog_manual_tool_manual_idx"
-  ON "catalog"."manual_tool" ("manual_id");
+CREATE INDEX IF NOT EXISTS "catalog_manual_item_manual_idx"
+  ON "catalog"."manual_item" ("manual_id");
 
 -- What this particular tool is: mains voltage 230 V, 300 rpm, SDS-plus, 4.2 kg.
 --
@@ -136,7 +265,7 @@ CREATE INDEX IF NOT EXISTS "catalog_manual_tool_manual_idx"
 -- unit — "230 V", not 230 — because half these parameters have no unit anybody
 -- agrees on and a number without one is a number nobody can read.
 -- Attributes were a tool's alone once, in a table called tool_attribute keyed
--- by tool_id. A case turned out to want the same thing — a spec sheet of names
+-- by its tool. A case turned out to want the same thing — a spec sheet of names
 -- and values that nobody can agree a column list for — so the table is generic
 -- and says which kind of thing each row belongs to.
 --
@@ -211,14 +340,14 @@ CREATE INDEX IF NOT EXISTS "catalog_attribute_lookup_idx"
 -- Below the CREATE, because it reads the table. Guarded by the rows themselves
 -- rather than by a flag: once they are gone there is nothing to move, which is
 -- what makes running the schema twice the same as running it once.
-ALTER TABLE "catalog"."tool" ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
+ALTER TABLE "catalog"."item" ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
 ALTER TABLE "catalog"."tool_case"
   ADD COLUMN IF NOT EXISTS "reference_url" text NOT NULL DEFAULT '';
 
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM "catalog"."attribute" WHERE lower(btrim("name")) = 'referencja') THEN
-    UPDATE "catalog"."tool" AS "t"
+    UPDATE "catalog"."item" AS "t"
        SET "reference_url" = "a"."value"
       FROM "catalog"."attribute" AS "a"
      WHERE "a"."reference" = 'tool'
@@ -262,11 +391,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS "case_label_slot_size_idx"
   ON "catalog"."case_label_slot" ("case_id", "width_mm", "height_mm");
 
 COMMENT ON SCHEMA "catalog" IS 'The ToolTrack tool catalog.';
-COMMENT ON TABLE "catalog"."tool" IS 'One row per physical tool, the card shown in the app.';
+COMMENT ON TABLE "catalog"."item" IS 'One row per thing somebody owns — a tool, an appliance, later a case. The card shown in the app.';
 COMMENT ON TABLE "catalog"."tool_case" IS 'One row per case, box or drawer unit the tools are kept in.';
 COMMENT ON TABLE "catalog"."case_label_slot" IS 'Where a label goes on a case: a size in mm, unique per case.';
 COMMENT ON TABLE "catalog"."manual" IS 'One PDF kept beside the tools: the manual, a parts diagram, a safety sheet.';
-COMMENT ON TABLE "catalog"."manual_tool" IS 'Which tools a manual belongs to. A manual describes a model, so several cards can share one file.';
+COMMENT ON TABLE "catalog"."manual_item" IS 'Which items a manual belongs to. A manual describes a model, so several cards can share one file.';
 COMMENT ON COLUMN "catalog"."tool_case"."ean" IS 'Barcode of the product, not of this box: duplicates are expected.';
 COMMENT ON TABLE "catalog"."attribute" IS 'One parameter of one tool or one case: a name and a value, both free text, unique per thing.';
 `

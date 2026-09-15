@@ -14,6 +14,31 @@
 // lineage, which then drift apart.
 
 export const PHOTO_DDL = `
+-- The cards are items now rather than tools, so the link table that names them
+-- is too. Guarded and run before anything below refers to the new name.
+DO $$
+BEGIN
+  IF to_regclass('"catalog"."photo_tool"') IS NOT NULL
+     AND to_regclass('"catalog"."photo_item"') IS NULL THEN
+    ALTER TABLE "catalog"."photo_tool" RENAME TO "photo_item";
+    ALTER TABLE "catalog"."photo_item" RENAME COLUMN "tool_id" TO "item_id";
+  END IF;
+
+  -- The indexes keep the names they were born with, and the CREATE statements
+  -- below name the new ones: left alone, a migrated database pays for two of
+  -- each on every write.
+  IF to_regclass('"catalog"."photo_tool_primary_idx"') IS NOT NULL
+     AND to_regclass('"catalog"."photo_item_primary_idx"') IS NULL THEN
+    ALTER INDEX "catalog"."photo_tool_primary_idx" RENAME TO "photo_item_primary_idx";
+  END IF;
+
+  IF to_regclass('"catalog"."photo_tool_photo_idx"') IS NOT NULL
+     AND to_regclass('"catalog"."photo_item_photo_idx"') IS NULL THEN
+    ALTER INDEX "catalog"."photo_tool_photo_idx" RENAME TO "photo_item_photo_idx";
+  END IF;
+END
+$$;
+
 -- The table was called tool_photo when tools were the only thing with a
 -- picture. Renamed rather than duplicated, idempotently: IF EXISTS makes this
 -- a no-op on every run after the first, and on a database that never had the
@@ -67,15 +92,15 @@ CREATE TABLE IF NOT EXISTS "catalog"."photo" (
 --
 -- The primary key is the pair, so the same picture cannot be attached to one
 -- card twice — the rule the per-card checksum index used to carry.
-CREATE TABLE IF NOT EXISTS "catalog"."photo_tool" (
-  "tool_id" bigint NOT NULL REFERENCES "catalog"."tool"("id") ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS "catalog"."photo_item" (
+  "item_id" bigint NOT NULL REFERENCES "catalog"."item"("id") ON DELETE CASCADE,
   "photo_id" bigint NOT NULL REFERENCES "catalog"."photo"("id") ON DELETE CASCADE,
   -- Being the main photo is a property of the pairing, not of the picture: the
   -- same photograph can head one card and sit fourth on another.
   "is_primary" boolean NOT NULL DEFAULT false,
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
-  PRIMARY KEY ("tool_id", "photo_id")
+  PRIMARY KEY ("item_id", "photo_id")
 );
 
 CREATE TABLE IF NOT EXISTS "catalog"."photo_case" (
@@ -97,7 +122,7 @@ BEGIN
     WHERE table_schema = 'catalog' AND table_name = 'photo' AND column_name = 'tool_id'
   ) THEN
     EXECUTE $sql$
-      INSERT INTO "catalog"."photo_tool" ("tool_id", "photo_id", "is_primary", "created_by", "created_at")
+      INSERT INTO "catalog"."photo_item" ("item_id", "photo_id", "is_primary", "created_by", "created_at")
       SELECT "tool_id", "id", "is_primary", "created_by", "created_at"
       FROM "catalog"."photo" WHERE "tool_id" IS NOT NULL
       ON CONFLICT DO NOTHING
@@ -125,13 +150,13 @@ WITH "duplicates" AS (
   SELECT "id", first_value("id") OVER (PARTITION BY "checksum" ORDER BY "id") AS "keep"
   FROM "catalog"."photo"
 )
-UPDATE "catalog"."photo_tool" AS "l"
+UPDATE "catalog"."photo_item" AS "l"
 SET "photo_id" = "d"."keep"
 FROM "duplicates" AS "d"
 WHERE "l"."photo_id" = "d"."id" AND "d"."id" <> "d"."keep"
   AND NOT EXISTS (
-    SELECT 1 FROM "catalog"."photo_tool" AS "x"
-    WHERE "x"."tool_id" = "l"."tool_id" AND "x"."photo_id" = "d"."keep"
+    SELECT 1 FROM "catalog"."photo_item" AS "x"
+    WHERE "x"."item_id" = "l"."item_id" AND "x"."photo_id" = "d"."keep"
   );
 
 WITH "duplicates" AS (
@@ -183,24 +208,24 @@ CREATE UNIQUE INDEX IF NOT EXISTS "photo_checksum_idx" ON "catalog"."photo" ("ch
 -- At most one main photo per card, enforced by the database rather than by
 -- whichever route happens to set the flag. Promoting therefore has to clear
 -- the old one in the same transaction, which is what the store does.
-CREATE UNIQUE INDEX IF NOT EXISTS "photo_tool_primary_idx"
-  ON "catalog"."photo_tool" ("tool_id") WHERE "is_primary";
+CREATE UNIQUE INDEX IF NOT EXISTS "photo_item_primary_idx"
+  ON "catalog"."photo_item" ("item_id") WHERE "is_primary";
 CREATE UNIQUE INDEX IF NOT EXISTS "photo_case_primary_idx"
   ON "catalog"."photo_case" ("case_id") WHERE "is_primary";
 
 -- The primary keys index (card, photo); these index the other direction, for
 -- "which cards show this picture" and for the library's join.
-CREATE INDEX IF NOT EXISTS "photo_tool_photo_idx" ON "catalog"."photo_tool" ("photo_id");
+CREATE INDEX IF NOT EXISTS "photo_item_photo_idx" ON "catalog"."photo_item" ("photo_id");
 CREATE INDEX IF NOT EXISTS "photo_case_photo_idx" ON "catalog"."photo_case" ("photo_id");
 
 COMMENT ON TABLE "catalog"."photo" IS 'One row per picture. Bytes live in the media directory, keyed by checksum.';
-COMMENT ON TABLE "catalog"."photo_tool" IS 'Which tools show which pictures, and which picture heads each tool.';
+COMMENT ON TABLE "catalog"."photo_item" IS 'Which items show which pictures, and which picture heads each card.';
 COMMENT ON TABLE "catalog"."photo_case" IS 'Which cases show which pictures, and which picture heads each case.';
 COMMENT ON COLUMN "catalog"."photo"."derived_from" IS 'The picture this one was cut out from, when source = edit.';
 `
 
 export const PHOTO_DROP_DDL = `
-DROP TABLE IF EXISTS "catalog"."photo_tool";
+DROP TABLE IF EXISTS "catalog"."photo_item";
 DROP TABLE IF EXISTS "catalog"."photo_case";
 DROP TABLE IF EXISTS "catalog"."photo";
 DROP TABLE IF EXISTS "catalog"."tool_photo";

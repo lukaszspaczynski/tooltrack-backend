@@ -7,6 +7,23 @@
 // column on the tool, so `catalog.tool` stays unaware that organizers exist.
 
 export const ORGANIZER_DDL = `
+-- The cards are items now. The link table that names them follows, and gains
+-- the one rule this feature has that the catalog cannot express anywhere else.
+DO $$
+BEGIN
+  IF to_regclass('"catalog"."organizer_tool"') IS NOT NULL
+     AND to_regclass('"catalog"."organizer_item"') IS NULL THEN
+    ALTER TABLE "catalog"."organizer_tool" RENAME TO "organizer_item";
+    ALTER TABLE "catalog"."organizer_item" RENAME COLUMN "tool_id" TO "item_id";
+  END IF;
+
+  IF to_regclass('"catalog"."organizer_tool_once_idx"') IS NOT NULL
+     AND to_regclass('"catalog"."organizer_item_once_idx"') IS NULL THEN
+    ALTER INDEX "catalog"."organizer_tool_once_idx" RENAME TO "organizer_item_once_idx";
+  END IF;
+END
+$$;
+
 CREATE TABLE IF NOT EXISTS "catalog"."organizer" (
   "id" bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   -- The number on the lid. Unique, and deliberately not the id: ids are ours
@@ -37,18 +54,38 @@ CREATE INDEX IF NOT EXISTS "organizer_name_idx" ON "catalog"."organizer" (lower(
 -- The pair is the primary key; the unique index on tool_id alone is what makes
 -- it one-to-one from the tool's side — a tool lies in exactly one place, and
 -- the database says so rather than a handler remembering to check.
-CREATE TABLE IF NOT EXISTS "catalog"."organizer_tool" (
+CREATE TABLE IF NOT EXISTS "catalog"."organizer_item" (
   "organizer_id" bigint NOT NULL REFERENCES "catalog"."organizer"("id") ON DELETE CASCADE,
   -- Deleting a tool takes it out of its organizer. Nothing else happens: the
   -- arrangement is still an arrangement with one fewer thing in it.
-  "tool_id" bigint NOT NULL REFERENCES "catalog"."tool"("id") ON DELETE CASCADE,
+  "item_id" bigint NOT NULL REFERENCES "catalog"."item"("id") ON DELETE CASCADE,
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
-  PRIMARY KEY ("organizer_id", "tool_id")
+  PRIMARY KEY ("organizer_id", "item_id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "organizer_tool_once_idx"
-  ON "catalog"."organizer_tool" ("tool_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "organizer_item_once_idx"
+  ON "catalog"."organizer_item" ("item_id");
+
+-- Only a tool goes in an organizer. A washing machine is in the same catalog
+-- and on the same kind of card, and it is not going into a Qbrick box.
+--
+-- As a constraint rather than a check in a handler, like every other rule of
+-- this feature. The column is fixed to 'tool' by its own CHECK and the pair
+-- points at (id, kind) on the card, so the database cannot be talked into
+-- linking anything else — and changing a card's kind while it is in an
+-- organizer fails rather than quietly leaving an appliance in a drawer.
+ALTER TABLE "catalog"."organizer_item"
+  ADD COLUMN IF NOT EXISTS "kind" text NOT NULL DEFAULT 'tool';
+
+ALTER TABLE "catalog"."organizer_item" DROP CONSTRAINT IF EXISTS "organizer_item_kind_check";
+ALTER TABLE "catalog"."organizer_item"
+  ADD CONSTRAINT "organizer_item_kind_check" CHECK ("kind" = 'tool');
+
+ALTER TABLE "catalog"."organizer_item" DROP CONSTRAINT IF EXISTS "organizer_item_is_a_tool_fkey";
+ALTER TABLE "catalog"."organizer_item"
+  ADD CONSTRAINT "organizer_item_is_a_tool_fkey"
+  FOREIGN KEY ("item_id", "kind") REFERENCES "catalog"."item" ("id", "kind") ON DELETE CASCADE;
 
 -- A generated label. One organizer has many; each is a PDF on disk plus the
 -- options it was made from.
@@ -97,12 +134,12 @@ COMMENT ON COLUMN "catalog"."organizer_label"."options" IS 'What the generator w
 COMMENT ON COLUMN "catalog"."organizer_label"."preview_path" IS 'PNG of the first page, for the list. Empty when it could not be rendered.';
 
 COMMENT ON TABLE "catalog"."organizer" IS 'One arrangement: a case, a number and a name.';
-COMMENT ON TABLE "catalog"."organizer_tool" IS 'Which tools are in which organizer. One organizer per tool, by unique index.';
+COMMENT ON TABLE "catalog"."organizer_item" IS 'Which tools are in which organizer. One organizer per tool, by unique index; tools only, by composite foreign key.';
 COMMENT ON COLUMN "catalog"."organizer"."number" IS 'The number said out loud and painted on the box. Not the id.';
 `
 
 export const ORGANIZER_DROP_DDL = `
 DROP TABLE IF EXISTS "catalog"."organizer_label";
-DROP TABLE IF EXISTS "catalog"."organizer_tool";
+DROP TABLE IF EXISTS "catalog"."organizer_item";
 DROP TABLE IF EXISTS "catalog"."organizer";
 `
