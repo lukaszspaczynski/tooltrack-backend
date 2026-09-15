@@ -718,6 +718,15 @@ shown a card with no update button — no error, nothing to report, just a scree
 that stopped working. Done properly, the seeder would have gone on writing the
 parameter for one release.
 
+**The check is switched off right now**, and `compatibility.test.ts` says why:
+the catalog is being renamed from `tool` to `item`, which moves every route
+under `/api/tools` and is one deliberate break from beginning to end. Left on,
+it would fire on every commit of that and be answered by running
+`openapi:baseline` without reading the output — which is the habit it exists to
+prevent. Turning it back on is `npm run openapi:baseline` and changing one
+`test.skip` back to `test`, and it has to happen before anybody builds a client
+that ships on its own schedule.
+
 `src/openapi/compatibility.ts` is the part that does not rely on remembering.
 It compares `docs/openapi.json` against **`docs/openapi.baseline.json`**, the
 contract as last released, and the test fails on anything an installed client
