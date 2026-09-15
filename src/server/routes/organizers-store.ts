@@ -565,7 +565,7 @@ export async function labelSlotsFor(
     `
       SELECT "s"."id", "s"."width_mm", "s"."height_mm"
       FROM "catalog"."organizer" AS "o"
-      JOIN "catalog"."case_label_slot" AS "s" ON "s"."case_id" = "o"."case_id"
+      JOIN "catalog"."case_label_slot" AS "s" ON "s"."item_id" = "o"."case_id"
       WHERE "o"."id" = $1
       ORDER BY "s"."width_mm", "s"."height_mm"
     `,

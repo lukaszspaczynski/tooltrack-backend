@@ -11,6 +11,7 @@ import {
   parseItemCreate,
   parseItemPatch,
   parseItemQuery,
+  parseLabelSlot,
 } from './items-input'
 
 function query(search: string): ReturnType<typeof parseItemQuery> {
@@ -126,12 +127,14 @@ test('the list query has usable defaults', () => {
   assert.ok(parsed.ok)
   assert.deepEqual(parsed.value, {
     addressId: null,
+    attributes: false,
     category: null,
     kind: null,
     condition: null,
     inOrganizer: null,
     direction: 'desc',
     limit: DEFAULT_LIMIT,
+    model: null,
     offset: 0,
     search: null,
     sort: 'updatedAt',
@@ -212,4 +215,27 @@ test('editing a parameter takes either half, but not neither', () => {
   // like it saved something.
   assert.equal(parseAttributePatch({}).ok, false)
   assert.equal(parseAttributePatch({ name: '' }).ok, false)
+})
+
+test('a label slot is two millimetre sizes, and neither may be unknown', () => {
+  const parsed = parseLabelSlot({ heightMm: 40, widthMm: 30 })
+
+  assert.ok(parsed.ok)
+  assert.deepEqual(parsed.value, { heightMm: 40, widthMm: 30 })
+
+  // The measurements of a box are free text on its sheet now; a label size is
+  // not, and stays a checked number — a slot with no width is not a slot.
+  for (const body of [{ heightMm: 40 }, { widthMm: 30 }, { heightMm: null, widthMm: 30 }]) {
+    assert.equal(parseLabelSlot(body).ok, false, JSON.stringify(body))
+  }
+})
+
+test('a label slot is whole millimetres, and zero is not a size', () => {
+  for (const body of [
+    { heightMm: 40, widthMm: 0 },
+    { heightMm: -40, widthMm: 30 },
+    { heightMm: 40, widthMm: 30.5 },
+  ]) {
+    assert.equal(parseLabelSlot(body).ok, false, JSON.stringify(body))
+  }
 })

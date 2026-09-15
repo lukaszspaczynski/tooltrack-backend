@@ -49,6 +49,7 @@ export function parseMistamaProduct(html: string, pageUrl: string): null | Impor
 
   return {
     attributes: attributesOf(html, product),
+    kind: 'tool',
     brand,
     category: categoryOf(crumbs, product, brand),
     // The shop publishes none. Its product pages have three sections — the

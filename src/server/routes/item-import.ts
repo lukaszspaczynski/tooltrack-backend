@@ -120,7 +120,9 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
   const actorId = context.user?.id ?? 0
 
   // The fields the page is allowed to have an opinion about. The name is not
-  // among them: somebody called this card "Pilarka Janka" on purpose.
+  // among them: somebody called this card "Pilarka Janka" on purpose — and
+  // neither is the kind, because a card in an organizer or carrying label
+  // slots cannot change it, and a page is not worth undoing that for.
   await updateItem(
     itemId,
     {
@@ -184,11 +186,12 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
       brandId: await brandIdForImportedName(product.brand, actorId),
       category: product.category,
       condition: 'new',
-      // Every importer reads a shop or a maker's own product page, and all of
-      // them so far sell tools. An appliance imported from one is a card
-      // somebody changes the kind of afterwards, which is one field rather
-      // than a guess made from a category.
-      kind: 'tool',
+      // The importer says which sort of card its page describes, because the
+      // page is where the answer is: qbricksystem.com sells boxes and nothing
+      // else, a tool shop sells tools. An appliance is still a card somebody
+      // changes the kind of afterwards — one field rather than a guess made
+      // from a category.
+      kind: product.kind,
       model: product.model,
       name: product.name,
       notes: product.notes,
@@ -216,7 +219,7 @@ async function createCard(product: ImportedProduct, actorId: number): Promise<Re
   }
 
   const photos = await importPhotoLinks(
-    { id: item.id, kind: 'item' },
+    { id: item.id },
     product.photoUrls.slice(0, MAX_IMPORT_PHOTOS).map((url) => ({
       attribution: new URL(product.sourceUrl).hostname,
       fromSearch: false,

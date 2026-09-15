@@ -39,6 +39,16 @@ export const MAX_ATTRIBUTE_NAME_LENGTH = 80
 export const MAX_ATTRIBUTE_VALUE_LENGTH = 200
 export const MAX_URL_LENGTH = 2000
 
+// Millimetres. A metre and a half of toolbox is already absurd; the cap is
+// there to catch a number typed in micrometres, not to judge anyone's case.
+// It bounds a label slot, and the importers read it as what a box cannot
+// measure — a spec sheet is free text now, and free text has no CHECK.
+export const MAX_DIMENSION_MM = 5000
+// Litres and kilograms, for the same reading. A box stating either of these
+// above the ceiling has a decimal point in the wrong place.
+export const MAX_CAPACITY_L = 10_000
+export const MAX_LOAD_KG = 10_000
+
 export const DEFAULT_LIMIT = ITEM_PAGING.default
 export const MAX_LIMIT = ITEM_PAGING.max
 
@@ -137,6 +147,11 @@ export type AttributePatch = Partial<AttributeFields>
 export type ItemSort = 'createdAt' | 'name' | 'updatedAt'
 
 export type ItemQuery = {
+  // Whether each card should carry its spec sheet. Off by default: a grid
+  // shows a name, a maker and a condition. The boxes screen turns it on,
+  // because what somebody scanning a shelf of boxes is choosing between is the
+  // measurements and what goes in.
+  attributes: boolean
   // Which sort to list, or null for all of them. A screen shows the tools or
   // the appliances; the catalog holds both.
   kind: ItemKind | null
@@ -152,6 +167,9 @@ export type ItemQuery = {
   direction: 'asc' | 'desc'
   limit: number
   offset: number
+  // One model, exact. Unlike the search box this is a filter picked from a
+  // list, so it matches the whole string rather than part of one.
+  model: null | string
   search: null | string
   sort: ItemSort
 }
@@ -280,6 +298,7 @@ export function parseItemQuery(params: URLSearchParams): Parsed<ItemQuery> {
   }
 
   return valid({
+    attributes: params.get('attributes') === '1',
     category: params.get('category')?.trim() || null,
     addressId: readAddressFilter(params.get('addressId')),
     kind: readKind(params.get('kind')),
@@ -288,6 +307,7 @@ export function parseItemQuery(params: URLSearchParams): Parsed<ItemQuery> {
     direction: params.get('order')?.trim().toLowerCase() === 'asc' ? 'asc' : 'desc',
     limit: clampLimit(params.get('limit'), ITEM_PAGING),
     offset: clampOffset(params.get('offset')),
+    model: params.get('model')?.trim() || null,
     search: params.get('q')?.trim() || null,
     sort: parseSort(params.get('sort')),
   })
@@ -304,6 +324,36 @@ function parseSort(value: null | string): ItemSort {
       // changed something in it.
       return 'updatedAt'
   }
+}
+
+// A label slot is a size and nothing else: width by height, in millimetres,
+// both whole numbers and both required — a slot with no width is not a slot.
+export const LABEL_SLOT_SCHEMA = z
+  .object(
+    {
+      heightMm: slotSize('heightMm'),
+      widthMm: slotSize('widthMm'),
+    },
+    NOT_AN_OBJECT,
+  )
+  .strip()
+
+export function parseLabelSlot(body: unknown): Parsed<{ heightMm: number; widthMm: number }> {
+  return parseWith(LABEL_SLOT_SCHEMA, body)
+}
+
+// A form sends "450" and a Polish keyboard produces "4,5", so both are read —
+// and then refused here, because a place for a sticker is a whole number of
+// millimetres.
+function slotSize(field: string) {
+  const complaint = `${field} must be a whole number of mm between 1 and ${MAX_DIMENSION_MM}`
+
+  return z
+    .union([z.number(), z.string()])
+    .transform((raw) => (typeof raw === 'string' ? Number(raw.trim().replace(',', '.')) : raw))
+    .refine((value) => Number.isInteger(value) && value > 0 && value <= MAX_DIMENSION_MM, {
+      error: () => complaint,
+    })
 }
 
 // Absent means "do not filter", which is not the same as false.

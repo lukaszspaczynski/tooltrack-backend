@@ -14,8 +14,6 @@ import type { RouteHandler } from './route-context'
 import * as auth from './routes/auth'
 import * as addresses from './routes/addresses'
 import * as brands from './routes/brands'
-import * as caseImport from './routes/case-import'
-import * as cases from './routes/cases'
 import * as labels from './routes/labels'
 import * as docs from './routes/docs'
 import * as manuals from './routes/manuals'
@@ -40,19 +38,9 @@ export type RouteMatch = {
   params: Record<string, string>
 }
 
-// A handler, or a handler plus the parameters the path cannot supply.
-//
-// The photo routes are the only ones that need the second form. `/api/items/…`
-// and `/api/cases/…` reach one module — a case carries pictures on exactly the
-// same terms as an item — and which of the two it is has to arrive as a
-// parameter, because the path says it in a segment the pattern does not
-// capture. Writing it here rather than deriving it from the path keeps the
-// matcher from having to know anything about photographs.
-type Entry = RouteHandler | { handler: RouteHandler; params: Record<string, string> }
-
 // Keyed by the route exactly as route-list.ts writes it. A key that is not a
 // route, or a route with no key, fails router.test.ts.
-const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
+const HANDLERS: Partial<Record<(typeof ROUTES)[number], RouteHandler>> = {
   'GET /healthz': healthz,
   'GET /api/version': version.GET,
   'POST /api/auth/register': auth.register,
@@ -67,6 +55,7 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
   'GET /api/items': items.GET,
   'POST /api/items': items.POST,
   'GET /api/items/categories': items.categoriesGET,
+  'GET /api/items/models': items.modelsGET,
   'GET /api/items/attributes': items.attributeNamesGET,
   'GET /api/items/import/sources': itemImport.sourcesGET,
   'POST /api/items/import': itemImport.POST,
@@ -88,91 +77,19 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
   'PATCH /api/items/:id': items.detailPATCH,
   'DELETE /api/items/:id': items.detailDELETE,
   'POST /api/items/:id/duplicate': items.duplicatePOST,
-  'GET /api/items/:id/photos': { handler: photos.listGET, params: { owner: 'items' } },
-  'POST /api/items/:id/photos': { handler: photos.POST, params: { owner: 'items' } },
-  'POST /api/items/:id/photos/attach': { handler: photos.attachPOST, params: { owner: 'items' } },
-  'GET /api/items/:id/photos/:photoId/file': {
-    handler: photos.fileGET,
-    params: { owner: 'items' },
-  },
-  'PATCH /api/items/:id/photos/:photoId': {
-    handler: photos.detailPATCH,
-    params: { owner: 'items' },
-  },
-  'DELETE /api/items/:id/photos/:photoId': {
-    handler: photos.detailDELETE,
-    params: { owner: 'items' },
-  },
-  'POST /api/items/:id/photos/:photoId/cutout': {
-    handler: photos.cutoutPOST,
-    params: { owner: 'items' },
-  },
-  'POST /api/items/:id/photos/:photoId/cutout/preview': {
-    handler: photos.cutoutPreviewPOST,
-    params: { owner: 'items' },
-  },
-  'GET /api/items/:id/photos/:photoId/cutout/preview/:checksum': {
-    handler: photos.cutoutPreviewGET,
-    params: { owner: 'items' },
-  },
-  'POST /api/items/:id/photos/:photoId/cutout/commit': {
-    handler: photos.cutoutCommitPOST,
-    params: { owner: 'items' },
-  },
-  'GET /api/items/:id/photo-suggestions': {
-    handler: photos.suggestionsGET,
-    params: { owner: 'items' },
-  },
-  'GET /api/cases': cases.GET,
-  'POST /api/cases': cases.POST,
-  'GET /api/cases/models': cases.modelsGET,
-  'GET /api/cases/attributes': cases.attributeNamesGET,
-  'GET /api/cases/import/sources': caseImport.sourcesGET,
-  'POST /api/cases/import': caseImport.POST,
-  'POST /api/cases/:id/import': caseImport.refreshPOST,
-  'GET /api/cases/:id': cases.detailGET,
-  'PATCH /api/cases/:id': cases.detailPATCH,
-  'DELETE /api/cases/:id': cases.detailDELETE,
-  'POST /api/cases/:id/attributes': cases.attributePOST,
-  'PATCH /api/cases/:id/attributes/:attributeId': cases.attributePATCH,
-  'DELETE /api/cases/:id/attributes/:attributeId': cases.attributeDELETE,
-  'POST /api/cases/:id/label-slots': cases.labelSlotPOST,
-  'DELETE /api/cases/:id/label-slots/:slotId': cases.labelSlotDELETE,
-  'GET /api/cases/:id/photos': { handler: photos.listGET, params: { owner: 'cases' } },
-  'POST /api/cases/:id/photos': { handler: photos.POST, params: { owner: 'cases' } },
-  'POST /api/cases/:id/photos/attach': { handler: photos.attachPOST, params: { owner: 'cases' } },
-  'GET /api/cases/:id/photos/:photoId/file': {
-    handler: photos.fileGET,
-    params: { owner: 'cases' },
-  },
-  'PATCH /api/cases/:id/photos/:photoId': {
-    handler: photos.detailPATCH,
-    params: { owner: 'cases' },
-  },
-  'DELETE /api/cases/:id/photos/:photoId': {
-    handler: photos.detailDELETE,
-    params: { owner: 'cases' },
-  },
-  'POST /api/cases/:id/photos/:photoId/cutout': {
-    handler: photos.cutoutPOST,
-    params: { owner: 'cases' },
-  },
-  'POST /api/cases/:id/photos/:photoId/cutout/preview': {
-    handler: photos.cutoutPreviewPOST,
-    params: { owner: 'cases' },
-  },
-  'GET /api/cases/:id/photos/:photoId/cutout/preview/:checksum': {
-    handler: photos.cutoutPreviewGET,
-    params: { owner: 'cases' },
-  },
-  'POST /api/cases/:id/photos/:photoId/cutout/commit': {
-    handler: photos.cutoutCommitPOST,
-    params: { owner: 'cases' },
-  },
-  'GET /api/cases/:id/photo-suggestions': {
-    handler: photos.suggestionsGET,
-    params: { owner: 'cases' },
-  },
+  'GET /api/items/:id/photos': photos.listGET,
+  'POST /api/items/:id/photos': photos.POST,
+  'POST /api/items/:id/photos/attach': photos.attachPOST,
+  'GET /api/items/:id/photos/:photoId/file': photos.fileGET,
+  'PATCH /api/items/:id/photos/:photoId': photos.detailPATCH,
+  'DELETE /api/items/:id/photos/:photoId': photos.detailDELETE,
+  'POST /api/items/:id/photos/:photoId/cutout': photos.cutoutPOST,
+  'POST /api/items/:id/photos/:photoId/cutout/preview': photos.cutoutPreviewPOST,
+  'GET /api/items/:id/photos/:photoId/cutout/preview/:checksum': photos.cutoutPreviewGET,
+  'POST /api/items/:id/photos/:photoId/cutout/commit': photos.cutoutCommitPOST,
+  'GET /api/items/:id/photo-suggestions': photos.suggestionsGET,
+  'POST /api/items/:id/label-slots': items.labelSlotPOST,
+  'DELETE /api/items/:id/label-slots/:slotId': items.labelSlotDELETE,
   'GET /api/addresses': addresses.GET,
   'POST /api/addresses': addresses.POST,
   'GET /api/addresses/:id': addresses.detailGET,
@@ -226,11 +143,7 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
 const COMPILED = ROUTES.map((route) => {
   const [method, path] = route.split(' ')
 
-  const entry = HANDLERS[route]
-  const handler = typeof entry === 'function' ? entry : (entry?.handler ?? null)
-  const fixed = typeof entry === 'function' ? {} : (entry?.params ?? {})
-
-  return { ...compileRoute(path), fixed, handler, method }
+  return { ...compileRoute(path), handler: HANDLERS[route] ?? null, method }
 })
 
 export function matchRoute(pathname: string, method: string): null | RouteMatch {
@@ -250,10 +163,7 @@ export function matchRoute(pathname: string, method: string): null | RouteMatch 
     if (route.method !== wanted) continue
 
     handler = route.handler
-    params = {
-      ...route.fixed,
-      ...Object.fromEntries(route.names.map((name, index) => [name, found[index + 1]])),
-    }
+    params = Object.fromEntries(route.names.map((name, index) => [name, found[index + 1]]))
   }
 
   // Nothing matched at all: the path does not exist, rather than existing

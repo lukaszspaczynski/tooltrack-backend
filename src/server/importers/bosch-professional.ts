@@ -34,6 +34,7 @@ export function parseBoschProfessionalProduct(
 
   return {
     attributes: attributesOf(html, product),
+    kind: 'tool',
     brand: text(String((product.brand as { name?: unknown })?.name ?? '')) || BRAND,
     category: categoryOf(html),
     manuals: manualsOf(html),

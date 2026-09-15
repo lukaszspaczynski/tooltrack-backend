@@ -213,16 +213,19 @@ mechanisms; the colour arriving for free is what the string could never do.
 
 Query parameters, all optional:
 
-| Name          | Meaning                                                                    | Default     |
-| ------------- | -------------------------------------------------------------------------- | ----------- |
-| `q`           | Substring match over name, brand, model, serial number, category and notes | —           |
-| `category`    | Exact category, case-insensitive                                           | —           |
-| `condition`   | One of `new`, `good`, `worn`, `needs_repair`, `retired`                    | —           |
-| `inOrganizer` | `false` for items in no organizer — what the organizer wizard offers       | —           |
-| `sort`        | `updatedAt`, `createdAt` or `name`                                         | `updatedAt` |
-| `order`       | `asc` or `desc`                                                            | `desc`      |
-| `limit`       | 1–200                                                                      | 50          |
-| `offset`      | ≥ 0                                                                        | 0           |
+| Name          | Meaning                                                                     | Default     |
+| ------------- | --------------------------------------------------------------------------- | ----------- |
+| `q`           | Substring match over name, brand, model, serial number, category and notes  | —           |
+| `category`    | Exact category, case-insensitive                                            | —           |
+| `condition`   | One of `new`, `good`, `worn`, `needs_repair`, `retired`                     | —           |
+| `inOrganizer` | `false` for items in no organizer — what the organizer wizard offers        | —           |
+| `kind`        | `tool`, `appliance` or `case` — the boxes screen asks for `case`            | —           |
+| `model`       | Exact model, as the cards spell it                                          | —           |
+| `attributes`  | `1` to carry every card's spec sheet; off, because a grid does not show one | —           |
+| `sort`        | `updatedAt`, `createdAt` or `name`                                          | `updatedAt` |
+| `order`       | `asc` or `desc`                                                             | `desc`      |
+| `limit`       | 1–200                                                                       | 50          |
+| `offset`      | ≥ 0                                                                         | 0           |
 
 ```json
 { "items": [/* items */], "total": 128, "limit": 50, "offset": 0 }
@@ -316,12 +319,18 @@ is in exactly one of the two lists, so a gap is visible rather than silent.
     { "host": "stanleyworks.pl", "label": "stanleyworks.pl", "manuals": false },
     { "host": "lidl.pl", "label": "lidl.pl", "manuals": true },
     { "host": "nac.com.pl", "label": "nac.com.pl", "manuals": true },
-    { "host": "gardena.com", "label": "gardena.com", "manuals": false }
+    { "host": "gardena.com", "label": "gardena.com", "manuals": false },
+    { "host": "qbricksystem.com", "label": "qbricksystem.com", "manuals": false }
   ]
 }
 ```
 
-The pages this server can read — two shops and six makers' own sites. The address is remembered without its analytics tail:
+The pages this server can read — two shops and seven makers' own sites. One
+list, including the one that sells boxes: it used to be two registries under
+two routes, because a case was a table of its own and the scripts answered
+different shapes. They answer the same shape now, and **which sort of card a
+page describes is the page's own answer** rather than a question the dialog
+has to ask. The address is remembered without its analytics tail:
 `?_gl=…` and `utm_*` say nothing about the product.
 `manuals` says whether that page publishes documents at all: a shop sells the
 item and leaves the manual to the maker, so a screen asking for one offers only
@@ -360,6 +369,12 @@ shops publish none. They go through the same path as
 `POST /api/items/:id/manuals`, so a PDF that will not download is reported
 rather than failing the card.
 
+The **kind** comes from the importer, because the page is where the answer is:
+qbricksystem.com sells boxes and nothing else, so a card imported from it
+arrives as `kind: "case"` and a card imported from a tool shop as
+`kind: "tool"`. An appliance is a card somebody changes the kind of afterwards,
+which is one field rather than a guess made from a category.
+
 The card is created with `condition: "new"` and **no serial number** — that
 identifies one physical machine, and the page describes a model. Parameters and
 photographs are added after it, and neither failing loses the card: what could
@@ -378,8 +393,10 @@ Answers like the import above: `200 { item, imported }`.
 What the page knows, it **overwrites**: the maker, the model, the category, the
 description, the whole spec sheet and the documents. What it cannot know, it
 leaves alone: the **name** somebody gave this card, the **serial number** of
-this particular machine, its **condition**, and the **photographs** — which
-somebody may well have taken themselves. `imported.photos` is therefore always
+this particular machine, its **condition**, the **kind** — a card in an
+organizer or carrying label slots cannot change it, and a page is not worth
+undoing that for — and the **photographs**, which somebody may well have taken
+themselves. `imported.photos` is therefore always
 0 here, which is a statement rather than an omission.
 
 Parameters and manuals are **cleared and written again** rather than merged. A
@@ -604,66 +621,21 @@ reachable to any build.
 
 A header this server cannot read is treated as absent, not as old.
 
-## Importing a case
-
-### `GET /api/cases/import/sources` — `catalog.read`
-
-```json
-{ "sources": [{ "host": "qbricksystem.com", "label": "qbricksystem.com" }] }
-```
-
-A different list from the item one, and a shorter one. A page that sells drills
-has nothing to say about a box, so the two registries are separate and a dialog
-asking "where is this case from" never offers one.
-
-### `POST /api/cases/import` — `catalog.write`
-
-`{ "url": "https://qbricksystem.com/…" }`, read into a case.
-
-`201 { case, imported }`, where `imported` is `{ photos, photosFailed, sourceUrl }`
-— the photographs and nothing else. A case has no documents, which is part of
-why it has its own importer type rather than sharing the item one.
-
-Almost everything worth knowing about a box is a measurement, and the page
-writes the units into the values — `450 [L] x 322 [W] x 126 [H] mm`, `15kg`. A
-measurement that reads outside what a case can be is dropped rather than
-stored: a number nobody can have measured looks like a fact.
-
-The rows that are **not** a measurement the catalog has a column for become
-**parameters** on the case, the same way an item's spec sheet does — the weight,
-and how many fit on a pallet. The address the page was read from is the case's
-own `referenceUrl`, which is what the "update from the page" button looks for.
-The **note** is the maker's own description and nothing else: it
-used to carry the weight and the address, which left cases whose entire note
-was a bare link.
-
-### `POST /api/cases/:id/import` — `catalog.write`
-
-The same page, read again into a case that exists. What the page knows it
-overwrites: the maker, the name, the model, every measurement, the note and
-the parameters — those are cleared and written again rather than merged, as a
-item's are, because a row the maker has dropped should leave the case too.
-
-What it cannot know it leaves alone. The **label slots** are where a sticker
-goes on this particular box in this particular van, and no product page has an
-opinion about that — which is the whole reason this is a refresh rather than a
-delete and a re-import. The photographs are left too, so `imported.photos` is
-always 0 here.
-
 ## Cases
 
-A case is the box the items live in — and it is **a card like any other**.
-`catalog.tool_case` is gone: a box had a name, a maker, a model, a note, the
-page it was read from and a spec sheet, which is what a card is, so it is an
-item with `kind: "case"`. `GET /api/items?kind=case` lists the same rows these
-routes do, and `GET /api/items` includes them, because the catalog holds what
-somebody owns and the boxes are part of that.
+A case is the box the items live in, and it is **a card like any other**.
+`catalog.tool_case` is gone and so is `/api/cases/*`: a box had a name, a
+maker, a model, a note, the page it was read from and a spec sheet, which is
+what a card is — so it is an item with `kind: "case"`, listed by
+`GET /api/items?kind=case`, read by `GET /api/items/:id`, written by the same
+POST and PATCH every other card is.
 
-These routes stay because a box has things a drill does not: label slots, and
-an importer that reads a box's page. They answer only about cards of kind
-`case` — `/api/cases/7` where 7 is a drill is a `404`.
+Two things are still only a box's, and both hang off the item routes:
 
-**Only the name is required.**
+- **label slots**, below — `POST /api/items/:id/label-slots`, refused with
+  `409 ITEM_IS_NOT_A_CASE` on a drill;
+- the **importer** that reads qbricksystem.com, which is now one of the nine
+  sources `POST /api/items/import` accepts.
 
 Everything a spec sheet states about a box is a **parameter**, not a column. A
 case had eleven of those columns — three outside measurements, three inside, a
@@ -684,133 +656,46 @@ The unit travels in the value, as it does everywhere else. The order is the
 order somebody reads a box in: outside, inside, diagonal, what goes in, what it
 carries, then the numbers that identify the product.
 
-Two consequences. **`sort=capacityL` is gone** — sorting free text with a unit
-in it would mean a regular expression and a cast, for a question about a shelf
-of six boxes; an old link falls through to sorting by name rather than being
-refused. And `q=` **searches the sheet as well as the card**, because the
-barcode and the catalogue number are exactly what somebody types with the box
-in their hands.
-
-The **maker** is the row it is, like an item's: `brand` is
-`{ id, name, color }` or `null`, and writing it is `brandId`.
-
-### `GET /api/cases` — `catalog.read`
-
-| Parameter      | Meaning                                                 | Default |
-| -------------- | ------------------------------------------------------- | ------- |
-| `q`            | Name, maker, model, notes — and every parameter's value | —       |
-| `manufacturer` | Exact match, case-insensitive                           | —       |
-| `model`        | Exact match, case-insensitive                           | —       |
-| `sort`         | `name`, `createdAt`, `updatedAt`                        | `name`  |
-| `order`        | `asc` or `desc`                                         | `desc`  |
-| `limit`        | 1–200                                                   | 50      |
-| `offset`       | ≥ 0                                                     | 0       |
-
-`200 { items, total, limit, offset }`. Each item is a case plus
-`primaryPhotoUrl`, so a grid can show thumbnails without a request per row.
-Sorting by capacity puts the unmeasured cases last rather than first.
-
-### `GET /api/cases/attributes` — `catalog.read`
-
-`{ "names": [{ "name": "Model", "count": 5 }] }`, most used first. What the
-form offers while somebody types a parameter name on a case, asked per kind
-rather than across the catalog: a box and a drill have nothing in common on a
-spec sheet.
-
-### `POST /api/cases/:id/attributes` — `catalog.write`
-
-### `PATCH /api/cases/:id/attributes/:attributeId` — `catalog.write`
-
-### `DELETE /api/cases/:id/attributes/:attributeId` — `catalog.write`
-
-One line off the spec sheet of a box. The same three routes an item's parameters
-have, with the same rules — both halves required, whitespace collapsed to one
-space, one name per case — and each answers with the whole case rather than the
-row that changed.
-
-**Beside the columns, not instead of them.** A case keeps its measurements as
-columns, because a length is a length and every box has one. The sheet is for
-what the columns do not cover: a stacking model, a lid type, whatever the next
-kind of box turns out to state.
-
-### `GET /api/cases/models` — `catalog.read`
-
-`200 { models: [{ model, count }] }` — read from the cases themselves, the
-same way item categories are.
-
-### `POST /api/cases` — `catalog.write`
-
-`name` and `manufacturer` are required. Measurements accept a number, a numeric
-string, or a string with a Polish comma (`"4,5"`); `null` and `""` both mean
-"not known". Millimetres must be whole numbers, litres and kilograms may carry
-two decimals. `201 { case }`.
-
-### `GET /api/cases/:id` — `catalog.read`
-
-`200 { case }` or `404`.
-
-### `PATCH /api/cases/:id` — `catalog.write`
-
-Any subset of the create body. An omitted field is left alone; an explicit
-`null` clears a measurement, which is how a number copied off the wrong spec
-sheet gets removed. `200 { case }`.
-
-### `DELETE /api/cases/:id` — `catalog.write`
-
-`200 { ok: true }`. The photos of the case go with it — the foreign key
-cascades.
-
-### `POST /api/cases/:id/label-slots` — `catalog.write`
-
-Where a label goes on this case: `{ "widthMm": 30, "heightMm": 40 }`. Whole
-millimetres, always width by height of the outline, and neither may be zero —
-elsewhere on a case a missing measurement is null and means "nobody measured",
-but a label with no width is not a label.
-
-`201 { case }` — the whole case, so a screen showing the slots together does
-not have to merge one into a list it already holds. `409` when this case
-already has that size: the pair is the key, and adding it twice is a mistake
-rather than a second place. The same size on another case is fine, which is
-the point of a modular model.
-
-### `DELETE /api/cases/:id/label-slots/:slotId` — `catalog.write`
-
-`200 { case }`, or `404` when this case has no such slot.
-
-### The case object
-
-```json
-{
-  "id": 2,
-  "name": "Qbrick System PRO Toolbox 2.0",
-  "brand": { "id": 12, "name": "Qbrick", "color": "" },
-  "model": "PRO",
-  "notes": "",
-  "referenceUrl": "https://qbricksystem.com/product/qbrick-system-pro-toolbox-2-0/",
-  "attributes": [
-    { "id": 61, "name": "Długość zewnętrzna", "value": "450 mm" },
-    { "id": 62, "name": "Szerokość zewnętrzna", "value": "331 mm" },
-    { "id": 63, "name": "Wysokość zewnętrzna", "value": "240 mm" },
-    { "id": 67, "name": "Pojemność", "value": "19 L" },
-    { "id": 68, "name": "Ładowność", "value": "20 kg" },
-    { "id": 69, "name": "EAN", "value": "5901238254249" },
-    { "id": 70, "name": "SKU", "value": "SKRQTBPRO2CZAPG001" }
-  ],
-  "labelSlots": [{ "id": 1, "widthMm": 30, "heightMm": 40 }],
-  "createdBy": 1,
-  "updatedBy": 1,
-  "createdAt": "2026-09-11T18:12:33.370Z",
-  "updatedAt": "2026-09-11T18:12:33.370Z"
-}
-```
-
-`model` is what the maker calls the range this box stacks with — "PRO", "ONE",
-"Systainer". It was `system` until a box came within one card of being an item,
-and `model` is what an item calls the same fact.
-
 The EAN and the SKU identify the product, not this box: two identical cases on
 the shelf are two rows carrying the same barcode, so neither is unique. That is
 the difference from an item's serial number, which is one machine.
+
+`model` is what the maker calls the range this box stacks with — "PRO", "ONE",
+"Systainer" — and it is the item's own `model` column, which is why
+`GET /api/items/models?kind=case` is the filter a shelf of boxes is read by.
+
+### `GET /api/items/models` — `catalog.read`
+
+`200 { models: [{ model, count }] }` — read from the cards themselves, the same
+way the category list is. `?kind=` narrows it, and the boxes screen sends
+`kind=case`: a workshop owns nine of the same Qbrick and one of everything
+else, so the model is the filter that means something there.
+
+### `POST /api/items/:id/label-slots` — `catalog.write`
+
+Where a label goes on this case: `{ "widthMm": 30, "heightMm": 40 }`. Whole
+millimetres, always width by height of the outline, and neither may be zero —
+a label with no width is not a label.
+
+`201 { item }` — the whole card, so a screen showing the slots together does
+not have to merge one into a list it already holds.
+
+`409 ITEM_IS_NOT_A_CASE` when the card is a tool or an appliance. That is a
+constraint rather than a check: `case_label_slot` carries a `kind` fixed to
+`'case'` and points at `(id, kind)` on the item, so the database refuses a
+drill a place for a sticker — and refuses turning a box that has slots into
+something else.
+
+`409 LABEL_SLOT_TAKEN` when this case already has that size: the pair is the
+key, and adding it twice is a mistake rather than a second place. The same size
+on another case is fine, which is the point of a modular system.
+
+### `DELETE /api/items/:id/label-slots/:slotId` — `catalog.write`
+
+`200 { item }`, or `404` when this card has no such slot.
+
+`labelSlots` is on every item detail answer and is `[]` for everything that is
+not a case — which is what one card type costs, and all it costs.
 
 ## Photos
 
@@ -822,18 +707,17 @@ The bytes are always stored by this server. A URL or a search result is a
 source, not a link the catalog keeps depending on: a page that disappears next
 year must not empty the shed.
 
-Everything in this section exists twice, under `/api/items/:id/…` and under
-`/api/cases/:id/…`. They are the same routes, served by the same handler, and
-the only difference is which link table the pairing lands in. `:id` below means
-either.
+Everything in this section used to exist twice, under `/api/items/:id/…` and
+under `/api/cases/:id/…`, because a case was a table of its own. One card, one
+set of paths.
 
 A **picture** and **a card showing a picture** are two different things. The
 photo object is the picture: it has no owner and no `isPrimary`, because the
-same photograph can illustrate several items, several cases, and an item
-together with the case it lives in. The per-card routes add `isPrimary`, which
+same photograph can illustrate several cards — an item and the case it lives
+in, for one. The per-card routes add `isPrimary`, which
 belongs to the pairing.
 
-### `GET /api/{items,cases}/:id/photos` — `catalog.read`
+### `GET /api/items/:id/photos` — `catalog.read`
 
 ```json
 { "photos": [{ "id": 3, "url": "/api/items/7/photos/3/file", "isPrimary": true }] }
@@ -850,7 +734,7 @@ of — what deleting the card would take with it. Not the whole gallery: one tha
 another card shows, or that a maker uses as its logo, survives the card. This
 is what the delete confirmation counts before asking.
 
-### `POST /api/{items,cases}/:id/photos` — `catalog.write`
+### `POST /api/items/:id/photos` — `catalog.write`
 
 Two request shapes on one endpoint.
 
@@ -889,7 +773,7 @@ JPEG, PNG, GIF or WebP — decided by reading the file, not by trusting its
 content type — and `413` above the size cap. An address pointing into a private network is
 refused as a failed item, never fetched.
 
-### `POST /api/{items,cases}/:id/photos/attach` — `catalog.write`
+### `POST /api/items/:id/photos/attach` — `catalog.write`
 
 ```json
 { "photoIds": [24, 25] }
@@ -908,12 +792,12 @@ where the photo is now:
 `201 { photos, failed }`; one id that no longer exists does not lose the rest.
 `409` when none of them could be attached — already on this card, or gone.
 
-### `GET /api/{items,cases}/:id/photos/:photoId/file` — `catalog.read`
+### `GET /api/items/:id/photos/:photoId/file` — `catalog.read`
 
 The bytes, with `cache-control: private, immutable` and the checksum as `ETag`.
 Use it directly as an `<img src>`.
 
-### `PATCH /api/{items,cases}/:id/photos/:photoId` — `catalog.write`
+### `PATCH /api/items/:id/photos/:photoId` — `catalog.write`
 
 ```json
 { "isPrimary": true }
@@ -921,7 +805,7 @@ Use it directly as an `<img src>`.
 
 The only edit a photo has. Everything else about it is a fact about the file.
 
-### `DELETE /api/{items,cases}/:id/photos/:photoId` — `catalog.write`
+### `DELETE /api/items/:id/photos/:photoId` — `catalog.write`
 
 `200 { "ok": true }`. Takes the picture off **this** card. If no other card
 shows it, the picture and its file go too — a bin on a card has to mean the
@@ -930,7 +814,7 @@ photograph is gone, not that it moved to a library nobody asked to fill.
 Deleting a whole item or case does the same for everything it showed: its
 pairings go with it, and the pictures no other card uses go with those.
 
-### `POST /api/{items,cases}/:id/photos/:photoId/cutout` — `catalog.write`
+### `POST /api/items/:id/photos/:photoId/cutout` — `catalog.write`
 
 Take this photo and give back the item alone, without the workbench, the case
 or the hands holding it.
@@ -959,7 +843,7 @@ photo it was started from.
 One-click is not always what you want. These two split the same work so a
 person can see the result before anything is written.
 
-**`POST /api/{items,cases}/:id/photos/:photoId/cutout/preview`** — `catalog.write`
+**`POST /api/items/:id/photos/:photoId/cutout/preview`** — `catalog.write`
 
 ```json
 { "method": "local", "threshold": 700, "padding": 20, "removeBgType": "product" }
@@ -1013,7 +897,7 @@ Turns a preview into a photo: `source: "edit"`, `derivedFrom` the original,
 cache — in which case it is generated again rather than half-saved; or if that
 exact cutout is already on the card.
 
-### `GET /api/{items,cases}/:id/photo-suggestions` — `catalog.write`
+### `GET /api/items/:id/photo-suggestions` — `catalog.write`
 
 `?source=page` answers from the **product page this card was imported from**
 instead of from the engines: the address is the card's `referenceUrl`, so it is

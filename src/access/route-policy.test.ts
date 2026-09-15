@@ -205,30 +205,28 @@ test('the domain label survives an unclassified path', () => {
   assert.equal(routeRequirement('/api/users/7/sessions', 'DELETE').domain, 'users')
 })
 
-test('cases are the catalog, read to look and write to change', () => {
-  for (const path of ['/api/cases', '/api/cases/42', '/api/cases/models']) {
-    assert.equal(allows(path, 'GET', user('viewer')), true, path)
-  }
-
-  assert.equal(allows('/api/cases', 'POST', user('viewer')), false)
-  assert.equal(allows('/api/cases', 'POST', user('editor')), true)
-  assert.equal(allows('/api/cases/42', 'PATCH', user('viewer')), false)
-  assert.equal(allows('/api/cases/42', 'DELETE', user('editor')), true)
+test('the boxes are the catalog too, under the one set of item rules', () => {
+  // /api/cases is gone: a case is a card, so it is read and written by the
+  // rules every other card is. Nothing here is about a kind — the routes are
+  // the same routes.
+  assert.equal(routeRequirement('/api/cases', 'GET').check.kind, 'deny')
+  assert.equal(routeRequirement('/api/cases/42', 'GET').check.kind, 'deny')
 })
 
-test('the list of models sits above the case detail pattern', () => {
-  // Or the request would be read as a case named "models". Both rules happen
+test('the list of models sits above the item detail pattern', () => {
+  // Or the request would be read as a card named "models". Both rules happen
   // to ask for the same thing today, which is exactly why the order has to be
   // asserted rather than trusted.
-  assert.equal(routeRequirement('/api/cases/models', 'GET').check.kind, 'capability')
-  assert.equal(routeRequirement('/api/cases/models', 'DELETE').check.kind, 'deny')
+  assert.equal(routeRequirement('/api/items/models', 'GET').check.kind, 'capability')
+  assert.equal(allows('/api/items/models', 'GET', user('viewer')), true)
+  assert.equal(routeRequirement('/api/items/models', 'DELETE').check.kind, 'deny')
 })
 
-test('a photo of a case is guarded exactly like a photo of an item', () => {
-  // One handler serves both paths. A rule covering only one of them would
-  // leave the other unclassified, and the guard turns unclassified into a 403
-  // nobody can explain.
-  for (const kind of ['items', 'cases']) {
+test('a photograph is guarded like the card it hangs on', () => {
+  // These were two sets of paths while a case was a table of its own, and one
+  // handler served both. One card now, one set — and the loop stays because
+  // the list of what must be classified is the point.
+  for (const kind of ['items']) {
     assert.equal(allows(`/api/${kind}/4/photos`, 'GET', user('viewer')), true, kind)
     assert.equal(allows(`/api/${kind}/4/photos`, 'POST', user('viewer')), false, kind)
     assert.equal(allows(`/api/${kind}/4/photos`, 'POST', user('editor')), true, kind)
@@ -296,12 +294,12 @@ test('pointing a logo at a picture is a write, and so is taking it away', () => 
   assert.equal(routeRequirement('/api/brands/4/logo', 'GET').check.kind, 'deny')
 })
 
-test('where labels go is part of the case, and guarded like one', () => {
-  assert.equal(allows('/api/cases/4/label-slots', 'POST', user('viewer')), false)
-  assert.equal(allows('/api/cases/4/label-slots', 'POST', user('editor')), true)
-  assert.equal(allows('/api/cases/4/label-slots/9', 'DELETE', user('editor')), true)
-  // They come with the case, so there is nothing to read on its own.
-  assert.equal(routeRequirement('/api/cases/4/label-slots', 'GET').check.kind, 'deny')
+test('where labels go is part of the card, and guarded like one', () => {
+  assert.equal(allows('/api/items/4/label-slots', 'POST', user('viewer')), false)
+  assert.equal(allows('/api/items/4/label-slots', 'POST', user('editor')), true)
+  assert.equal(allows('/api/items/4/label-slots/9', 'DELETE', user('editor')), true)
+  // They come with the card, so there is nothing to read on its own.
+  assert.equal(routeRequirement('/api/items/4/label-slots', 'GET').check.kind, 'deny')
 })
 
 test('labels are read with the catalog and drawn with a write', () => {

@@ -58,8 +58,10 @@ function photoRow(overrides: Record<string, unknown> = {}) {
   }
 }
 
-const TOOL = { id: 9, kind: 'item' } as const
-const CASE = { id: 4, kind: 'case' } as const
+const TOOL = { id: 9 } as const
+// The card a box became. Nothing here tells the two apart any more, which is
+// what several of these tests are about.
+const BOX = { id: 4 } as const
 
 test('a card reads its photos through the link table', async () => {
   const { calls, pool } = fakePool([[photoRow({ is_primary: true })]])
@@ -77,12 +79,11 @@ test('a card reads its photos through the link table', async () => {
 })
 
 test('both kinds read the same link table, chosen by the map and not by the caller', async () => {
-  // There were two tables while a case was one. The map survived the fold, and
-  // the reason is unchanged: a kind that is not a key of it cannot reach a
-  // query, whatever arrives in the path.
+  // There were two tables while a case was one, and the kind in the path chose
+  // between them. One table, one column, and a card is an id.
   const { calls, pool } = fakePool([[], []])
 
-  await listPhotos(CASE, pool)
+  await listPhotos(BOX, pool)
   await listPhotos(TOOL, pool)
 
   for (const call of calls) {
@@ -137,7 +138,7 @@ test('attaching a picture the card already shows is refused, not duplicated', as
 test('attaching is one insert — nothing is moved and nothing is copied', async () => {
   const { calls, pool } = fakePool([[photoRow()], [{}], [photoRow()]])
 
-  const result = await attachPhotosTo(CASE, [5], 1, pool)
+  const result = await attachPhotosTo(BOX, [5], 1, pool)
 
   assert.equal(result.attached.length, 1)
   assert.match(calls[1].text, /INSERT INTO "catalog"\."photo_item"/)
@@ -188,7 +189,7 @@ test('a case asks exactly the same question, off the same table', () => {
   // asking — which is what this asserts by asking it the other way round.
   const { calls, pool } = fakePool([[]])
 
-  return exclusivePhotoIds(CASE, pool).then(() => {
+  return exclusivePhotoIds(BOX, pool).then(() => {
     assert.match(calls[0].text, /FROM "catalog"\."photo_item" AS "l"/)
     assert.match(calls[0].text, /"same"\."item_id" <> \$1/)
     assert.doesNotMatch(calls[0].text, /"cross"/)
@@ -216,7 +217,7 @@ test('a picture another card still shows survives being taken off this one', asy
     [], // the conditional delete matched nothing: another link remains
   ])
 
-  assert.equal(await unlinkPhoto(CASE, 5, pool), true)
+  assert.equal(await unlinkPhoto(BOX, 5, pool), true)
   // No file is unlinked, because the picture is still a row.
   assert.equal(calls.filter((call) => /DELETE FROM "catalog"\."photo" /.test(call.text)).length, 1)
 })
@@ -241,8 +242,9 @@ test('deleting nothing touches no database', async () => {
 test('a bulk delete reports every card that now shows a different main photo', async () => {
   const { pool } = fakePool([
     [], // BEGIN
-    [{ owner_id: '9' }], // items losing their primary
-    [], // cases losing theirs
+    // One query, not two. It asked the item table and then the case table
+    // while those were two tables.
+    [{ owner_id: '9' }], // the cards losing their primary
     [{ storage_key: 'ab/one.png' }], // the pictures, deleted
     [{}], // the promotion on item 9
     [], // nothing else points at the file
@@ -251,7 +253,7 @@ test('a bulk delete reports every card that now shows a different main photo', a
   const result = await deletePhotosByIds([5], pool)
 
   assert.equal(result.deleted, 1)
-  assert.deepEqual(result.promoted, [{ id: 9, kind: 'item' }])
+  assert.deepEqual(result.promoted, [{ id: 9 }])
 })
 
 test('the library lists a picture once, with every card that shows it', async () => {
@@ -339,7 +341,7 @@ test('copying a card onto another keeps which picture is the main one', async ()
   // one. A link each, no second file.
   const { calls, pool } = fakePool([[{}, {}]])
 
-  const copied = await copyPhotoLinks(TOOL, { id: 12, kind: 'item' }, 1, pool)
+  const copied = await copyPhotoLinks(TOOL, { id: 12 }, 1, pool)
 
   assert.equal(copied, 2)
   assert.match(calls[0].text, /INSERT INTO "catalog"\."photo_item"/)
@@ -352,6 +354,6 @@ test('copying onto a card that already shows some of them adds only the rest', a
   // and does not duplicate a pairing.
   const { calls, pool } = fakePool([[]])
 
-  assert.equal(await copyPhotoLinks(CASE, { id: 7, kind: 'case' }, 1, pool), 0)
+  assert.equal(await copyPhotoLinks(BOX, { id: 7 }, 1, pool), 0)
   assert.match(calls[0].text, /ON CONFLICT DO NOTHING/)
 })

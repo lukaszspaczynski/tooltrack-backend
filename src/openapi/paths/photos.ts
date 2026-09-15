@@ -82,8 +82,13 @@ const LINKS_SCHEMA: Schema = {
     'Either one `url`, or `items` picked from the suggestions. A link sent as `items` is recorded as having come from a search and one sent as `url` as a paste, because the card says which.',
 }
 
+// There were two of these — /api/items/… and /api/cases/… — while a case was a
+// table of its own and one handler served both sets. One card, one family; it
+// stays a shape rather than being inlined because the generator below writes
+// eleven operations from it, and flattening those would be flattening the
+// paths back into eleven copies of the same prose.
 type Family = {
-  // 'items' or 'cases', as the path spells it.
+  // The path segment these hang under.
   owner: string
   // What one of them is, for a path parameter description.
   card: string
@@ -92,8 +97,7 @@ type Family = {
 }
 
 const FAMILIES: Family[] = [
-  { card: 'The item card.', owner: 'items', suffix: 'Item' },
-  { card: 'The case.', owner: 'cases', suffix: 'Case' },
+  { card: 'The card the photograph hangs on.', owner: 'items', suffix: 'Item' },
 ]
 
 function operationsFor({ card, owner, suffix }: Family): OperationSpec[] {

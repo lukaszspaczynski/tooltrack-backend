@@ -41,6 +41,7 @@ export function parseStanleyProduct(html: string, pageUrl: string): null | Impor
 
   return {
     attributes: mergeDuplicates(attributes),
+    kind: 'tool',
     brand: BRAND,
     category: categoryOf(html),
     manuals: [],

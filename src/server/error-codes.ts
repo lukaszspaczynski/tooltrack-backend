@@ -60,6 +60,7 @@ export const ERROR_CODES = {
   LABEL_SLOT_TAKEN: 'This case already has a slot that size.',
   ORGANIZER_NUMBER_TAKEN: 'Another organizer already has that number.',
   ITEM_IS_NOT_A_TOOL: 'Only tools go in an organizer. This card is an appliance or a case.',
+  ITEM_IS_NOT_A_CASE: 'Only a case has places for labels. This card is a tool or an appliance.',
   ITEM_IN_ORGANIZER:
     'This card is in an organizer, so it cannot stop being a tool until it is taken out.',
   ITEM_ALREADY_IN_ORGANIZER: 'That item is in another organizer already.',

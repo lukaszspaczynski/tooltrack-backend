@@ -14,7 +14,8 @@ import { db, withTransaction, type PgPool } from '../db'
 import type { ErrorCode } from '../error-codes'
 import { deletePhotoFile, type StoredPhoto } from '../photo-storage'
 import type { ImageMetadata } from '../image-metadata'
-import { linkTable, ownerColumn, type PhotoOwner, type PhotoOwnerKind } from './photo-owner'
+import { LINK_TABLE, OWNER_COLUMN, type PhotoOwner } from './photo-owner'
+import type { ItemKind } from './items-input'
 import { t } from '../i18n'
 
 export const PHOTO_SOURCES = ['upload', 'url', 'search', 'edit'] as const
@@ -98,9 +99,9 @@ export async function listPhotos(owner: PhotoOwner, pool: PgPool = db()): Promis
   const result = await pool.query<PhotoRow>(
     `
       SELECT ${PREFIXED_COLUMNS}, "l"."is_primary"
-      FROM "catalog"."${linkTable(owner.kind)}" AS "l"
+      FROM "catalog"."${LINK_TABLE}" AS "l"
       JOIN "catalog"."photo" AS "p" ON "p"."id" = "l"."photo_id"
-      WHERE "l"."${ownerColumn(owner.kind)}" = $1
+      WHERE "l"."${OWNER_COLUMN}" = $1
       -- The main photo first, then oldest attachment to newest: the order the
       -- gallery shows, decided once here rather than in every client.
       ORDER BY "l"."is_primary" DESC, "l"."created_at" ASC, "p"."id" ASC
@@ -111,21 +112,19 @@ export async function listPhotos(owner: PhotoOwner, pool: PgPool = db()): Promis
   return result.rows.map(toCardPhoto)
 }
 
-// One query for a whole page of items or cases, so a grid can show thumbnails
-// without asking per card.
+// One query for a whole page of cards, so a grid can show thumbnails without
+// asking per card.
 export async function primaryPhotoIds(
-  kind: PhotoOwnerKind,
   ownerIds: number[],
   pool: PgPool = db(),
 ): Promise<Map<number, number>> {
   if (ownerIds.length === 0) return new Map()
 
-  const column = ownerColumn(kind)
   const result = await pool.query<{ owner_id: number | string; photo_id: number | string }>(
     `
-      SELECT "${column}" AS "owner_id", "photo_id"
-      FROM "catalog"."${linkTable(kind)}"
-      WHERE "${column}" = ANY($1::bigint[]) AND "is_primary"
+      SELECT "${OWNER_COLUMN}" AS "owner_id", "photo_id"
+      FROM "catalog"."${LINK_TABLE}"
+      WHERE "${OWNER_COLUMN}" = ANY($1::bigint[]) AND "is_primary"
     `,
     [ownerIds],
   )
@@ -173,9 +172,9 @@ export async function getCardPhoto(
   const result = await pool.query<PhotoRow>(
     `
       SELECT ${PREFIXED_COLUMNS}, "l"."is_primary"
-      FROM "catalog"."${linkTable(owner.kind)}" AS "l"
+      FROM "catalog"."${LINK_TABLE}" AS "l"
       JOIN "catalog"."photo" AS "p" ON "p"."id" = "l"."photo_id"
-      WHERE "l"."${ownerColumn(owner.kind)}" = $1 AND "p"."id" = $2
+      WHERE "l"."${OWNER_COLUMN}" = $1 AND "p"."id" = $2
     `,
     [owner.id, photoId],
   )
@@ -244,15 +243,15 @@ export async function linkPhoto(
   actorId: number,
   pool: PgPool = db(),
 ): Promise<CardPhoto> {
-  const column = ownerColumn(owner.kind)
-  const table = linkTable(owner.kind)
+  const column = OWNER_COLUMN
+  const table = LINK_TABLE
 
   const inserted = await pool.query(
     `
-      INSERT INTO "catalog"."${table}" ("${column}", "photo_id", "is_primary", "created_by")
+      INSERT INTO "catalog"."${LINK_TABLE}" ("${OWNER_COLUMN}", "photo_id", "is_primary", "created_by")
       VALUES (
         $1, $2,
-        NOT EXISTS (SELECT 1 FROM "catalog"."${table}" WHERE "${column}" = $1),
+        NOT EXISTS (SELECT 1 FROM "catalog"."${LINK_TABLE}" WHERE "${OWNER_COLUMN}" = $1),
         $3
       )
       ON CONFLICT DO NOTHING
@@ -273,27 +272,27 @@ export async function setPrimaryPhoto(
   photoId: number,
   pool: PgPool = db(),
 ): Promise<null | CardPhoto> {
-  const column = ownerColumn(owner.kind)
-  const table = linkTable(owner.kind)
+  const column = OWNER_COLUMN
+  const table = LINK_TABLE
 
   // A transaction because the partial unique index allows exactly one primary
   // link per card: the old one has to be cleared before the new one is set, and
   // a crash between the two would otherwise leave a card with no main photo.
   return withTransaction(pool, async (client) => {
     const exists = await client.query(
-      `SELECT 1 FROM "catalog"."${table}" WHERE "${column}" = $1 AND "photo_id" = $2`,
+      `SELECT 1 FROM "catalog"."${LINK_TABLE}" WHERE "${OWNER_COLUMN}" = $1 AND "photo_id" = $2`,
       [owner.id, photoId],
     )
     if ((exists.rowCount ?? 0) === 0) return null
 
     await client.query(
-      `UPDATE "catalog"."${table}" SET "is_primary" = false
-       WHERE "${column}" = $1 AND "is_primary" AND "photo_id" <> $2`,
+      `UPDATE "catalog"."${LINK_TABLE}" SET "is_primary" = false
+       WHERE "${OWNER_COLUMN}" = $1 AND "is_primary" AND "photo_id" <> $2`,
       [owner.id, photoId],
     )
     await client.query(
-      `UPDATE "catalog"."${table}" SET "is_primary" = true
-       WHERE "${column}" = $1 AND "photo_id" = $2`,
+      `UPDATE "catalog"."${LINK_TABLE}" SET "is_primary" = true
+       WHERE "${OWNER_COLUMN}" = $1 AND "photo_id" = $2`,
       [owner.id, photoId],
     )
 
@@ -309,12 +308,12 @@ export async function unlinkPhoto(
   photoId: number,
   pool: PgPool = db(),
 ): Promise<boolean> {
-  const column = ownerColumn(owner.kind)
-  const table = linkTable(owner.kind)
+  const column = OWNER_COLUMN
+  const table = LINK_TABLE
 
   const orphanedKey = await withTransaction(pool, async (client) => {
     const removed = await client.query<{ is_primary: boolean }>(
-      `DELETE FROM "catalog"."${table}" WHERE "${column}" = $1 AND "photo_id" = $2
+      `DELETE FROM "catalog"."${LINK_TABLE}" WHERE "${OWNER_COLUMN}" = $1 AND "photo_id" = $2
        RETURNING "is_primary"`,
       [owner.id, photoId],
     )
@@ -324,10 +323,10 @@ export async function unlinkPhoto(
     // remaining attachment takes over.
     if (removed.rows[0].is_primary) {
       await client.query(
-        `UPDATE "catalog"."${table}" SET "is_primary" = true
-         WHERE ("${column}", "photo_id") = (
-           SELECT "${column}", "photo_id" FROM "catalog"."${table}"
-           WHERE "${column}" = $1 ORDER BY "created_at" ASC, "photo_id" ASC LIMIT 1
+        `UPDATE "catalog"."${LINK_TABLE}" SET "is_primary" = true
+         WHERE ("${OWNER_COLUMN}", "photo_id") = (
+           SELECT "${OWNER_COLUMN}", "photo_id" FROM "catalog"."${LINK_TABLE}"
+           WHERE "${OWNER_COLUMN}" = $1 ORDER BY "created_at" ASC, "photo_id" ASC LIMIT 1
          )`,
         [owner.id],
       )
@@ -354,7 +353,11 @@ export type PhotoOwnerRef = {
   // Whether this picture is the one heading that card. A property of the
   // pairing, so it belongs here rather than on the picture.
   isPrimary: boolean
-  kind: PhotoOwnerKind
+  // Which sort of card it is. It used to say which table the row came from and
+  // says what the card is now — the library shows a box and a drill in one
+  // grid, and "on which of these does this picture hang" is the question that
+  // screen exists to answer.
+  kind: ItemKind
   name: string
 }
 
@@ -399,7 +402,7 @@ export async function listAllPhotos(
     `
       WITH "owners" AS (
         SELECT "l"."photo_id",
-               jsonb_agg(jsonb_build_object('kind', 'item', 'id', "t"."id", 'name', "t"."name",
+               jsonb_agg(jsonb_build_object('kind', "t"."kind", 'id', "t"."id", 'name', "t"."name",
                                             'isPrimary', "l"."is_primary")
                          ORDER BY "t"."name") AS "refs",
                string_agg(
@@ -409,26 +412,6 @@ export async function listAllPhotos(
         JOIN "catalog"."item" AS "t" ON "t"."id" = "l"."item_id"
         LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "t"."brand_id"
         GROUP BY "l"."photo_id"
-        UNION ALL
-        SELECT "l"."photo_id",
-               jsonb_agg(jsonb_build_object('kind', 'case', 'id', "c"."id", 'name', "c"."name",
-                                            'isPrimary', "l"."is_primary")
-                         ORDER BY "c"."name"),
-               string_agg(
-                 "c"."name" || ' ' ||
-                 coalesce((SELECT "name" FROM "catalog"."brand" WHERE "id" = "c"."brand_id"), ''),
-                 ' '
-               )
-        FROM "catalog"."photo_item" AS "l"
-        JOIN "catalog"."item" AS "c" ON "c"."id" = "l"."item_id" AND "c"."kind" = 'case'
-        GROUP BY "l"."photo_id"
-      ),
-      "rolled" AS (
-        SELECT "photo_id",
-               jsonb_agg("ref") AS "refs",
-               string_agg("text", ' ') AS "text"
-        FROM "owners", LATERAL jsonb_array_elements("refs") AS "ref"
-        GROUP BY "photo_id"
       )
       SELECT ${PREFIXED_COLUMNS},
              COALESCE("r"."refs", '[]'::jsonb) AS "owners",
@@ -438,7 +421,7 @@ export async function listAllPhotos(
               WHERE "pb"."photo_id" = "p"."id") AS "logo_for_brand",
              count(*) OVER () AS "total_count"
       FROM "catalog"."photo" AS "p"
-      LEFT JOIN "rolled" AS "r" ON "r"."photo_id" = "p"."id"
+      LEFT JOIN "owners" AS "r" ON "r"."photo_id" = "p"."id"
       WHERE ($1::text IS NULL OR "r"."text" ILIKE $1)
         AND ($2::text IS NULL OR "p"."source" = $2)
         AND ($3::boolean IS NULL OR ("r"."photo_id" IS NOT NULL) = $3)
@@ -526,15 +509,12 @@ export async function deletePhotosByIds(
 
   const { promoted, removed, storageKeys } = await withTransaction(pool, async (client) => {
     // Which cards are about to lose their main photo, read before the rows go.
-    const orphaned: PhotoOwner[] = []
-    for (const kind of ['item', 'case'] as const) {
-      const found = await client.query<{ owner_id: string }>(
-        `SELECT "${ownerColumn(kind)}" AS "owner_id" FROM "catalog"."${linkTable(kind)}"
-         WHERE "photo_id" = ANY($1::bigint[]) AND "is_primary"`,
-        [ids],
-      )
-      for (const row of found.rows) orphaned.push({ id: Number(row.owner_id), kind })
-    }
+    const found = await client.query<{ owner_id: string }>(
+      `SELECT "${OWNER_COLUMN}" AS "owner_id" FROM "catalog"."${LINK_TABLE}"
+       WHERE "photo_id" = ANY($1::bigint[]) AND "is_primary"`,
+      [ids],
+    )
+    const orphaned: PhotoOwner[] = found.rows.map((row) => ({ id: Number(row.owner_id) }))
 
     const deleted = await client.query<{ storage_key: string }>(
       `DELETE FROM "catalog"."photo" WHERE "id" = ANY($1::bigint[]) RETURNING "storage_key"`,
@@ -545,13 +525,11 @@ export async function deletePhotosByIds(
     // oldest remaining attachment — the same promotion a single delete does.
     const promotedOwners: PhotoOwner[] = []
     for (const owner of orphaned) {
-      const column = ownerColumn(owner.kind)
-      const table = linkTable(owner.kind)
       const result = await client.query(
-        `UPDATE "catalog"."${table}" SET "is_primary" = true
-         WHERE ("${column}", "photo_id") = (
-           SELECT "${column}", "photo_id" FROM "catalog"."${table}"
-           WHERE "${column}" = $1 ORDER BY "created_at" ASC, "photo_id" ASC LIMIT 1
+        `UPDATE "catalog"."${LINK_TABLE}" SET "is_primary" = true
+         WHERE ("${OWNER_COLUMN}", "photo_id") = (
+           SELECT "${OWNER_COLUMN}", "photo_id" FROM "catalog"."${LINK_TABLE}"
+           WHERE "${OWNER_COLUMN}" = $1 ORDER BY "created_at" ASC, "photo_id" ASC LIMIT 1
          )`,
         [owner.id],
       )
@@ -635,12 +613,12 @@ export async function exclusivePhotoIds(owner: PhotoOwner, pool: PgPool = db()):
   const result = await pool.query<{ photo_id: number | string }>(
     `
       SELECT "l"."photo_id"
-      FROM "catalog"."${linkTable(owner.kind)}" AS "l"
-      WHERE "l"."${ownerColumn(owner.kind)}" = $1
+      FROM "catalog"."${LINK_TABLE}" AS "l"
+      WHERE "l"."${OWNER_COLUMN}" = $1
         AND NOT EXISTS (
-          SELECT 1 FROM "catalog"."${linkTable(owner.kind)}" AS "same"
+          SELECT 1 FROM "catalog"."${LINK_TABLE}" AS "same"
           WHERE "same"."photo_id" = "l"."photo_id"
-            AND "same"."${ownerColumn(owner.kind)}" <> $1
+            AND "same"."${OWNER_COLUMN}" <> $1
         )
         AND NOT EXISTS (
           SELECT 1 FROM "catalog"."photo_brand" AS "logo"
@@ -674,13 +652,12 @@ export async function copyPhotoLinks(
   actorId: number,
   pool: PgPool = db(),
 ): Promise<number> {
-  const column = ownerColumn(from.kind)
   const result = await pool.query(
     `
-      INSERT INTO "catalog"."${linkTable(to.kind)}" ("${ownerColumn(to.kind)}", "photo_id", "is_primary", "created_by")
+      INSERT INTO "catalog"."${LINK_TABLE}" ("${OWNER_COLUMN}", "photo_id", "is_primary", "created_by")
       SELECT $2, "photo_id", "is_primary", $3
-      FROM "catalog"."${linkTable(from.kind)}"
-      WHERE "${column}" = $1
+      FROM "catalog"."${LINK_TABLE}"
+      WHERE "${OWNER_COLUMN}" = $1
       ON CONFLICT DO NOTHING
     `,
     [from.id, to.id, actorId],
@@ -693,7 +670,7 @@ export async function copyPhotoLinks(
 // orphans can be found after its links have cascaded away.
 export async function photoIdsOf(owner: PhotoOwner, pool: PgPool = db()): Promise<number[]> {
   const result = await pool.query<{ photo_id: string }>(
-    `SELECT "photo_id" FROM "catalog"."${linkTable(owner.kind)}" WHERE "${ownerColumn(owner.kind)}" = $1`,
+    `SELECT "photo_id" FROM "catalog"."${LINK_TABLE}" WHERE "${OWNER_COLUMN}" = $1`,
     [owner.id],
   )
 

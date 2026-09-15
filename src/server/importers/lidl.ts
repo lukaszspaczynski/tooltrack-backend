@@ -30,6 +30,7 @@ export function parseLidlProduct(html: string, pageUrl: string): null | Imported
 
   return {
     attributes: attributesOf(html, product),
+    kind: 'tool',
     // "PARKSIDE®" is the shop being careful about a trademark; the catalog
     // calls it PARKSIDE, and a brand nobody else spells that way would sit
     // beside the right one for ever.

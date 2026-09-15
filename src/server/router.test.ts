@@ -70,19 +70,13 @@ test('the allow header of a 405 lists what the path does implement', () => {
   assert.deepEqual(match?.allow, ['GET', 'POST'])
 })
 
-test('a photo route carries which kind of card it is', () => {
-  // `/api/items/…/photos` and `/api/cases/…/photos` reach one module, and which
-  // of the two arrives as a parameter the path pattern cannot capture, because
-  // the segment is a literal. Twenty-two routes read it, and rewriting the
-  // matcher lost it once — with nothing to catch that, because the store tests
-  // take a fake pool and never route.
-  assert.deepEqual(matchRoute('/api/items/7/photos', 'GET')?.params, {
+test('a photo route carries the card and the photograph', () => {
+  // There were two sets of these while a case was a table of its own, and
+  // which set a request came from arrived as a parameter the pattern could not
+  // capture. One card now: what the path says is what the path captures.
+  assert.deepEqual(matchRoute('/api/items/7/photos', 'GET')?.params, { id: '7' })
+  assert.deepEqual(matchRoute('/api/items/7/photos/3/file', 'GET')?.params, {
     id: '7',
-    owner: 'items',
-  })
-  assert.deepEqual(matchRoute('/api/cases/7/photos/3/file', 'GET')?.params, {
-    id: '7',
-    owner: 'cases',
     photoId: '3',
   })
 })

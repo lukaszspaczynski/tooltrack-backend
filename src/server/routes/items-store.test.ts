@@ -109,7 +109,7 @@ test('a filter that was not asked for is passed as null, not as SQL', async () =
 
   // The organizer filter is null too: "do not filter" is not the same as
   // "items that are in no organizer".
-  assert.deepEqual(calls[0].params, [null, 'Piły', 'retired', 10, 20, null, null, null, null])
+  assert.deepEqual(calls[0].params, [null, 'Piły', 'retired', 10, 20, null, null, null, null, null])
 })
 
 test('the sort key is chosen from a fixed map, never interpolated', async () => {

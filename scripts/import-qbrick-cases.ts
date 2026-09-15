@@ -19,10 +19,10 @@ import 'dotenv/config'
 
 import pg from 'pg'
 
-import { parseCaseCreate } from '../src/server/routes/cases-input'
+import { parseItemCreate } from '../src/server/routes/items-input'
 import { addAttribute, listAttributes } from '../src/server/routes/attributes-store'
 import { brandIdForImportedName } from '../src/server/routes/brands-store'
-import { createCase, updateCase } from '../src/server/routes/cases-store'
+import { createItem, updateItem } from '../src/server/routes/items-store'
 import type { PgPool } from '../src/server/db'
 
 type ManifestCase = {
@@ -102,19 +102,22 @@ async function main(): Promise<void> {
       }
 
       // Through the same parser the API uses, so an import cannot write a case
-      // that a PATCH would then refuse to edit.
+      // that a PATCH would then refuse to edit. A box is a card of kind
+      // 'case' — the table it had of its own is gone, and with it the second
+      // parser that described the same six fields.
       // `sourceUrl` is what the manifest calls it and `referenceUrl` is what a
       // case calls it. One name for the page a row was read from would be
       // nicer, but the manifest is frozen data and renaming a key in it is a
       // rewrite of the file rather than of the code.
-      const parsed = parseCaseCreate({
+      const parsed = parseItemCreate({
         ...entry,
         brandId: await brandIdForImportedName(entry.manufacturer, actorId, pool),
+        kind: 'case',
         referenceUrl: entry.sourceUrl ?? '',
       })
       if (!parsed.ok) throw new Error(`${entry.name}: ${parsed.error}`)
 
-      const created = await createCase(parsed.value, actorId, pool)
+      const created = await createItem(parsed.value, actorId, pool)
       written += await topUpAttributes(pool, created.id, entry, actorId, apply)
       existing.set(key, created.id)
       inserted += 1
@@ -144,7 +147,7 @@ function validate(manifest: Manifest): string[] {
 
     // The parser is the rule, here as in the API: bounds, types and the two
     // required fields are its business, not a second list kept in this file.
-    const parsed = parseCaseCreate(entry)
+    const parsed = parseItemCreate({ ...entry, kind: 'case' })
     if (!parsed.ok) problems.push(`${where}: ${parsed.error}`)
 
     // Internal dimensions that exceed the external ones mean a decimal point
@@ -308,7 +311,7 @@ async function refreshNotes(
     return 1
   }
 
-  await updateCase(caseId, { notes: wanted }, actorId, pool)
+  await updateItem(caseId, { notes: wanted }, actorId, pool)
   console.log(`[qbrick] ${entry.name}: poprawiono opis`)
 
   return 1
@@ -344,7 +347,7 @@ async function refreshReference(
     return 1
   }
 
-  await updateCase(caseId, { referenceUrl: wanted }, actorId, pool)
+  await updateItem(caseId, { referenceUrl: wanted }, actorId, pool)
   console.log(`[qbrick] ${entry.name}: zapisano adres`)
 
   return 1

@@ -1,3 +1,5 @@
+import type { ItemKind } from '../routes/items-input'
+
 // What an importer hands back: one product page, read into the shape of an item
 // card. Pure data — nothing here has fetched anything or written a row.
 //
@@ -17,15 +19,20 @@ export type ImportedManual = {
 }
 
 export type ImportedProduct = {
+  attributes: ImportedAttribute[]
   brand: string
   category: string
-  model: string
-  name: string
-  notes: string
-  attributes: ImportedAttribute[]
+  // What sort of card this page describes. A shop that sells drills answers
+  // 'tool'; the maker of the boxes answers 'case'. It is the importer's to
+  // decide because the page is what says which — nothing at the route can tell
+  // a toolbox from a drill by its address.
+  kind: ItemKind
   // The PDFs the page publishes for this product, in the order it lists them.
   // Empty when the page publishes none, which is most shops.
   manuals: ImportedManual[]
+  model: string
+  name: string
+  notes: string
   // Full-size, in the order the page lists them. The first is the shop's own
   // main picture, which is why order is kept: it becomes the card's.
   photoUrls: string[]
@@ -59,30 +66,3 @@ export type Importer = {
 //
 // Null is "not stated on the page", which is not zero: a case nobody has
 // measured is normal, and a case with no height does not exist.
-export type ImportedCase = {
-  // Everything the page states about the box, as a spec sheet.
-  //
-  // The measurements were typed fields here until a box stopped being eleven
-  // columns. They are still **parsed as numbers** on the way through — that is
-  // what lets fitCaseToCard throw out a diagonal nobody could have measured —
-  // and only then written as "450 mm", with the unit in the value the way
-  // every other parameter carries one.
-  attributes: ImportedAttribute[]
-  manufacturer: string
-  name: string
-  notes: string
-  // Full-size, in the order the page lists them. The first becomes the case's
-  // own picture, which is why the order is kept.
-  photoUrls: string[]
-  sourceUrl: string
-  model: string
-}
-
-export type CaseImporter = {
-  // Every host this script can read, including the www. form.
-  hosts: readonly string[]
-  label: string
-  // Pure, like an item importer: the page as text, the address it came from,
-  // and a case or nothing. Nothing means "this is not a product page".
-  parse: (html: string, pageUrl: string) => null | ImportedCase
-}

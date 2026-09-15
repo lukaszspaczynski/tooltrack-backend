@@ -9,6 +9,7 @@
 
 import type { RouteContext } from '../route-context'
 import { errorResponse } from '../error-codes'
+import { t } from '../i18n'
 import {
   addAttribute,
   AttributeNameTakenError,
@@ -33,7 +34,9 @@ import {
   parseItemCreate,
   parseItemPatch,
   parseItemQuery,
+  parseLabelSlot,
 } from './items-input'
+import { addLabelSlot, LabelSlotTakenError, removeLabelSlot } from './label-slots-store'
 import {
   createItem,
   deleteItem,
@@ -42,6 +45,7 @@ import {
   getItemDetail,
   listCategories,
   listItems,
+  listModels,
   AddressNotFoundError,
   BrandNotFoundError,
   InOrganizerError,
@@ -60,7 +64,7 @@ export async function GET(request: Request): Promise<Response> {
   // thumbnails, and asking per card would be twenty-four requests for one
   // screen.
   const ids = page.items.map((item) => item.id)
-  const primary = await primaryPhotoIds('item', ids)
+  const primary = await primaryPhotoIds(ids)
   // Where each one lies. Two queries for a whole page rather than two per card.
   const placements = await placementsFor(ids)
 
@@ -86,9 +90,9 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   try {
     const item = await createItem(parsed.value, actorId(context))
 
-    // A new card has no parameters yet; saying so is better than leaving the
-    // client to guess whether the field is missing or empty.
-    return Response.json({ item: { ...item, attributes: [] } }, { status: 201 })
+    // A new card has no parameters and no label slots yet; saying so is better
+    // than leaving the client to guess whether the field is missing or empty.
+    return Response.json({ item: { ...item, attributes: [], labelSlots: [] } }, { status: 201 })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -202,7 +206,7 @@ export async function detailPATCH(request: Request, context: RouteContext): Prom
     const item = await updateItem(id, parsed.value, actorId(context))
     if (!item) return notFound()
 
-    return Response.json({ item: { ...item, attributes: await listAttributes('item', id) } })
+    return Response.json({ item: await getItemDetail(id) })
   } catch (error) {
     if (error instanceof SerialNumberTakenError) {
       return errorResponse(409, error.code, error.message)
@@ -234,7 +238,7 @@ export async function duplicatePOST(_request: Request, context: RouteContext): P
   const copy = await duplicateItem(id, actor)
   if (!copy) return notFound()
 
-  await copyPhotoLinks({ id, kind: 'item' }, { id: copy.id, kind: 'item' }, actor)
+  await copyPhotoLinks({ id }, { id: copy.id }, actor)
   // The manuals come along as links to the same files. Two of the same model
   // read the same manual, and a link costs a row rather than a second 7 MB PDF.
   await copyManualLinks(id, copy.id, actor)
@@ -248,7 +252,7 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
 
   // Read before the delete: once the item is gone its links have cascaded away
   // and there is nothing left to say which pictures were its.
-  const photoIds = await photoIdsOf({ id, kind: 'item' })
+  const photoIds = await photoIdsOf({ id })
   const manualIds = await manualIdsOf(id)
 
   const deleted = await deleteItem(id)
@@ -268,6 +272,69 @@ export async function detailDELETE(_request: Request, context: RouteContext): Pr
   await deleteAttributesOf('item', id)
 
   return Response.json({ ok: true })
+}
+
+// GET /api/items/models — the models in use, narrowed by kind.
+//
+// The same shape as the category list and read the same way, from the cards
+// themselves. `?kind=case` is what the boxes screen asks: a workshop owns nine
+// of the same Qbrick and one of everything else, so the model is the filter
+// that means something there.
+export async function modelsGET(request: Request): Promise<Response> {
+  const kind = parseItemQuery(new URL(request.url).searchParams)
+
+  return Response.json(
+    { models: await listModels(kind.ok ? kind.value.kind : null) },
+    { headers: { 'cache-control': 'no-store' } },
+  )
+}
+
+// POST /api/items/:id/label-slots — one more place a label goes on a box.
+//
+// Only a case has any, and nothing here says so: `case_label_slot` points at
+// `(id, kind)` with its own kind fixed to 'case', so a drill is refused by the
+// database rather than by a check somebody could forget to write.
+export async function labelSlotPOST(request: Request, context: RouteContext): Promise<Response> {
+  const id = parseId(context.params.id)
+  if (id === null) return notFound()
+
+  const parsed = parseLabelSlot(await readJson(request))
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
+
+  // Checked before the insert so a card that is not there is a 404 about the
+  // card, and one that is not a case is a 409 naming that rather than a
+  // foreign key violation about a column nobody asked about.
+  const card = await getItem(id)
+  if (!card) return notFound()
+  if (card.kind !== 'case') {
+    return errorResponse(409, 'ITEM_IS_NOT_A_CASE', t('To nie jest skrzynka'))
+  }
+
+  try {
+    await addLabelSlot(id, parsed.value.widthMm, parsed.value.heightMm, actorId(context))
+  } catch (error) {
+    if (error instanceof LabelSlotTakenError) {
+      return errorResponse(409, error.code, error.message)
+    }
+    throw error
+  }
+
+  // The whole card comes back: the screen shows the slots together and would
+  // otherwise have to merge one into a list it already holds.
+  return Response.json({ item: await getItemDetail(id) }, { status: 201 })
+}
+
+export async function labelSlotDELETE(_request: Request, context: RouteContext): Promise<Response> {
+  const id = parseId(context.params.id)
+  const slotId = parseId(context.params.slotId)
+  if (id === null || slotId === null) return notFound()
+
+  const removed = await removeLabelSlot(id, slotId)
+  if (!removed) {
+    return errorResponse(404, 'LABEL_SLOT_NOT_FOUND', t('Ta skrzynka nie ma takiego miejsca'))
+  }
+
+  return Response.json({ item: await getItemDetail(id) })
 }
 
 // The guard has already refused an anonymous caller on every write route, so

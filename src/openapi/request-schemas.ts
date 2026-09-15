@@ -25,11 +25,6 @@ import {
 import { ADDRESS_CREATE_SCHEMA, ADDRESS_PATCH_SCHEMA } from '../server/routes/addresses-input'
 import { BRAND_CREATE_SCHEMA, BRAND_PATCH_SCHEMA, LOGO_SCHEMA } from '../server/routes/brands-input'
 import {
-  CASE_CREATE_SCHEMA,
-  CASE_PATCH_SCHEMA,
-  LABEL_SLOT_SCHEMA,
-} from '../server/routes/cases-input'
-import {
   MANUAL_TITLE_SCHEMA,
   MANUAL_URL_SCHEMA,
   MANUAL_IDS_SCHEMA,
@@ -56,6 +51,7 @@ import {
   IMPORT_SCHEMA,
   ITEM_CREATE_SCHEMA,
   ITEM_PATCH_SCHEMA,
+  LABEL_SLOT_SCHEMA,
 } from '../server/routes/items-input'
 import { USER_PATCH_SCHEMA } from '../server/routes/users-input'
 
@@ -67,9 +63,6 @@ export const REQUEST_SCHEMAS: Record<string, ZodType> = {
   BrandCreateBody: BRAND_CREATE_SCHEMA,
   BrandLogoBody: LOGO_SCHEMA,
   BrandPatchBody: BRAND_PATCH_SCHEMA,
-  CaseCreateBody: CASE_CREATE_SCHEMA,
-  CaseLabelSlotBody: LABEL_SLOT_SCHEMA,
-  CasePatchBody: CASE_PATCH_SCHEMA,
   CutoutCommitBody: CUTOUT_COMMIT_SCHEMA,
   CutoutMethodBody: CUTOUT_METHOD_SCHEMA,
   CutoutRunBody: CUTOUT_RUN_SCHEMA,
@@ -94,5 +87,6 @@ export const REQUEST_SCHEMAS: Record<string, ZodType> = {
   ItemCreateBody: ITEM_CREATE_SCHEMA,
   ItemIdsBody: ITEM_IDS_SCHEMA,
   ItemPatchBody: ITEM_PATCH_SCHEMA,
+  LabelSlotBody: LABEL_SLOT_SCHEMA,
   UserPatchBody: USER_PATCH_SCHEMA,
 }

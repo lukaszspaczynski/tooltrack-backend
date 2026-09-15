@@ -107,7 +107,7 @@
         "additionalProperties": false,
         "properties": {
           "code": {
-            "description": "The stable name of the failure. Branch on this, not on `error`.\n\n- `INVALID_BODY` — The body did not parse, or a field is out of range.\n- `INVALID_QUERY` — A query parameter names something impossible.\n- `BODY_TOO_LARGE` — The request body is over the route’s ceiling.\n- `UNSUPPORTED_MEDIA_TYPE` — The bytes are not a format this route can read.\n- `METHOD_NOT_ALLOWED` — The path exists, but not with this method. See the Allow header.\n- `CLIENT_TOO_OLD` — This build of the client is older than the floor this server answers. `minimum` says which build to update to.\n- `UNAUTHENTICATED` — No session, or one that has expired.\n- `FORBIDDEN` — A session, but not the capability this route needs.\n- `ACCOUNT_DISABLED` — The account exists but has been switched off.\n- `INVALID_CREDENTIALS` — The e-mail and password do not match an account.\n- `TOO_MANY_ATTEMPTS` — Too many failed sign-ins from this address, or against this e-mail. See Retry-After.\n- `NOT_FOUND` — No such record, or none this account may see.\n- `ITEM_NOT_FOUND` — No such item card.\n- `CASE_NOT_FOUND` — No such case.\n- `ORGANIZER_NOT_FOUND` — No such organizer.\n- `BRAND_NOT_FOUND` — No such maker.\n- `USER_NOT_FOUND` — No such account.\n- `ADDRESS_NOT_FOUND` — No such address.\n- `SESSION_NOT_FOUND` — No such session, or none belonging to this account.\n- `PHOTO_NOT_FOUND` — No such photograph, or its file is gone.\n- `MANUAL_NOT_FOUND` — No such document, or its file is gone.\n- `LABEL_NOT_FOUND` — No such label, or its file is gone.\n- `SEARCH_ENGINE_NOT_FOUND` — No search engine or cutout method by that name.\n- `LABEL_SLOT_NOT_FOUND` — This case has no such label slot.\n- `ITEM_NOT_IN_ORGANIZER` — That item is not in this organizer.\n- `EMAIL_TAKEN` — An account with that e-mail already exists.\n- `ADDRESS_NAME_TAKEN` — Another place is already called that.\n- `SERIAL_NUMBER_TAKEN` — Another card already carries that serial number.\n- `ATTRIBUTE_NAME_TAKEN` — This card already has a parameter with that name.\n- `BRAND_NAME_TAKEN` — A maker with that name already exists.\n- `LOGO_TAKEN` — That picture is already another maker’s logo.\n- `LABEL_SLOT_TAKEN` — This case already has a slot that size.\n- `ORGANIZER_NUMBER_TAKEN` — Another organizer already has that number.\n- `ITEM_IS_NOT_A_TOOL` — Only tools go in an organizer. This card is an appliance or a case.\n- `ITEM_IN_ORGANIZER` — This card is in an organizer, so it cannot stop being a tool until it is taken out.\n- `ITEM_ALREADY_IN_ORGANIZER` — That item is in another organizer already.\n- `PHOTO_ALREADY_ON_CARD` — That photograph is already on this card.\n- `MANUAL_ALREADY_ON_CARD` — That document is already on this card.\n- `LAST_ACTIVE_ADMIN` — The change would leave the installation with no admin.\n- `SELF_ROLE_CHANGE` — An account cannot change or delete itself here.\n- `PAGE_UNREACHABLE` — The product page would not load.\n- `NOT_A_PRODUCT_PAGE` — There is no product card at that address.\n- `UNSUPPORTED_SOURCE` — No importer can read that host.\n- `NO_SOURCE_PAGE` — This card was not imported, so there is no page to read.\n- `SOURCE_HAS_NO_MANUALS` — That source publishes no documents.\n- `DOWNLOAD_FAILED` — Every address in the request failed to download.\n- `IMAGE_UNREADABLE` — The bytes are not an image this server can decode.\n- `NOT_A_PDF` — The bytes are not a PDF.\n- `CUTOUT_UNSUITABLE` — The picture is not one this method can cut out.\n- `CUTOUT_UNAVAILABLE` — No cutout method is configured and enabled.\n- `PREVIEW_EXPIRED` — The preview has been swept, or is damaged.\n- `LABEL_UNDRAWABLE` — The label cannot be drawn from what the catalog says now.\n- `SEARCH_UNAVAILABLE` — No search engine is configured and enabled.\n- `ATTACH_FAILED` — None of the selected records could be attached.\n- `DATABASE_UNAVAILABLE` — Postgres is unreachable. The request was fine; retry.\n- `INTERNAL` — Something went wrong that the caller cannot act on.",
+            "description": "The stable name of the failure. Branch on this, not on `error`.\n\n- `INVALID_BODY` — The body did not parse, or a field is out of range.\n- `INVALID_QUERY` — A query parameter names something impossible.\n- `BODY_TOO_LARGE` — The request body is over the route’s ceiling.\n- `UNSUPPORTED_MEDIA_TYPE` — The bytes are not a format this route can read.\n- `METHOD_NOT_ALLOWED` — The path exists, but not with this method. See the Allow header.\n- `CLIENT_TOO_OLD` — This build of the client is older than the floor this server answers. `minimum` says which build to update to.\n- `UNAUTHENTICATED` — No session, or one that has expired.\n- `FORBIDDEN` — A session, but not the capability this route needs.\n- `ACCOUNT_DISABLED` — The account exists but has been switched off.\n- `INVALID_CREDENTIALS` — The e-mail and password do not match an account.\n- `TOO_MANY_ATTEMPTS` — Too many failed sign-ins from this address, or against this e-mail. See Retry-After.\n- `NOT_FOUND` — No such record, or none this account may see.\n- `ITEM_NOT_FOUND` — No such item card.\n- `CASE_NOT_FOUND` — No such case.\n- `ORGANIZER_NOT_FOUND` — No such organizer.\n- `BRAND_NOT_FOUND` — No such maker.\n- `USER_NOT_FOUND` — No such account.\n- `ADDRESS_NOT_FOUND` — No such address.\n- `SESSION_NOT_FOUND` — No such session, or none belonging to this account.\n- `PHOTO_NOT_FOUND` — No such photograph, or its file is gone.\n- `MANUAL_NOT_FOUND` — No such document, or its file is gone.\n- `LABEL_NOT_FOUND` — No such label, or its file is gone.\n- `SEARCH_ENGINE_NOT_FOUND` — No search engine or cutout method by that name.\n- `LABEL_SLOT_NOT_FOUND` — This case has no such label slot.\n- `ITEM_NOT_IN_ORGANIZER` — That item is not in this organizer.\n- `EMAIL_TAKEN` — An account with that e-mail already exists.\n- `ADDRESS_NAME_TAKEN` — Another place is already called that.\n- `SERIAL_NUMBER_TAKEN` — Another card already carries that serial number.\n- `ATTRIBUTE_NAME_TAKEN` — This card already has a parameter with that name.\n- `BRAND_NAME_TAKEN` — A maker with that name already exists.\n- `LOGO_TAKEN` — That picture is already another maker’s logo.\n- `LABEL_SLOT_TAKEN` — This case already has a slot that size.\n- `ORGANIZER_NUMBER_TAKEN` — Another organizer already has that number.\n- `ITEM_IS_NOT_A_TOOL` — Only tools go in an organizer. This card is an appliance or a case.\n- `ITEM_IS_NOT_A_CASE` — Only a case has places for labels. This card is a tool or an appliance.\n- `ITEM_IN_ORGANIZER` — This card is in an organizer, so it cannot stop being a tool until it is taken out.\n- `ITEM_ALREADY_IN_ORGANIZER` — That item is in another organizer already.\n- `PHOTO_ALREADY_ON_CARD` — That photograph is already on this card.\n- `MANUAL_ALREADY_ON_CARD` — That document is already on this card.\n- `LAST_ACTIVE_ADMIN` — The change would leave the installation with no admin.\n- `SELF_ROLE_CHANGE` — An account cannot change or delete itself here.\n- `PAGE_UNREACHABLE` — The product page would not load.\n- `NOT_A_PRODUCT_PAGE` — There is no product card at that address.\n- `UNSUPPORTED_SOURCE` — No importer can read that host.\n- `NO_SOURCE_PAGE` — This card was not imported, so there is no page to read.\n- `SOURCE_HAS_NO_MANUALS` — That source publishes no documents.\n- `DOWNLOAD_FAILED` — Every address in the request failed to download.\n- `IMAGE_UNREADABLE` — The bytes are not an image this server can decode.\n- `NOT_A_PDF` — The bytes are not a PDF.\n- `CUTOUT_UNSUITABLE` — The picture is not one this method can cut out.\n- `CUTOUT_UNAVAILABLE` — No cutout method is configured and enabled.\n- `PREVIEW_EXPIRED` — The preview has been swept, or is damaged.\n- `LABEL_UNDRAWABLE` — The label cannot be drawn from what the catalog says now.\n- `SEARCH_UNAVAILABLE` — No search engine is configured and enabled.\n- `ATTACH_FAILED` — None of the selected records could be attached.\n- `DATABASE_UNAVAILABLE` — Postgres is unreachable. The request was fine; retry.\n- `INTERNAL` — Something went wrong that the caller cannot act on.",
             "enum": [
               "INVALID_BODY",
               "INVALID_QUERY",
@@ -143,6 +143,7 @@
               "LABEL_SLOT_TAKEN",
               "ORGANIZER_NUMBER_TAKEN",
               "ITEM_IS_NOT_A_TOOL",
+              "ITEM_IS_NOT_A_CASE",
               "ITEM_IN_ORGANIZER",
               "ITEM_ALREADY_IN_ORGANIZER",
               "PHOTO_ALREADY_ON_CARD",
@@ -330,6 +331,12 @@
               "$ref": "#/components/schemas/Attribute"
             }
           },
+          "labelSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LabelSlot"
+            }
+          },
           "brand": {
             "anyOf": [
               {
@@ -402,6 +409,7 @@
           "createdBy",
           "id",
           "kind",
+          "labelSlots",
           "model",
           "name",
           "notes",
@@ -428,6 +436,26 @@
           "id",
           "name",
           "value"
+        ],
+        "additionalProperties": false
+      },
+      "LabelSlot": {
+        "type": "object",
+        "properties": {
+          "heightMm": {
+            "type": "number"
+          },
+          "id": {
+            "type": "number"
+          },
+          "widthMm": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "heightMm",
+          "id",
+          "widthMm"
         ],
         "additionalProperties": false
       },
@@ -473,6 +501,12 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
+          "attributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Attribute"
+            }
+          },
           "organizer": {
             "anyOf": [
               {
@@ -642,6 +676,22 @@
         "required": [
           "category",
           "count"
+        ],
+        "additionalProperties": false
+      },
+      "ModelCount": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "model": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "model"
         ],
         "additionalProperties": false
       },
@@ -1061,7 +1111,7 @@
             "type": "boolean"
           },
           "kind": {
-            "$ref": "#/components/schemas/PhotoOwnerKind"
+            "$ref": "#/components/schemas/ItemKind"
           },
           "name": {
             "type": "string"
@@ -1074,13 +1124,6 @@
           "name"
         ],
         "additionalProperties": false
-      },
-      "PhotoOwnerKind": {
-        "type": "string",
-        "enum": [
-          "case",
-          "item"
-        ]
       },
       "LibraryPage": {
         "type": "object",
@@ -1114,14 +1157,10 @@
         "properties": {
           "id": {
             "type": "number"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/PhotoOwnerKind"
           }
         },
         "required": [
-          "id",
-          "kind"
+          "id"
         ],
         "additionalProperties": false
       },
@@ -1314,226 +1353,6 @@
           "limit",
           "offset",
           "total"
-        ],
-        "additionalProperties": false
-      },
-      "ToolCase": {
-        "type": "object",
-        "properties": {
-          "attributes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Attribute"
-            }
-          },
-          "brand": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ItemBrand"
-              }
-            ]
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "createdBy": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "id": {
-            "type": "number"
-          },
-          "labelSlots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LabelSlot"
-            }
-          },
-          "name": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "referenceUrl": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          },
-          "updatedBy": {
-            "type": [
-              "null",
-              "number"
-            ]
-          }
-        },
-        "required": [
-          "attributes",
-          "brand",
-          "createdAt",
-          "createdBy",
-          "id",
-          "labelSlots",
-          "name",
-          "notes",
-          "referenceUrl",
-          "model",
-          "updatedAt",
-          "updatedBy"
-        ],
-        "additionalProperties": false
-      },
-      "LabelSlot": {
-        "type": "object",
-        "properties": {
-          "heightMm": {
-            "type": "number"
-          },
-          "id": {
-            "type": "number"
-          },
-          "widthMm": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "heightMm",
-          "id",
-          "widthMm"
-        ],
-        "additionalProperties": false
-      },
-      "CaseListItem": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "primaryPhotoUrl": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "attributes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Attribute"
-            }
-          },
-          "brand": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/ItemBrand"
-              }
-            ]
-          },
-          "createdAt": {
-            "type": "string"
-          },
-          "createdBy": {
-            "type": [
-              "null",
-              "number"
-            ]
-          },
-          "id": {
-            "type": "number"
-          },
-          "labelSlots": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LabelSlot"
-            }
-          },
-          "name": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "referenceUrl": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string"
-          },
-          "updatedBy": {
-            "type": [
-              "null",
-              "number"
-            ]
-          }
-        },
-        "required": [
-          "attributes",
-          "brand",
-          "createdAt",
-          "createdBy",
-          "id",
-          "labelSlots",
-          "model",
-          "name",
-          "notes",
-          "primaryPhotoUrl",
-          "referenceUrl",
-          "updatedAt",
-          "updatedBy"
-        ]
-      },
-      "CaseListPage": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CaseListItem"
-            }
-          },
-          "limit": {
-            "type": "number"
-          },
-          "offset": {
-            "type": "number"
-          },
-          "total": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "items",
-          "limit",
-          "offset",
-          "total"
-        ]
-      },
-      "ModelCount": {
-        "type": "object",
-        "properties": {
-          "count": {
-            "type": "number"
-          },
-          "model": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "count",
-          "model"
         ],
         "additionalProperties": false
       },
@@ -2742,90 +2561,6 @@
           }
         }
       },
-      "CaseCreateBody": {
-        "type": "object",
-        "properties": {
-          "brandId": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "notes": {
-            "type": "string",
-            "maxLength": 4000
-          },
-          "referenceUrl": {
-            "type": "string",
-            "maxLength": 2000
-          },
-          "model": {
-            "type": "string",
-            "maxLength": 120
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "CaseLabelSlotBody": {
-        "type": "object",
-        "properties": {
-          "heightMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "widthMm": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "heightMm",
-          "widthMm"
-        ]
-      },
-      "CasePatchBody": {
-        "type": "object",
-        "properties": {
-          "brandId": {
-            "type": [
-              "number",
-              "string",
-              "null"
-            ]
-          },
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "notes": {
-            "type": "string",
-            "maxLength": 4000
-          },
-          "referenceUrl": {
-            "type": "string",
-            "maxLength": 2000
-          },
-          "model": {
-            "type": "string",
-            "maxLength": 120
-          }
-        }
-      },
       "CutoutCommitBody": {
         "type": "object",
         "properties": {
@@ -3381,6 +3116,27 @@
             "maxLength": 120
           }
         }
+      },
+      "LabelSlotBody": {
+        "type": "object",
+        "properties": {
+          "heightMm": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "widthMm": {
+            "type": [
+              "number",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "heightMm",
+          "widthMm"
+        ]
       },
       "UserPatchBody": {
         "type": "object",
@@ -5405,3072 +5161,6 @@
         ]
       }
     },
-    "/api/cases": {
-      "get": {
-        "description": "A page of cases for the shelf. Every item carries `primaryPhotoUrl` for the thumbnail, fetched for the whole page in one query rather than per row.\n\nA bad value in the query string is clamped or dropped rather than refused: a link somebody pasted with `?limit=banana` should still show the shelf.",
-        "operationId": "listCases",
-        "parameters": [
-          {
-            "description": "Free-text search over the case.",
-            "in": "query",
-            "name": "q",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Exact maker, as the cases spell it.",
-            "in": "query",
-            "name": "manufacturer",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Exact stacking model.",
-            "example": "L-BOXX",
-            "in": "query",
-            "name": "model",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "By name unless asked otherwise.",
-            "in": "query",
-            "name": "sort",
-            "schema": {
-              "default": "name",
-              "enum": [
-                "name",
-                "capacityL",
-                "createdAt",
-                "updatedAt"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Direction.",
-            "in": "query",
-            "name": "order",
-            "schema": {
-              "default": "desc",
-              "enum": [
-                "desc",
-                "asc"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "How many records to return. A value above the maximum is clamped rather than refused.",
-            "example": 50,
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "default": 50,
-              "maximum": 200,
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "How many records to skip, for paging.",
-            "example": 0,
-            "in": "query",
-            "name": "offset",
-            "schema": {
-              "default": 0,
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CaseListPage"
-                }
-              }
-            },
-            "description": "A page of cases."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.read"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.read"
-            ]
-          }
-        ],
-        "summary": "List cases",
-        "tags": [
-          "cases"
-        ]
-      },
-      "post": {
-        "description": "Two fields are required. A case with no name cannot be pointed at in a van, and without a maker the name alone — \"Toolbox 2.0\" — does not say what it is. Every measurement is optional and starts unmeasured.",
-        "operationId": "createCase",
-        "parameters": [
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CaseCreateBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The new case."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Create a case",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/{id}": {
-      "get": {
-        "description": "The case and its label slots. The list answers without the slots.",
-        "operationId": "getCase",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, with its label slots."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.read"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.read"
-            ]
-          }
-        ],
-        "summary": "One case",
-        "tags": [
-          "cases"
-        ]
-      },
-      "patch": {
-        "description": "Only the fields present in the body are touched. An explicit `null` clears a measurement, which is a real edit — a number copied off the wrong spec sheet has to be removable — while absent leaves it alone. A body with no editable field at all is a 400.",
-        "operationId": "updateCase",
-        "parameters": [
-          {
-            "description": "The case to edit.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CasePatchBody"
-              }
-            }
-          },
-          "description": "The fields to change, and only those. At least one.",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, with its label slots."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Edit a case",
-        "tags": [
-          "cases"
-        ]
-      },
-      "delete": {
-        "description": "The pictures no other card shows go with it. One that an item inside the case also uses stays, which is the whole point of storing them as links.",
-        "operationId": "deleteCase",
-        "parameters": [
-          {
-            "description": "The case to delete.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "ok": {
-                      "const": true,
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Deleted."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Delete a case",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/{id}/attributes": {
-      "post": {
-        "description": "One line off the spec sheet of a box, on exactly the terms an item's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking model, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
-        "operationId": "addCaseAttribute",
-        "parameters": [
-          {
-            "description": "The case to add the parameter to.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttributeCreateBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, with its label slots."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "This case already carries a parameter with that name."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Add a parameter to a case",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/{id}/attributes/{attributeId}": {
-      "patch": {
-        "description": "A typo in the name, or a value read off the box again. A parameter that is not this case's reads the same as one that never existed.",
-        "operationId": "updateCaseAttribute",
-        "parameters": [
-          {
-            "description": "The case the parameter is on.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The parameter, which must belong to this case.",
-            "in": "path",
-            "name": "attributeId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttributePatchBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, with its label slots."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "This case already carries a parameter with that name."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Edit a parameter on a case",
-        "tags": [
-          "cases"
-        ]
-      },
-      "delete": {
-        "description": "Answers with the case, so the screen holding the sheet can redraw it whole.",
-        "operationId": "deleteCaseAttribute",
-        "parameters": [
-          {
-            "description": "The case the parameter is on.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The parameter, which must belong to this case.",
-            "in": "path",
-            "name": "attributeId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, with its label slots."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Delete a parameter from a case",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/{id}/import": {
-      "post": {
-        "description": "Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the model, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.",
-        "operationId": "refreshCaseFromPage",
-        "parameters": [
-          {
-            "description": "The case to read the page into.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ImportUrlBody"
-              }
-            }
-          },
-          "description": "The address of the page to read.",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    },
-                    "imported": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "photos": {
-                          "description": "Photographs fetched and stored. Always 0 on a refresh, whose photographs are deliberately left alone.",
-                          "type": "integer"
-                        },
-                        "photosFailed": {
-                          "description": "Photographs that would not download or decode.",
-                          "type": "integer"
-                        },
-                        "sourceUrl": {
-                          "description": "The address the case was read from.",
-                          "format": "uri",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "photos",
-                        "photosFailed",
-                        "sourceUrl"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "case",
-                    "imported"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case as it now stands."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Read the page again into an existing case",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/{id}/label-slots": {
-      "post": {
-        "description": "One more place a label goes. A slot is a size and nothing else: width by height, in millimetres, and neither may be `null` — a slot with no width is not a slot.\n\nThe whole case comes back rather than the slot, because the screen shows the slots together and would otherwise have to merge one into a list it already holds.",
-        "operationId": "addCaseLabelSlot",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CaseLabelSlotBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, with its label slots."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "This case already has a slot that size."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Add a label slot to a case",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/{id}/label-slots/{slotId}": {
-      "delete": {
-        "description": "Answers with the case, so the screen holding the slots can redraw it whole.",
-        "operationId": "removeCaseLabelSlot",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The slot, which must be this case’s.",
-            "in": "path",
-            "name": "slotId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    }
-                  },
-                  "required": [
-                    "case"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, with its label slots."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Remove a label slot",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/{id}/photo-suggestions": {
-      "get": {
-        "description": "Links and thumbnails, nothing downloaded: the client shows them, somebody ticks the ones that are actually this machine, and `POST …/photos` with those addresses is what puts bytes on our disk. It needs `catalog.write` for that reason — it is the first half of an edit.\n\nWithout `q` the query is built from the card: an item by its maker and model, a case by who makes it and what it is called.\n\nEvery engine enabled for this account is asked in parallel and contributes its own share; one failing costs its results rather than the search, and `failed` says which. With no engine enabled at all the answer is 503 — the catalog is fine, this one integration is not.\n\n`?source=page` answers 422 here: a case is not imported from anywhere.",
-        "operationId": "suggestCasePhotos",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "What to search for. Defaults to a query built from the card.",
-            "in": "query",
-            "name": "q",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Set to `page` for the product page instead of the engines.",
-            "in": "query",
-            "name": "source",
-            "schema": {
-              "enum": [
-                "page"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhotoSearchResult"
-                }
-              }
-            },
-            "description": "What was found."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "providers": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "error",
-                    "providers"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "There is no product page to read: the card was not imported, or its address is from a source this server cannot read."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "providers": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "error",
-                    "providers"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "No search engine is configured and enabled for this account."
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Where a picture of this card could come from",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos": {
-      "get": {
-        "description": "`?exclusive=1` narrows it to the pictures this card is the only home of — what a delete confirmation needs, because \"and its photographs\" is not something anybody can weigh without a number, and that number is not the length of the gallery when another card shows half of it.",
-        "operationId": "listCasePhotos",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Set to `1` for only the pictures no other card shows.",
-            "example": "1",
-            "in": "query",
-            "name": "exclusive",
-            "schema": {
-              "enum": [
-                "1"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "photos": {
-                      "items": {
-                        "$ref": "#/components/schemas/CardPhoto"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "photos"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The gallery, main photograph first."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.read"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.read"
-            ]
-          }
-        ],
-        "summary": "List the photographs on a card",
-        "tags": [
-          "photos"
-        ]
-      },
-      "post": {
-        "description": "Two requests in one, told apart by the content-type.\n\nWith an `image/*` body the bytes are the file: they are converted to PNG and stored, and the answer is `{ photo }`.\n\nWith `application/json` the body carries addresses this server fetches on the caller’s behalf, and the answer is `{ photos, failed }` — one bad link out of ten must not lose the other nine, so each failure is reported next to the address that caused it. When every link fails the status is 422 and nothing was stored.",
-        "operationId": "addCasePhoto",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "image/png": {
-              "schema": {
-                "format": "binary",
-                "type": "string"
-              }
-            },
-            "image/jpeg": {
-              "schema": {
-                "format": "binary",
-                "type": "string"
-              }
-            },
-            "image/gif": {
-              "schema": {
-                "format": "binary",
-                "type": "string"
-              }
-            },
-            "image/webp": {
-              "schema": {
-                "format": "binary",
-                "type": "string"
-              }
-            },
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "attribution": {
-                        "description": "Author and licence, carried through to the stored photo.",
-                        "type": "string"
-                      },
-                      "url": {
-                        "format": "uri",
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "url"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "items": {
-                        "items": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "attribution": {
-                              "type": "string"
-                            },
-                            "url": {
-                              "format": "uri",
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "url"
-                          ],
-                          "type": "object"
-                        },
-                        "maxItems": 30,
-                        "minItems": 1,
-                        "type": "array"
-                      }
-                    },
-                    "required": [
-                      "items"
-                    ],
-                    "type": "object"
-                  }
-                ],
-                "description": "Either one `url`, or `items` picked from the suggestions. A link sent as `items` is recorded as having come from a search and one sent as `url` as a paste, because the card says which."
-              }
-            }
-          },
-          "description": "The file itself, or the addresses to fetch.",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "photo": {
-                          "$ref": "#/components/schemas/CardPhoto"
-                        }
-                      },
-                      "required": [
-                        "photo"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "failed": {
-                          "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "error": {
-                                "type": "string"
-                              },
-                              "url": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "error",
-                              "url"
-                            ],
-                            "type": "object"
-                          },
-                          "type": "array"
-                        },
-                        "photos": {
-                          "items": {
-                            "$ref": "#/components/schemas/CardPhoto"
-                          },
-                          "type": "array"
-                        }
-                      },
-                      "required": [
-                        "failed",
-                        "photos"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "Stored. An upload answers with `photo`; links answer with `photos` and whatever `failed`."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "That photograph is already on this card."
-          },
-          "413": {
-            "$ref": "#/components/responses/413"
-          },
-          "415": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The bytes are not an image this server can decode, whatever the content-type claimed."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "failed": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "error": {
-                            "type": "string"
-                          },
-                          "url": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "error",
-                          "url"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Every address failed. `failed` says what happened to each."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Upload a photograph, or fetch one from an address",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos/{photoId}": {
-      "patch": {
-        "description": "Promoting is the only edit a photograph has: everything else about it — its size, its type, where it came from — is a fact about the file rather than a decision. Being the main one is a property of the pairing, so the same photograph can head one card and sit fourth on another.",
-        "operationId": "promoteCasePhoto",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The photograph, which must be on this card.",
-            "in": "path",
-            "name": "photoId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": false,
-                "properties": {
-                  "isPrimary": {
-                    "const": true,
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "isPrimary"
-                ],
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "photo": {
-                      "$ref": "#/components/schemas/CardPhoto"
-                    }
-                  },
-                  "required": [
-                    "photo"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The photograph, now the main one."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Make a photograph the main one",
-        "tags": [
-          "photos"
-        ]
-      },
-      "delete": {
-        "description": "Off this card, and off the disk if no other card shows it.",
-        "operationId": "removeCasePhoto",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The photograph, which must be on this card.",
-            "in": "path",
-            "name": "photoId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "ok": {
-                      "const": true,
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "ok"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Removed."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Remove a photograph from a card",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos/{photoId}/cutout": {
-      "post": {
-        "description": "The one-click edit: the thing alone, without the bench it was photographed on.\n\nIt **adds** a photograph rather than replacing one. The original stays and the two are linked by `derivedFrom`, so a cutout that mangled the item is one delete away from undone. The new photograph does not become the main one on its own — whether the cutout is better than the photograph is a judgement, and the person looking at both makes it.\n\nThe default method needs no key and no service, and refuses with a 422 rather than returning half a cut-out workbench.",
-        "operationId": "cutoutCasePhoto",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The photograph, which must be on this card.",
-            "in": "path",
-            "name": "photoId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CutoutResponse"
-                }
-              }
-            },
-            "description": "The cutout, and which method produced it."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The picture is not one this method can cut out — too busy a background, or nothing that reads as a single object."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Cut the subject out of a photograph",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos/{photoId}/cutout/commit": {
-      "post": {
-        "description": "Keeps a preview. The bytes are already on disk; this is the row that turns them into a photograph of this card. Both stores are addressed by content, so the checksum — and the client’s idea of what it accepted — does not change.\n\nA preview that has expired, or comes from a tab left open since yesterday, is a 409: asked for again rather than half-saved.",
-        "operationId": "commitCaseCutout",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The photograph, which must be on this card.",
-            "in": "path",
-            "name": "photoId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CutoutCommitBody"
-              }
-            }
-          },
-          "description": "The checksum of a preview this server produced. Nothing else — naming the bytes by content is what makes a save unable to invent a photograph that was never previewed.",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "photo": {
-                      "$ref": "#/components/schemas/CardPhoto"
-                    }
-                  },
-                  "required": [
-                    "photo"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Kept."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The preview has expired or is damaged, or that cutout is already on this card."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Keep a previewed cutout",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos/{photoId}/cutout/preview": {
-      "post": {
-        "description": "Runs the cutout and hands back somewhere to look at it, without writing a photograph. The result goes into a cache that expires on its own, and `preview.checksum` is what `…/cutout/commit` takes to keep it.",
-        "operationId": "previewCaseCutout",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The photograph, which must be on this card.",
-            "in": "path",
-            "name": "photoId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CutoutRunBody"
-              }
-            }
-          },
-          "description": "Optional. Omit it entirely to use the configured settings.",
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CutoutPreviewResponse"
-                }
-              }
-            },
-            "description": "The cutout, cached rather than stored."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The picture is not one this method can cut out."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Try a cutout without keeping it",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos/{photoId}/cutout/preview/{checksum}": {
-      "get": {
-        "description": "Addressed by checksum, so nothing here can serve a file that was not produced by a cutout somebody just ran. `cache-control` carries what is left of this preview’s life rather than a fresh TTL on every request: a browser holding a picture the server has already swept is how a save fails after a preview that still looked fine.",
-        "operationId": "getCaseCutoutPreview",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The photograph, which must be on this card.",
-            "in": "path",
-            "name": "photoId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The `preview.checksum` the preview call answered with.",
-            "in": "path",
-            "name": "checksum",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "image/png": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": "The preview image."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "No such preview, or it has expired."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "The preview image",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos/{photoId}/file": {
-      "get": {
-        "description": "The bytes. Content-addressed behind a row id, so this response can never change and is served `immutable` for a year — but `private`, because the catalog is behind a login and a shared cache must not hold it. A row whose file is missing is a 404: a broken photograph, not a broken server.",
-        "operationId": "getCasePhotoFile",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "The photograph, which must be on this card.",
-            "in": "path",
-            "name": "photoId",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "image/png": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": "The image."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.read"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.read"
-            ]
-          }
-        ],
-        "summary": "The photograph itself",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/{id}/photos/attach": {
-      "post": {
-        "description": "The way out of the library’s unassigned shelf, and the other half of being able to upload a picture before deciding what it is. A photograph that belongs to nothing is moved onto this card, keeping its id; one that already belongs elsewhere is copied, which costs a row rather than a second file.\n\nNothing attached at all is a 409 — some of them failing is normal and reported per photograph.",
-        "operationId": "attachCasePhotos",
-        "parameters": [
-          {
-            "description": "The case.",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "minimum": 1,
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PhotoAttachBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PhotoAttachResponse"
-                }
-              }
-            },
-            "description": "At least one was attached."
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "failed": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "id": {
-                            "type": "integer"
-                          },
-                          "reason": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "reason"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "None of them could be attached."
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Put existing photographs on a card",
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/api/cases/attributes": {
-      "get": {
-        "description": "What the form offers while somebody types a parameter name on a case, most used first. Asked per kind rather than across the catalog: a box and a drill have nothing in common on a spec sheet, and suggesting \"pojemność zbiornika\" to somebody labelling a case would be noise where the point of the list is a vocabulary people converge on.",
-        "operationId": "listCaseAttributeNames",
-        "parameters": [
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "names": {
-                      "items": {
-                        "$ref": "#/components/schemas/AttributeNameCount"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "names"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Every parameter name in use on a case, with how many carry it."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.read"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.read"
-            ]
-          }
-        ],
-        "summary": "The parameter names in use on cases",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/import": {
-      "post": {
-        "description": "Reads a maker’s product page into a case. Everything worth knowing about a box is a measurement, and a measurement the page states outside what a case can be is dropped rather than stored — a number nobody can have measured looks like a fact.\n\nWhat comes with it is the photographs and nothing else: a case has no parameters and no documents. The weight goes in the note, because the catalog stores what a box measures and what it carries rather than what it weighs empty.",
-        "operationId": "importCase",
-        "parameters": [
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ImportUrlBody"
-              }
-            }
-          },
-          "description": "The address of the page to read.",
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "case": {
-                      "$ref": "#/components/schemas/ToolCase"
-                    },
-                    "imported": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "photos": {
-                          "description": "Photographs fetched and stored. Always 0 on a refresh, whose photographs are deliberately left alone.",
-                          "type": "integer"
-                        },
-                        "photosFailed": {
-                          "description": "Photographs that would not download or decode.",
-                          "type": "integer"
-                        },
-                        "sourceUrl": {
-                          "description": "The address the case was read from.",
-                          "format": "uri",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "photos",
-                        "photosFailed",
-                        "sourceUrl"
-                      ],
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "case",
-                    "imported"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The case, and what came with it."
-          },
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The body did not parse, or the address is from a site this server cannot read. The message names the ones it can."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.write"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.write"
-            ]
-          }
-        ],
-        "summary": "Import a case from a product page",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/import/sources": {
-      "get": {
-        "description": "What the import dialog lists before asking for an address. A shorter list than the items one, and a different one: a page that sells drills has nothing to say about a box.",
-        "operationId": "listCaseImportSources",
-        "parameters": [
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "sources": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "host": {
-                            "type": "string"
-                          },
-                          "label": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "host",
-                          "label"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "sources"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "The pages this server can read a case from."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.read"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.read"
-            ]
-          }
-        ],
-        "summary": "The sources a case can be imported from",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
-    "/api/cases/models": {
-      "get": {
-        "description": "Read from the cases themselves rather than from a table of models, so the list is what is actually on the shelf. That is the list to offer in a filter.",
-        "operationId": "listCaseSystems",
-        "parameters": [
-          {
-            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
-            "example": "pl",
-            "in": "header",
-            "name": "Accept-Language",
-            "schema": {
-              "enum": [
-                "pl",
-                "en"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
-            "example": "mobile/1.4.2",
-            "in": "header",
-            "name": "X-ToolTrack-Client",
-            "schema": {
-              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "models": {
-                      "items": {
-                        "$ref": "#/components/schemas/ModelCount"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "models"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Every stacking model in use, with how many cases belong to it."
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "426": {
-            "$ref": "#/components/responses/426"
-          },
-          "503": {
-            "$ref": "#/components/responses/503"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": [
-              "catalog.read"
-            ]
-          },
-          {
-            "bearerAuth": [
-              "catalog.read"
-            ]
-          }
-        ],
-        "summary": "The stacking models in use",
-        "tags": [
-          "cases"
-        ]
-      }
-    },
     "/api/docs": {
       "get": {
         "description": "Swagger UI pointed at this API’s own document, vendored rather than loaded from a CDN — an authenticated screen pulling a megabyte of JavaScript from somebody else’s host is a supply chain nobody chose.\n\n**Try it out works.** The page is served from the API’s own origin, so the session cookie is first-party and the browser attaches it: log in through the app in another tab and the calls on this page are that session’s.",
@@ -8609,6 +5299,40 @@
             "description": "Exact category, as the cards spell it.",
             "in": "query",
             "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only cards of this sort. `case` is how the boxes screen asks for the boxes: they are cards like any other and `GET /api/items` includes them.",
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "enum": [
+                "tool",
+                "appliance",
+                "case"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set to `1` to have every card carry its spec sheet. Off by default — a grid shows a name, a maker and a condition, and sending every sheet to draw that would be paying for what nobody reads. The boxes screen turns it on: what somebody scanning a shelf of boxes is choosing between is the measurements and what goes in.",
+            "example": "1",
+            "in": "query",
+            "name": "attributes",
+            "schema": {
+              "enum": [
+                "1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exact model, as the cards spell it. A filter picked from `GET /api/items/models` rather than typed, which is why it matches the whole string where `q` matches part of one.",
+            "example": "PRO",
+            "in": "query",
+            "name": "model",
             "schema": {
               "type": "string"
             }
@@ -9733,6 +6457,225 @@
         ]
       }
     },
+    "/api/items/{id}/label-slots": {
+      "post": {
+        "description": "Where a label goes on a box: a size and nothing else, width by height in whole millimetres, and neither may be zero — a slot with no width is not a slot.\n\nOnly a case has any, and that is a constraint rather than a check: the slot carries a `kind` fixed to `case` and points at `(id, kind)` on the card, so the database refuses a drill a place for a sticker — and refuses turning a box that has slots into something else.\n\nThe whole card comes back rather than the slot, because the screen shows the slots together and would otherwise have to merge one into a list it already holds.",
+        "operationId": "addItemLabelSlot",
+        "parameters": [
+          {
+            "description": "The case.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelSlotBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "$ref": "#/components/schemas/ItemDetail"
+                    }
+                  },
+                  "required": [
+                    "item"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The card, with its parameters."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This card is not a case, or it already has a slot that size."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Add a label slot to a case",
+        "tags": [
+          "items"
+        ]
+      }
+    },
+    "/api/items/{id}/label-slots/{slotId}": {
+      "delete": {
+        "description": "Answers with the card, so the screen holding the slots can redraw it whole.",
+        "operationId": "removeItemLabelSlot",
+        "parameters": [
+          {
+            "description": "The case.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The slot, which must be this card’s.",
+            "in": "path",
+            "name": "slotId",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "$ref": "#/components/schemas/ItemDetail"
+                    }
+                  },
+                  "required": [
+                    "item"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The card, with its parameters."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Remove a label slot",
+        "tags": [
+          "items"
+        ]
+      }
+    },
     "/api/items/{id}/manuals": {
       "get": {
         "description": "What this item comes with: the manual, maybe a parts diagram, maybe a safety sheet.",
@@ -10459,7 +7402,7 @@
         "operationId": "suggestItemPhotos",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -10611,7 +7554,7 @@
         "operationId": "listItemPhotos",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -10717,7 +7660,7 @@
         "operationId": "addItemPhoto",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -10997,7 +7940,7 @@
         "operationId": "promoteItemPhoto",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -11121,7 +8064,7 @@
         "operationId": "removeItemPhoto",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -11225,7 +8168,7 @@
         "operationId": "cutoutItemPhoto",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -11329,7 +8272,7 @@
         "operationId": "commitItemCutout",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -11456,7 +8399,7 @@
         "operationId": "previewItemCutout",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -11574,7 +8517,7 @@
         "operationId": "getItemCutoutPreview",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -11682,7 +8625,7 @@
         "operationId": "getItemPhotoFile",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -11774,7 +8717,7 @@
         "operationId": "attachItemPhotos",
         "parameters": [
           {
-            "description": "The item card.",
+            "description": "The card the photograph hangs on.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -12241,6 +9184,102 @@
         "summary": "The sources that can be imported from",
         "tags": [
           "import"
+        ]
+      }
+    },
+    "/api/items/models": {
+      "get": {
+        "description": "Read from the cards themselves rather than from a table of models, so the list is what is actually on the shelf. `?kind=case` is what the boxes screen asks: a workshop owns nine of the same Qbrick and one of everything else, so the model is the filter that means something there.",
+        "operationId": "listItemModels",
+        "parameters": [
+          {
+            "description": "Only the models of cards of this sort.",
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "enum": [
+                "tool",
+                "appliance",
+                "case"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "models": {
+                      "items": {
+                        "$ref": "#/components/schemas/ModelCount"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "models"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Every model in use, with how many cards carry it."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.read"
+            ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.read"
+            ]
+          }
+        ],
+        "summary": "The models in use",
+        "tags": [
+          "items"
         ]
       }
     },

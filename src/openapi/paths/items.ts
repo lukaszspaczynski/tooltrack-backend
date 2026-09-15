@@ -23,7 +23,7 @@ import {
   ref,
 } from '../operation'
 import { LIMIT_PARAM, OFFSET_PARAM } from '../components'
-import { ITEM_CONDITIONS } from '../../server/routes/items-input'
+import { ITEM_CONDITIONS, ITEM_KINDS } from '../../server/routes/items-input'
 
 const CARD = jsonResponse('The card, with its parameters.', object({ item: ref('ItemDetail') }))
 
@@ -35,6 +35,23 @@ export const ITEM_OPERATIONS: OperationSpec[] = [
     query: [
       queryParam('q', 'Free-text search over the card.', { type: 'string' }, 'młot'),
       queryParam('category', 'Exact category, as the cards spell it.', { type: 'string' }),
+      queryParam(
+        'kind',
+        'Only cards of this sort. `case` is how the boxes screen asks for the boxes: they are cards like any other and `GET /api/items` includes them.',
+        { enum: [...ITEM_KINDS], type: 'string' },
+      ),
+      queryParam(
+        'attributes',
+        'Set to `1` to have every card carry its spec sheet. Off by default — a grid shows a name, a maker and a condition, and sending every sheet to draw that would be paying for what nobody reads. The boxes screen turns it on: what somebody scanning a shelf of boxes is choosing between is the measurements and what goes in.',
+        { enum: ['1'], type: 'string' },
+        '1',
+      ),
+      queryParam(
+        'model',
+        'Exact model, as the cards spell it. A filter picked from `GET /api/items/models` rather than typed, which is why it matches the whole string where `q` matches part of one.',
+        { type: 'string' },
+        'PRO',
+      ),
       queryParam('condition', 'Only cards in this condition.', {
         enum: [...ITEM_CONDITIONS],
         type: 'string',
@@ -92,6 +109,27 @@ export const ITEM_OPERATIONS: OperationSpec[] = [
     },
     route: 'GET /api/items/categories',
     summary: 'The categories in use',
+    tag: 'items',
+  },
+  {
+    description:
+      'Read from the cards themselves rather than from a table of models, so the list is what is actually on the shelf. `?kind=case` is what the boxes screen asks: a workshop owns nine of the same Qbrick and one of everything else, so the model is the filter that means something there.',
+    operationId: 'listItemModels',
+    query: [
+      queryParam('kind', 'Only the models of cards of this sort.', {
+        enum: [...ITEM_KINDS],
+        type: 'string',
+      }),
+    ],
+    responses: {
+      200: jsonResponse(
+        'Every model in use, with how many cards carry it.',
+        object({ models: arrayOf(ref('ModelCount')) }),
+      ),
+      ...errors(401, 403, 503),
+    },
+    route: 'GET /api/items/models',
+    summary: 'The models in use',
     tag: 'items',
   },
   {
@@ -224,6 +262,33 @@ export const ITEM_OPERATIONS: OperationSpec[] = [
     responses: { 200: CARD, ...errors(401, 403, 404, 503) },
     route: 'DELETE /api/items/:id/attributes/:attributeId',
     summary: 'Delete a parameter',
+    tag: 'items',
+  },
+  {
+    description:
+      'Where a label goes on a box: a size and nothing else, width by height in whole millimetres, and neither may be zero — a slot with no width is not a slot.\n\nOnly a case has any, and that is a constraint rather than a check: the slot carries a `kind` fixed to `case` and points at `(id, kind)` on the card, so the database refuses a drill a place for a sticker — and refuses turning a box that has slots into something else.\n\nThe whole card comes back rather than the slot, because the screen shows the slots together and would otherwise have to merge one into a list it already holds.',
+    operationId: 'addItemLabelSlot',
+    pathParams: { id: 'The case.' },
+    requestBody: jsonBody(ref('LabelSlotBody')),
+    responses: {
+      201: CARD,
+      409: jsonResponse(
+        'This card is not a case, or it already has a slot that size.',
+        ref('Error'),
+      ),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'POST /api/items/:id/label-slots',
+    summary: 'Add a label slot to a case',
+    tag: 'items',
+  },
+  {
+    description: 'Answers with the card, so the screen holding the slots can redraw it whole.',
+    operationId: 'removeItemLabelSlot',
+    pathParams: { id: 'The case.', slotId: 'The slot, which must be this card’s.' },
+    responses: { 200: CARD, ...errors(401, 403, 404, 503) },
+    route: 'DELETE /api/items/:id/label-slots/:slotId',
+    summary: 'Remove a label slot',
     tag: 'items',
   },
 ]

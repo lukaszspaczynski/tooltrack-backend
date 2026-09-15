@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { caseImporterFor, CASE_IMPORT_SOURCES, fitCaseToCard, importerFor } from './index'
+import { fitToCard, IMPORT_SOURCES, importerFor } from './index'
 import {
   attributesOf,
   descriptionOf,
@@ -11,7 +11,7 @@ import {
   parseQbrickCase,
   photosOf,
   specifications,
-  systemOf,
+  modelOf,
 } from './qbrick'
 
 const PAGE_URL = 'https://qbricksystem.com/product/qbrick-model-pro-toolcase-protective-foam/'
@@ -65,7 +65,10 @@ test('a product page becomes a case', () => {
   const found = parseQbrickCase(page(), PAGE_URL)
 
   assert.ok(found)
-  assert.equal(found.manufacturer, 'Qbrick')
+  assert.equal(found.brand, 'Qbrick')
+  // A box is a card of kind 'case', which is what tells the import route to
+  // write one rather than a tool.
+  assert.equal(found.kind, 'case')
   assert.equal(found.model, 'PRO')
   // The barcode and the catalogue number are parameters now, like every other
   // row the table states.
@@ -85,8 +88,8 @@ test('the page shouts and the catalog does not', () => {
 })
 
 test('the model is the word the heading puts after SYSTEM', () => {
-  assert.equal(systemOf('QBRICK SYSTEM PRO TOOLCASE'), 'PRO')
-  assert.equal(systemOf('Skrzynka bez systemu'), '')
+  assert.equal(modelOf('QBRICK SYSTEM PRO TOOLCASE'), 'PRO')
+  assert.equal(modelOf('Skrzynka bez systemu'), '')
 })
 
 test('a box is three numbers, whatever the labels around them say', () => {
@@ -176,7 +179,7 @@ test('the whole table goes on the sheet, in the order a box is read in', () => {
 test('an imported case carries the address it was read from', () => {
   // The same field an item card gets, and what the "update from the page"
   // button on a case looks for. The analytics tail is not part of it.
-  const fitted = fitCaseToCard(parseQbrickCase(page(), `${PAGE_URL}?utm_source=nl`)!)
+  const fitted = fitToCard(parseQbrickCase(page(), `${PAGE_URL}?utm_source=nl`)!)
 
   assert.equal(fitted.sourceUrl, PAGE_URL)
   assert.equal(fitted.attributes.length, 13)
@@ -208,21 +211,20 @@ test('a measurement nobody could have taken is dropped, not stored', () => {
   )
 
   assert.ok(absurd)
-  assert.equal(valueOf(fitCaseToCard(absurd).attributes, 'Przekątna'), undefined)
+  assert.equal(valueOf(fitToCard(absurd).attributes, 'Przekątna'), undefined)
   // What is plausible stays, so the check cannot be "drop everything".
-  assert.equal(valueOf(fitCaseToCard(absurd).attributes, 'EAN'), '1')
+  assert.equal(valueOf(fitToCard(absurd).attributes, 'EAN'), '1')
 })
 
-test('a case source is its own registry, not the item one', () => {
-  // A page that sells drills has nothing to say about a box, and the dialog
-  // asking where this one is from should never offer one.
-  assert.equal(caseImporterFor(PAGE_URL)?.label, 'qbricksystem.com')
-  assert.equal(importerFor(PAGE_URL), null)
-  assert.equal(caseImporterFor('https://nac.com.pl/rozdrabniacz/'), null)
-  assert.deepEqual(
-    CASE_IMPORT_SOURCES.map((source) => source.host),
-    ['qbricksystem.com'],
-  )
+test('the boxes are in the one registry, beside the drills', () => {
+  // There were two while a case was a table of its own: the scripts answered
+  // different shapes, so the dialog asking "where is this box from" could not
+  // be shown the same list as one asking about a drill. They answer the same
+  // shape now, and which sort of card a page describes is the page's own
+  // answer rather than the dialog's question.
+  assert.equal(importerFor(PAGE_URL)?.label, 'qbricksystem.com')
+  assert.ok(IMPORT_SOURCES.some((source) => source.host === 'qbricksystem.com'))
+  assert.ok(IMPORT_SOURCES.some((source) => source.host === 'nac.com.pl'))
 })
 
 function valueOf(attributes: { name: string; value: string }[], name: string) {

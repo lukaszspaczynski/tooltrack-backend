@@ -49,6 +49,7 @@ export function parseBoschDiyProduct(html: string, pageUrl: string): null | Impo
 
   return {
     attributes: attributesOf(sections, sku),
+    kind: 'tool',
     brand: BRAND,
     category: categoryOf(stage),
     manuals: manualsOf(sections, photoUrls, name),

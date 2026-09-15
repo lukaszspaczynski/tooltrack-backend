@@ -68,7 +68,7 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Six scripts so far, and they have almost nothing in common beyond the
+Nine scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
 another publishes both halves in different places, a fourth names the kind of
 item where the others name the machine, the fifth publishes no structured data
@@ -262,12 +262,25 @@ It is the third source declaring `manuals: false`, for stanley's reason rather
 than mistama's: the only PDFs on a product page are the shop's own terms of
 sale, and the documents for the machine are fetched after the page renders.
 
+`qbrick.ts` is the ninth, and the one that does not read a machine at all:
+qbricksystem.com sells boxes, so it reports `kind: 'case'` and the import route
+writes a card of that sort. It had a registry and a route family of its own
+while a case was a table of its own; the shape an importer answers with is one
+shape now, and **which sort of card a page describes is the page's own answer**
+rather than a question the dialog has to ask. Its page is one small table where
+every unit is written into the value — `450 [L] x 322 [W] x 126 [H] mm` — and
+all thirteen rows become parameters, because a box is mostly measurements and a
+measurement is a row.
+
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
 otherwise show it as its source for ever after.
 
 The page's own limits are not the card's, so `fitToCard` cuts every field to
-what the column takes rather than failing an import somebody is watching. The
+what the column takes rather than failing an import somebody is watching. It
+also throws out a measurement that reads outside what a box can be: those were
+CHECK constraints while they were columns, and free text has no CHECK, so a
+page stating 495000 mm is a page with a decimal point in the wrong place. The
 serial number is deliberately left blank: it identifies one physical machine,
 and the page describes a model.
 
@@ -399,10 +412,11 @@ the form can offer what other cards already call the same thing.
 
 ## Cases
 
-A case is an item with `kind: 'case'`. `catalog.tool_case` is gone: a box had a
-name, a maker, a model, a note, the page it was read from and a spec sheet,
-which is exactly what a card is — the table was a second description of the
-same shape.
+A case is an item with `kind: 'case'`, and that is the whole of it now:
+`catalog.tool_case` is gone and so is `/api/cases/*`. A box had a name, a
+maker, a model, a note, the page it was read from and a spec sheet, which is
+exactly what a card is — the table was a second description of the same shape,
+and the routes were a second description of the same routes.
 
 The ids could not be kept. `tool_case` and `item` were separate sequences, so
 case 2 and item 2 both existed and meant different things; the migration
@@ -410,36 +424,45 @@ carries the old id on a column across the insert and repoints everything that
 referenced a case — the spec sheet, the pictures, the label slots, the
 organizers — before dropping it.
 
-`photo_case` went with it. Two link tables existed because a case was a table
-of its own, and one consequence is worth knowing: "is any other card the home
-of this photograph" used to be two questions and is now one, so
-`exclusivePhotoIds` no longer depends on which kind is asking.
+`photo_case` went with it, and with it the second set of photo routes. Two link
+tables existed because a case was a table of its own; `PhotoOwner` is an id,
+`routes/photo-owner.ts` no longer turns a URL segment into a table name, and
+"is any other card the home of this photograph" is one question rather than
+two.
 
-`/api/cases/*` stays, and answers **only** about cards of kind `case` — a drill
-is a 404 there. Those routes exist because a box has things a drill does not: a
-label slot, and an importer that reads a box's page.
+What a box still has that a drill does not is **where a label goes**.
+`POST /api/items/:id/label-slots` answers `409 ITEM_IS_NOT_A_CASE` for anything
+else, and that is a fact about the card rather than a check in the handler:
+`case_label_slot` carries a `kind` fixed to `'case'` and points at `(id, kind)`,
+so the database refuses a drill a place for a sticker — and refuses turning a
+box that has slots into something else. An organizer's `case_id` does the same
+through `case_kind`. The slots are on every `ItemDetail`, empty for everything
+that is not a case, which is what one card type costs and all it costs.
 
-Two rules are constraints rather than checks, the way the organizer's are. A
-label slot carries a `kind` fixed to `'case'` and points at `(id, kind)`, so a
-drill cannot be given one. An organizer's `case_id` does the same through
-`case_kind`, so an arrangement cannot be put in a drill — and a box in use
-cannot quietly stop being a box.
+The **importer that reads a box's page** is one of the nine in
+`importers/index.ts` rather than a registry of its own. An importer reports the
+`kind` its pages describe, so `POST /api/items/import` writes a card of
+whatever sort the address turned out to be about — which sort of card a page
+describes is the page's own answer, not a question the dialog has to ask.
 
-`catalog.tool_case` is the box the items live in, and it is a thing rather than
-an attribute: a case has its own dimensions, its own barcode and its own
-photograph, and a crew talks about "skrzynka 04" as often as about the drill
-inside it. Name and manufacturer are required; every measurement is nullable,
-because a spec sheet is something you have or you do not, and `0` would be a
-claim about a box with no height.
+`GET /api/items?kind=case` is the shelf, and `?attributes=1` is what the boxes
+grid adds: a card in a grid shows a name, a maker and a condition, but what
+somebody scanning a shelf of boxes is choosing between is the outside
+measurements and what goes in, and both of those are rows on the sheet. Off by
+default, because every other grid would be paying for what nobody reads.
 
-The EAN and the SKU are not unique, unlike an item's serial number. They
-identify the product, and owning two identical cases is normal.
+Everything a spec sheet states about a box is a parameter. There were eleven
+columns — three outside measurements, three inside, a diagonal, a capacity, a
+load, a barcode, a catalogue number — and they were columns because a box is
+mostly measurements, until the next kind of box states something else and a
+twelfth column is a migration rather than a row. The EAN and the SKU are not
+unique, unlike an item's serial number: they identify the product, and owning
+two identical cases is normal.
 
-`catalog.case_label_slot` is where a label goes: a size in millimetres, unique
-per case on the pair. Both values are NOT NULL and positive — the opposite of
-the case's own measurements, where null means "nobody measured" — because a
-slot with no width is not a slot. Only `getCase` carries them; the list does
-not, since a grid of cases has no use for them.
+`catalog.case_label_slot` is a size in millimetres, unique per case on the
+pair. Both values are NOT NULL and positive — the opposite of the measurements
+on the sheet, where absent means "nobody measured" — because a slot with no
+width is not a slot.
 
 ## Photos
 
@@ -452,21 +475,22 @@ answers a different question, and all three are pure enough to test:
 outbound request in the server goes through one of those three.
 
 A `catalog.photo` row is one **picture**, once — `checksum` is unique. Which
-cards show it lives in `photo_item` and `photo_case`, because the same
-photograph legitimately illustrates several items, several cases, and an item
-together with the case it lives in. Carrying the owner on the photo row would
-mean a row per card, and with it a copy of the attribution, the source and the
-cutout lineage, which then drift apart.
+cards show it lives in `photo_item`, because the same photograph legitimately
+illustrates several cards — an item and the case it lives in, for one. Carrying
+the owner on the photo row would mean a row per card, and with it a copy of the
+attribution, the source and the cutout lineage, which then drift apart.
 
-Two link tables rather than one polymorphic `(owner_kind, owner_id)`: the
-foreign keys are real, so deleting a card takes its links with it. Being the
-**main** photo lives on the link, not on the picture — the same photograph can
-head one card and sit fourth on another.
+A link table rather than a polymorphic `(owner_kind, owner_id)`: the foreign
+key is real, so deleting a card takes its links with it. Being the **main**
+photo lives on the link, not on the picture — the same photograph can head one
+card and sit fourth on another.
 
 Every photo route and every function in `photos-store.ts` takes a `PhotoOwner`,
-and `routes/photo-owner.ts` is the only place a URL segment becomes a table or
-column name — the same fixed-map trick as `SORT_COLUMNS`. That is why there is
-one set of photo handlers and not two.
+which is an id. It carried a kind as well, and `routes/photo-owner.ts` turned a
+URL segment into a table name with the same fixed-map trick as `SORT_COLUMNS`,
+because a case was a table of its own under its own paths. One card, one table,
+one set of paths — the type stays because thirty-odd signatures read better
+saying whose pictures they mean.
 
 Two consequences worth knowing before changing the delete paths. Taking a
 picture off a card removes the link and then deletes the picture **if nothing
@@ -476,8 +500,8 @@ item or case does the same through `dropOrphanedPhotos`, which is application
 code on purpose: a foreign key cannot say "delete the parent when its last
 child goes".
 
-Three things hold a picture, not two: an item, a case, and **a maker whose logo
-it is**. `photo_brand` cascades on the photo, so a rule that only knew about
+Three things hold a picture: an item, the case it lives in — both cards now —
+and **a maker whose logo it is**. `photo_brand` cascades on the photo, so a rule that only knew about
 cards did not fail — it quietly took the logo off a brand that had nothing to
 do with the card being deleted. `exclusivePhotoIds` asks the same three holds
 before the fact, which is what a delete confirmation shows: "and its
@@ -522,21 +546,13 @@ AI service is a different error and a different status.
 both directions, for the same reason the photo links exist — a picture carries
 no idea of what it is being used for.
 
-The item still carries its maker as free text as well. That column is what the
-catalog searches and what a card shows, and the two are kept in step from both
-ends: renaming a brand rewrites the text on its items in the same transaction,
-and creating or editing an item matches the typed name back to a row
-(`brandIdForName`), pointing at nothing rather than inventing a brand from a
-typo. Collapsing them into one column, with the item form picking from a list,
-is the obvious next step and has not been taken — say so before doing it, since
-it changes what `GET /api/items` means.
+The maker is one column: `brand_id` and a LEFT JOIN. It was a pointer and a
+string beside it once, and the DDL backfilled — every distinct non-empty
+`item.brand` became a row and every item was pointed at its own, idempotently —
+before the string was dropped. See "One card for everything owned".
 
-The DDL backfills: every distinct non-empty `item.brand` became a row and every
-item was pointed at its own, idempotently.
-
-Cases are deliberately not part of this. `tool_case.manufacturer` stays free
-text — it was asked for and declined, not overlooked, so leave it alone unless
-somebody asks again.
+Cases are part of this like everything else: a box points at its maker with the
+same column, because a box is a card.
 
 ## Where things are
 
@@ -725,9 +741,7 @@ The photo links are copied too (`copyPhotoLinks`), main photo included. That is
 cheap because a pairing is a row: the copy shows the same pictures without a
 byte being written.
 
-Cases deliberately do not have this. `copyPhotoLinks` is already owner-generic,
-so adding it would be an endpoint and a button — it was asked for and declined,
-not overlooked.
+It is offered on every card, boxes included, since there is one set of routes.
 
 ## Search engine settings
 

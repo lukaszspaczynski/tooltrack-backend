@@ -26,7 +26,6 @@ import { fetchRemoteFile, fetchRemoteImage, ImageFetchError, maxPhotoBytes } fro
 import { importerFor, IMPORT_SOURCES, type ImportedProduct } from '../importers'
 import { PhotoNotSuitableError } from '../cutout-local'
 import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
-import { getCase } from './cases-store'
 import { readCutoutConfig } from './cutout-settings-store'
 import { parseAttachIds } from './media-input'
 import { parseCutoutCommitInput, parseCutoutRunInput } from './settings-input'
@@ -45,13 +44,7 @@ import {
   savePreviewBytes,
 } from '../photo-storage'
 import type { RouteContext } from '../route-context'
-import {
-  OWNER_LABELS,
-  ownerPath,
-  parseOwnerId,
-  parsePhotoOwner,
-  type PhotoOwner,
-} from './photo-owner'
+import { ownerPath, parseOwnerId, parsePhotoOwner, type PhotoOwner } from './photo-owner'
 import {
   attachPhotosTo,
   exclusivePhotoIds,
@@ -618,15 +611,11 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
 
   const url = new URL(request.url)
 
-  // `?source=page` — the product page rather than the engines. Only an item has
-  // one: a case is not imported from anywhere.
+  // `?source=page` — the product page rather than the engines. A card with no
+  // address to read has nothing to offer here, and the check is on the field
+  // rather than on the kind: a box is imported from qbricksystem.com and a
+  // drill typed in by hand is not imported from anywhere.
   if (url.searchParams.get('source') === 'page') {
-    if (owner.kind !== 'item') {
-      return errorResponse(422, 'NO_SOURCE_PAGE', t('Ta karta nie ma adresu karty produktu'), {
-        extra: { providers: [] },
-      })
-    }
-
     return suggestFromPage(owner.id)
   }
 
@@ -660,17 +649,17 @@ export async function suggestionsGET(request: Request, context: RouteContext): P
   }
 }
 
-// Does this card exist, and what would we type into a search engine for it? A
-// item is identified by its brand and model; a case by who makes it and what
-// it is called.
+// Does this card exist, and what would we type into a search engine for it?
+//
+// A machine is identified by its brand and model; a box by who makes it and
+// what it is called — "Qbrick System PRO Toolbox 2.0" is the whole name of the
+// thing, and the model on its own finds a different box. The card says which
+// it is, which is what the two tables used to say.
 async function loadOwner(owner: PhotoOwner): Promise<null | OwnerCard> {
-  if (owner.kind === 'item') {
-    const item = await getItem(owner.id)
-    return item ? { searchQuery: defaultQuery(item) } : null
-  }
+  const item = await getItem(owner.id)
+  if (!item) return null
 
-  const found = await getCase(owner.id)
-  return found ? { searchQuery: defaultCaseQuery(found) } : null
+  return { searchQuery: item.kind === 'case' ? defaultCaseQuery(item) : defaultQuery(item) }
 }
 
 function normaliseLinks(body: null | ({ items?: LinkInput[] } & LinkInput)): NormalisedLink[] {
@@ -722,13 +711,12 @@ function cutoutError(error: unknown): Response {
   throw error
 }
 
-// "Nie ma takiego narzędzia" or "Nie ma takiej skrzynki", decided by the path
-// the caller used, so a 404 never names the wrong kind of thing.
-function ownerNotFound(context: RouteContext): Response {
-  const owner = parsePhotoOwner(context.params)
-  const label = owner ? OWNER_LABELS[owner.kind] : OWNER_LABELS.item
-
-  return errorResponse(404, 'NOT_FOUND', t(label))
+// One card, one word for it. It used to be two — "Nie ma takiego narzędzia" or
+// "Nie ma takiej skrzynki", decided by the path the caller used — because a box
+// and a drill were different tables and a 404 naming the wrong one was worse
+// than none.
+function ownerNotFound(_context: RouteContext): Response {
+  return errorResponse(404, 'NOT_FOUND', t('Nie ma takiej pozycji'))
 }
 
 function photoNotFound(): Response {

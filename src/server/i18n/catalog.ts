@@ -29,7 +29,7 @@ export const EN: Record<string, string> = {
 
   // Not found, taken, already there
   'Nie ma takiego zdjęcia': 'There is no such photo',
-  'Nie ma takiego narzędzia': 'There is no such item',
+  'Nie ma takiej pozycji': 'There is no such card',
   'Nie ma takich etykiet': 'There are no such labels',
   'Skrzynka tego organizera nie ma takiego miejsca na etykietę':
     'The case of this arrangement has no such place for a label',

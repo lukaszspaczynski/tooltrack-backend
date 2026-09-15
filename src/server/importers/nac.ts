@@ -37,6 +37,7 @@ export function parseNacProduct(html: string, pageUrl: string): null | ImportedP
 
   return {
     attributes: attributesOf(html),
+    kind: 'tool',
     brand: BRAND,
     category: categoryOf(html),
     manuals: manualsOf(html),

@@ -7,6 +7,7 @@ import type { ErrorCode } from '../error-codes'
 import { brandIdForName } from './brands-store'
 import { t } from '../i18n'
 import { listAttributes, type Attribute } from './attributes-store'
+import { labelSlotsOf, type LabelSlot } from './label-slots-store'
 import type { OrganizerPlacement } from './organizers-store'
 import {
   DEFAULT_CONDITION,
@@ -68,10 +69,17 @@ export type Item = {
 // every card's spec sheet to draw that would be paying for what nobody reads.
 export type ItemDetail = Item & {
   attributes: Attribute[]
+  // Where a label goes on this box. Only a case has any — the table says so
+  // with a `kind` fixed to 'case' — and every other card answers with none,
+  // which is what a single card type costs and all it costs.
+  labelSlots: LabelSlot[]
 }
 
 export type ItemPage = {
-  items: Item[]
+  // `Item`, plus the sheet when `?attributes=1` asked for it. The route hangs
+  // the thumbnail and the organizer on each one and answers with
+  // `ItemSummary`.
+  items: (Item & { attributes?: Attribute[] })[]
   limit: number
   offset: number
   total: number
@@ -87,6 +95,15 @@ export type ItemPage = {
 // generated from these types: a shape the API returns and no type describes is
 // a shape the contract would get wrong.
 export type ItemSummary = Item & {
+  // The spec sheet, when the caller asked for it with `?attributes=1`.
+  //
+  // A grid of cards shows a name, a maker and a condition, and sending every
+  // card's sheet to draw that would be paying for what nobody reads — which is
+  // why this is absent by default and not simply always there. The boxes
+  // screen is the exception the flag exists for: what a person scanning a
+  // shelf of boxes is choosing between is the outside measurements and what
+  // goes in, and both of those are rows on the sheet.
+  attributes?: Attribute[]
   organizer: null | OrganizerPlacement
   primaryPhotoUrl: null | string
 }
@@ -100,6 +117,11 @@ export type CategoryCount = {
   count: number
 }
 
+export type ModelCount = {
+  count: number
+  model: string
+}
+
 export class SerialNumberTakenError extends Error {
   readonly code: ErrorCode
 
@@ -111,6 +133,8 @@ export class SerialNumberTakenError extends Error {
 }
 
 type ItemRow = {
+  // Rolled up by the list when it was asked for the sheet, NULL otherwise.
+  attributes?: null | { id: number | string; name: string; value: string }[]
   brand_color: null | string
   kind: string
   brand_id: null | number | string
@@ -145,6 +169,16 @@ const ITEM_FROM = `
   LEFT JOIN "catalog"."brand" AS "b" ON "b"."id" = "i"."brand_id"
 `
 
+// The spec sheet rolled up per card, for the one list that shows it. A
+// subquery rather than a join, because a join would multiply the page by the
+// number of parameters and then need a GROUP BY over every column.
+const ITEM_ATTRIBUTES = `
+  (SELECT jsonb_agg(jsonb_build_object('id', "a"."id", 'name', "a"."name", 'value', "a"."value")
+                    ORDER BY "a"."id")
+   FROM "catalog"."attribute" AS "a"
+   WHERE "a"."reference" = 'item' AND "a"."reference_id" = "i"."id") AS "attributes"
+`
+
 // The only place a sort key becomes SQL. A value that is not in this map
 // cannot reach the query, whatever arrives in the query string.
 const SORT_COLUMNS: Record<ItemQuery['sort'], string> = {
@@ -161,7 +195,8 @@ export async function listItems(query: ItemQuery, pool: PgPool = db()): Promise<
   // once, so the total can never describe a different set than the rows.
   const result = await pool.query<ItemRow>(
     `
-      SELECT ${ITEM_COLUMNS}, count(*) OVER () AS "total_count"
+      SELECT ${ITEM_COLUMNS}, ${query.attributes ? ITEM_ATTRIBUTES : 'NULL AS "attributes"'},
+             count(*) OVER () AS "total_count"
       ${ITEM_FROM}
       WHERE ($1::text IS NULL OR (
               "i"."name" ILIKE $1 OR "b"."name" ILIKE $1 OR "i"."model" ILIKE $1
@@ -182,6 +217,9 @@ export async function listItems(query: ItemQuery, pool: PgPool = db()): Promise<
         -- A drill and a washing machine are the same card; a screen showing one
         -- sort at a time asks for it.
         AND ($9::text IS NULL OR "i"."kind" = $9)
+        -- One model at a time. The boxes are what this is for: a workshop owns
+        -- nine of the same Qbrick and one of everything else.
+        AND ($10::text IS NULL OR "i"."model" = $10)
       ORDER BY ${column} ${direction}, "i"."id" DESC
       LIMIT $4 OFFSET $5
     `,
@@ -195,11 +233,23 @@ export async function listItems(query: ItemQuery, pool: PgPool = db()): Promise<
       typeof query.addressId === 'number' ? query.addressId : null,
       query.addressId === 'none' ? true : null,
       query.kind,
+      query.model,
     ],
   )
 
   return {
-    items: result.rows.map(toItem),
+    items: result.rows.map((row) =>
+      query.attributes
+        ? {
+            ...toItem(row),
+            attributes: (row.attributes ?? []).map((attribute) => ({
+              id: Number(attribute.id),
+              name: attribute.name,
+              value: attribute.value,
+            })),
+          }
+        : toItem(row),
+    ),
     limit: query.limit,
     offset: query.offset,
     // No rows means no matches, not an empty page of an unknown total.
@@ -217,6 +267,28 @@ export async function getItem(id: number, pool: PgPool = db()): Promise<null | I
   return row ? toItem(row) : null
 }
 
+// What the model filter offers, read from the cards themselves — the same
+// reasoning as the category list: the shelf is where the models come from. The
+// kind narrows it, because a screen showing the boxes has no use for the model
+// of a drill.
+export async function listModels(
+  kind: ItemKind | null,
+  pool: PgPool = db(),
+): Promise<ModelCount[]> {
+  const result = await pool.query<{ count: string; model: string }>(
+    `
+      SELECT "model", count(*)::text AS "count"
+      FROM "catalog"."item"
+      WHERE "model" <> '' AND ($1::text IS NULL OR "kind" = $1)
+      GROUP BY "model"
+      ORDER BY lower("model") ASC
+    `,
+    [kind],
+  )
+
+  return result.rows.map((row) => ({ count: Number(row.count), model: row.model }))
+}
+
 // Oldest first, which is the order they were typed in — a spec sheet is copied
 // from the top, and sorting by name would shuffle it into something nobody
 // wrote. Two statements rather than a join: a join would repeat the whole item
@@ -225,7 +297,11 @@ export async function getItemDetail(id: number, pool: PgPool = db()): Promise<nu
   const item = await getItem(id, pool)
   if (!item) return null
 
-  return { ...item, attributes: await listAttributes('item', id, pool) }
+  return {
+    ...item,
+    attributes: await listAttributes('item', id, pool),
+    labelSlots: await labelSlotsOf(id, pool),
+  }
 }
 
 export async function createItem(
@@ -370,7 +446,10 @@ export async function duplicateItem(
     [id, copy.id, actorId],
   )
 
-  return { ...copy, attributes: await listAttributes('item', copy.id, pool) }
+  // A copy of a case starts with no places for labels. The slots are where a
+  // sticker goes on one particular box, measured by somebody holding it, and
+  // the copy is a different box.
+  return { ...copy, attributes: await listAttributes('item', copy.id, pool), labelSlots: [] }
 }
 
 export async function deleteItem(id: number, pool: PgPool = db()): Promise<boolean> {

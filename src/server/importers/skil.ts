@@ -33,6 +33,7 @@ export function parseSkilProduct(html: string, pageUrl: string): null | Imported
 
   return {
     attributes: attributesOf(html, sku),
+    kind: 'tool',
     brand: BRAND,
     category: categoryOf(html) || kind,
     manuals: manualsOf(html),

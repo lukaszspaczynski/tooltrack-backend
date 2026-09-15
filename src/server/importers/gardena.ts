@@ -37,6 +37,7 @@ export function parseGardenaProduct(html: string, pageUrl: string): null | Impor
 
   return {
     attributes: attributesOf(html, product),
+    kind: 'tool',
     brand: text(String((product.brand as { name?: unknown })?.name ?? '')),
     category: categoryOf(product),
     manuals: [],

@@ -53,6 +53,21 @@ GET {{host}}/api/items?q=makita&condition=needs_repair&sort=name&order=asc&limit
 ### The categories to offer in a filter, derived from the items themselves.
 GET {{host}}/api/items/categories
 
+### The boxes. A case is a card of kind `case`, and the grid wants its sheet.
+GET {{host}}/api/items?kind=case&attributes=1&sort=name&order=asc
+
+### The models to offer in the boxes filter.
+GET {{host}}/api/items/models?kind=case
+
+### Where a label goes on a box. 409 ITEM_IS_NOT_A_CASE on anything else.
+POST {{host}}/api/items/2/label-slots
+Content-Type: application/json
+
+{
+  "widthMm": 30,
+  "heightMm": 40
+}
+
 ### Add an item. Needs catalog.write, so a viewer gets 403 here.
 POST {{host}}/api/items
 Content-Type: application/json
@@ -60,7 +75,7 @@ Content-Type: application/json
 {
   "name": "Młotowiertarka SDS",
   "category": "Wiertarki",
-  "brand": "Makita",
+  "brandId": 3,
   "model": "HR2470",
   "serialNumber": "12345-AB",
   "condition": "needs_repair",

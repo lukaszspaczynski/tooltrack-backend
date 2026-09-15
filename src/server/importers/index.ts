@@ -6,17 +6,12 @@
 // fields, and the person would have to undo it.
 
 import {
-  MAX_CAPACITY_L,
-  MAX_DIMENSION_MM,
-  MAX_FIELD_LENGTH as MAX_CASE_FIELD_LENGTH,
-  MAX_LOAD_KG,
-  MAX_NAME_LENGTH as MAX_CASE_NAME_LENGTH,
-  MAX_NOTES_LENGTH as MAX_CASE_NOTES_LENGTH,
-} from '../routes/cases-input'
-import {
   MAX_ATTRIBUTE_NAME_LENGTH,
   MAX_ATTRIBUTE_VALUE_LENGTH,
+  MAX_CAPACITY_L,
+  MAX_DIMENSION_MM,
   MAX_FIELD_LENGTH,
+  MAX_LOAD_KG,
   MAX_NAME_LENGTH,
   MAX_NOTES_LENGTH,
 } from '../routes/items-input'
@@ -29,16 +24,17 @@ import { nac } from './nac'
 import { qbrick } from './qbrick'
 import { skil } from './skil'
 import { stanley } from './stanley'
-import type { CaseImporter, ImportedCase, ImportedProduct, Importer } from './types'
+import type { ImportedProduct, Importer } from './types'
 
-export type {
-  CaseImporter,
-  ImportedAttribute,
-  ImportedCase,
-  ImportedProduct,
-  Importer,
-} from './types'
+export type { ImportedAttribute, ImportedProduct, Importer } from './types'
 
+// One registry. There were two while a case was a table of its own: the
+// scripts answered different shapes, so a dialog asking "where is this box
+// from" could not be shown the same list as one asking about a drill.
+//
+// They answer the same shape now, and which sort of card a page describes is
+// the page's business rather than the registry's — qbricksystem.com sells
+// boxes and says so, and nothing here has to know that.
 const IMPORTERS: readonly Importer[] = [
   mistama,
   boschDiy,
@@ -48,6 +44,7 @@ const IMPORTERS: readonly Importer[] = [
   lidl,
   nac,
   gardena,
+  qbrick,
 ]
 
 // What the import dialog lists, so the screen never offers a source this
@@ -61,23 +58,6 @@ export const IMPORT_SOURCES = IMPORTERS.map((importer) => ({
 
 // The sources worth offering when what is wanted is a manual.
 export const MANUAL_SOURCES = IMPORT_SOURCES.filter((source) => source.manuals)
-
-// The scripts that read a case rather than an item. A separate registry rather
-// than a flag on the same one: the two answer with different shapes, and a
-// dialog asking "where is this box from" should not offer a page that sells
-// drills.
-const CASE_IMPORTERS: readonly CaseImporter[] = [qbrick]
-
-export const CASE_IMPORT_SOURCES = CASE_IMPORTERS.map((importer) => ({
-  host: importer.hosts[0],
-  label: importer.label,
-}))
-
-export function caseImporterFor(rawUrl: string): null | CaseImporter {
-  const host = hostOf(rawUrl)
-
-  return host === null ? null : (CASE_IMPORTERS.find((i) => i.hosts.includes(host)) ?? null)
-}
 
 export function importerFor(rawUrl: string): null | Importer {
   const host = hostOf(rawUrl)
@@ -139,7 +119,8 @@ export function fitToCard(product: ImportedProduct): ImportedProduct {
         name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
         value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
       }))
-      .filter((attribute) => attribute.name && attribute.value),
+      .filter((attribute) => attribute.name && attribute.value)
+      .filter(plausible),
     brand: clamp(product.brand, MAX_FIELD_LENGTH),
     category: clamp(product.category, MAX_FIELD_LENGTH),
     model: clamp(product.model, MAX_FIELD_LENGTH),
@@ -158,36 +139,6 @@ function clamp(value: string, limit: number): string {
   const lastSpace = cut.lastIndexOf(' ')
 
   return `${(lastSpace > limit / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`
-}
-
-// A page has no idea what a case can hold, the same way it has no idea what a
-// card can. Text is cut to the column, and a measurement the page states in
-// micrometres or in a thousand litres is dropped rather than stored: a number
-// nobody can have measured is worse than an empty field, because it looks like
-// a fact.
-export function fitCaseToCard(imported: ImportedCase): ImportedCase {
-  const sourceUrl = withoutTracking(imported.sourceUrl)
-
-  return {
-    ...imported,
-    sourceUrl,
-    // A measurement that reads outside what a box can be is dropped rather
-    // than stored: a number nobody can have measured looks like a fact once it
-    // is on a card. The importer parses each one before writing it as a
-    // string, so the check is on the number and what reaches here is already
-    // "450 mm" — what is left to do is throw out the absurd ones.
-    attributes: imported.attributes
-      .map((attribute) => ({
-        name: clamp(attribute.name, MAX_ATTRIBUTE_NAME_LENGTH),
-        value: clamp(attribute.value, MAX_ATTRIBUTE_VALUE_LENGTH),
-      }))
-      .filter((attribute) => attribute.name && attribute.value)
-      .filter(plausible),
-    manufacturer: clamp(imported.manufacturer, MAX_CASE_NAME_LENGTH),
-    name: clamp(imported.name, MAX_CASE_NAME_LENGTH),
-    notes: clamp(imported.notes, MAX_CASE_NOTES_LENGTH),
-    model: clamp(imported.model, MAX_CASE_FIELD_LENGTH),
-  }
 }
 
 // The ceilings a box cannot be above. They were CHECK constraints while these

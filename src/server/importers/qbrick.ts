@@ -16,17 +16,19 @@
 
 import type { ImportedAttribute } from './types'
 import { text } from './html'
-import type { CaseImporter, ImportedCase } from './types'
+import type { ImportedProduct, Importer } from './types'
 
-export const qbrick: CaseImporter = {
+export const qbrick: Importer = {
   hosts: ['qbricksystem.com', 'www.qbricksystem.com'],
   label: 'qbricksystem.com',
+  // Its product pages publish no documents.
+  manuals: false,
   parse: parseQbrickCase,
 }
 
 const MANUFACTURER = 'Qbrick'
 
-export function parseQbrickCase(html: string, pageUrl: string): null | ImportedCase {
+export function parseQbrickCase(html: string, pageUrl: string): null | ImportedProduct {
   const rows = specifications(html)
   // Every page on this site has a heading; only a product has this table. A
   // case of empty measurements is worse than a refusal, because somebody has
@@ -36,18 +38,22 @@ export function parseQbrickCase(html: string, pageUrl: string): null | ImportedC
   const heading = text(/<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1] ?? '')
   if (!heading) return null
 
-  const outer = dimensions(rows.get('wymiary zewnętrzne'))
-  const inner = dimensions(rows.get('wymiary wewnętrzne'))
-  const model = systemOf(heading)
-
   return {
     attributes: attributesOf(rows),
-    manufacturer: MANUFACTURER,
-    name: nameOf(heading, model),
+    brand: MANUFACTURER,
+    // A box has no category: the shelf it belongs on is the kind it is.
+    category: '',
+    kind: 'case',
+    // Its product pages publish none. The downloads on this site are the
+    // catalogue and the terms of sale.
+    manuals: [],
+    // What the maker calls the range this box stacks with: PRO, ONE. The same
+    // fact an item card calls a model, which is what it is now.
+    model: modelOf(heading),
+    name: nameOf(heading, modelOf(heading)),
     notes: descriptionOf(html),
     photoUrls: photosOf(html),
     sourceUrl: pageUrl,
-    model,
   }
 }
 
@@ -100,7 +106,7 @@ export function measurement(value: string | undefined): null | number {
 
 // "QBRICK SYSTEM PRO TOOLCASE" — the word after "SYSTEM" is the line this box
 // belongs to, and it is the one token in the name that is capitals on purpose.
-export function systemOf(heading: string): string {
+export function modelOf(heading: string): string {
   const after = /\bsystem\s+(\S+)/i.exec(heading)?.[1] ?? ''
 
   return after.toLocaleUpperCase('en-US')

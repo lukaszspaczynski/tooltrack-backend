@@ -10,15 +10,7 @@
 import { hasCapability, isActiveUser, type Capability, type User } from './roles'
 
 export type RouteDomain =
-  | 'addresses'
-  | 'auth'
-  | 'brands'
-  | 'cases'
-  | 'organizers'
-  | 'public'
-  | 'settings'
-  | 'items'
-  | 'users'
+  'addresses' | 'auth' | 'brands' | 'organizers' | 'public' | 'settings' | 'items' | 'users'
 
 export type RouteCheck =
   // Reachable without a session. The handler still decides what it answers.
@@ -80,36 +72,18 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/items\/categories$/,
   },
   {
+    // The models in use, like the category list above it — and above
+    // /api/items/:id for the same reason: "models" is not a number.
+    domain: 'items',
+    methods: { GET: READ_CATALOG },
+    pattern: /^\/api\/items\/models$/,
+  },
+  {
     // The parameter names in use across the catalog, like the category list
     // above it — and above /api/items/:id for the same reason.
     domain: 'items',
     methods: { GET: READ_CATALOG },
     pattern: /^\/api\/items\/attributes$/,
-  },
-  {
-    // Where this server can read a case from. Offered to anybody who may look
-    // at the catalog, for the same reason the item list is.
-    domain: 'cases',
-    methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/cases\/(?:import\/sources|attributes|models)$/,
-  },
-  {
-    domain: 'cases',
-    methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/cases\/import$/,
-  },
-  {
-    // Reading the page again into a case that exists. Above the :id rule, which
-    // would otherwise read "import" as one.
-    domain: 'cases',
-    methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/cases\/\d+\/import$/,
-  },
-  {
-    // The spec sheet of a box, on the same terms as an item's.
-    domain: 'cases',
-    methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG, POST: WRITE_CATALOG },
-    pattern: /^\/api\/cases\/\d+\/attributes(?:\/[^/]+)?$/,
   },
   {
     // Which shops this server can read. Offered to anybody who may look at the
@@ -249,35 +223,6 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/labels\/sheet$/,
   },
   {
-    // Same shape as the item rules, and above the :id pattern for the same
-    // reason: otherwise a request for the model list looks like a case named
-    // "models".
-    domain: 'cases',
-    methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/cases\/models$/,
-  },
-  {
-    domain: 'cases',
-    methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
-    pattern: /^\/api\/cases$/,
-  },
-  {
-    domain: 'cases',
-    methods: { DELETE: WRITE_CATALOG, GET: READ_CATALOG, PATCH: WRITE_CATALOG },
-    pattern: /^\/api\/cases\/[^/]+$/,
-  },
-  {
-    // Where labels go on a case. Changing the case, so the same capability.
-    domain: 'cases',
-    methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/cases\/\d+\/label-slots$/,
-  },
-  {
-    domain: 'cases',
-    methods: { DELETE: WRITE_CATALOG },
-    pattern: /^\/api\/cases\/\d+\/label-slots\/\d+$/,
-  },
-  {
     domain: 'items',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
     pattern: /^\/api\/items$/,
@@ -357,11 +302,24 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/items\/\d+\/attributes\/\d+$/,
   },
   {
+    // Where a label goes on a box. Only a case has any; the route answers 409
+    // for anything else, which is a fact about the card rather than about who
+    // is asking.
+    domain: 'items',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/items\/\d+\/label-slots$/,
+  },
+  {
+    domain: 'items',
+    methods: { DELETE: WRITE_CATALOG },
+    pattern: /^\/api\/items\/\d+\/label-slots\/\d+$/,
+  },
+  {
     // The bytes of a photo. Readable by anyone who may read the catalog — the
     // picture is part of the card.
     domain: 'items',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/file$/,
+    pattern: /^\/api\/items\/\d+\/photos\/\d+\/file$/,
   },
   {
     // The cutout writes a new photo, so it needs the capability to write one —
@@ -370,41 +328,41 @@ const RULES: readonly Rule[] = [
     // reach: all three paths ask for the same thing.
     domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/cutout$/,
+    pattern: /^\/api\/items\/\d+\/photos\/\d+\/cutout$/,
   },
   {
     domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
+    pattern: /^\/api\/items\/\d+\/photos\/\d+\/cutout\/(?:preview|commit)$/,
   },
   {
     domain: 'items',
     methods: { GET: WRITE_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
+    pattern: /^\/api\/items\/\d+\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
   },
   {
     domain: 'items',
     methods: { DELETE: WRITE_CATALOG, PATCH: WRITE_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/\d+$/,
+    pattern: /^\/api\/items\/\d+\/photos\/\d+$/,
   },
   {
     domain: 'items',
     methods: { GET: READ_CATALOG, POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photos$/,
+    pattern: /^\/api\/items\/\d+\/photos$/,
   },
   {
     // Putting an existing photo on an item changes the card, so it asks for
     // what changing a card asks for.
     domain: 'items',
     methods: { POST: WRITE_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photos\/attach$/,
+    pattern: /^\/api\/items\/\d+\/photos\/attach$/,
   },
   {
     // Searching the web costs an API call and only exists to add a photo, so
     // it asks for the capability to add one. A viewer has no use for it.
     domain: 'items',
     methods: { GET: WRITE_CATALOG },
-    pattern: /^\/api\/(?:items|cases)\/\d+\/photo-suggestions$/,
+    pattern: /^\/api\/items\/\d+\/photo-suggestions$/,
   },
   {
     // Everyone who may search needs to see which engines are on — that is what

@@ -13,7 +13,6 @@ import type { OperationSpec } from './operation'
 import { IMPORT_OPERATIONS } from './paths/import'
 import { ADDRESS_OPERATIONS } from './paths/addresses'
 import { BRAND_OPERATIONS } from './paths/brands'
-import { CASE_OPERATIONS } from './paths/cases'
 import { LABEL_OPERATIONS } from './paths/labels'
 import { MANUAL_OPERATIONS } from './paths/manuals'
 import { ORGANIZER_OPERATIONS } from './paths/organizers'
@@ -30,7 +29,6 @@ export const OPERATIONS: OperationSpec[] = [
   ...ITEM_OPERATIONS,
   ...PHOTO_OPERATIONS,
   ...MANUAL_OPERATIONS,
-  ...CASE_OPERATIONS,
   ...ADDRESS_OPERATIONS,
   ...BRAND_OPERATIONS,
   ...SETTINGS_OPERATIONS,

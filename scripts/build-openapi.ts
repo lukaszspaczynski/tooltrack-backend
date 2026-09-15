@@ -49,6 +49,7 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
       'ItemSummary',
       'ItemListPage',
       'CategoryCount',
+      'ModelCount',
       'AttributeNameCount',
     ],
   },
@@ -60,10 +61,7 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
   },
   { path: 'src/server/routes/addresses-store.ts', types: ['Address', 'AddressPage'] },
   { path: 'src/server/routes/brands-store.ts', types: ['Brand', 'BrandPage'] },
-  {
-    path: 'src/server/routes/cases-store.ts',
-    types: ['ToolCase', 'LabelSlot', 'CaseListItem', 'CaseListPage', 'ModelCount'],
-  },
+  { path: 'src/server/routes/label-slots-store.ts', types: ['LabelSlot'] },
   {
     path: 'src/server/routes/organizers-store.ts',
     types: ['Organizer', 'OrganizerPage', 'OrganizerItem', 'OrganizerLabel'],
