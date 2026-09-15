@@ -186,7 +186,7 @@ export function fitCaseToCard(imported: ImportedCase): ImportedCase {
     manufacturer: clamp(imported.manufacturer, MAX_CASE_NAME_LENGTH),
     name: clamp(imported.name, MAX_CASE_NAME_LENGTH),
     notes: clamp(imported.notes, MAX_CASE_NOTES_LENGTH),
-    system: clamp(imported.system, MAX_CASE_FIELD_LENGTH),
+    model: clamp(imported.model, MAX_CASE_FIELD_LENGTH),
   }
 }
 

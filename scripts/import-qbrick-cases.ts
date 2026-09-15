@@ -34,7 +34,7 @@ type ManifestCase = {
   name: string
   notes?: string
   sourceUrl?: string
-  system?: string
+  model?: string
 }
 
 type Manifest = {

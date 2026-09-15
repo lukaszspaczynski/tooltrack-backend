@@ -58,7 +58,7 @@ export const ROUTES = [
   'GET /api/items/:id/photo-suggestions',
   'GET /api/cases',
   'POST /api/cases',
-  'GET /api/cases/systems',
+  'GET /api/cases/models',
   'GET /api/cases/attributes',
   'GET /api/cases/import/sources',
   'POST /api/cases/import',

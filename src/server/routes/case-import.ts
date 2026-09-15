@@ -50,7 +50,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
       name: imported.name,
       notes: imported.notes,
       referenceUrl: imported.sourceUrl,
-      system: imported.system,
+      model: imported.model,
     },
     actorId,
   )
@@ -67,7 +67,7 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
 
 // POST /api/cases/:id/import — reading the page again into a case that exists.
 //
-// What the page knows, it overwrites: the maker, the name, the system, the
+// What the page knows, it overwrites: the maker, the name, the model, the
 // numbers, the note. What it cannot know, it leaves alone — the label slots
 // somebody measured for this box, and the photographs, which somebody may well
 // have taken themselves.
@@ -94,7 +94,7 @@ export async function refreshPOST(request: Request, context: RouteContext): Prom
       name: imported.name,
       notes: imported.notes,
       referenceUrl: imported.sourceUrl,
-      system: imported.system,
+      model: imported.model,
     },
     actorId,
   )

@@ -91,7 +91,7 @@ const RULES: readonly Rule[] = [
     // at the catalog, for the same reason the item list is.
     domain: 'cases',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/cases\/(?:import\/sources|attributes|systems)$/,
+    pattern: /^\/api\/cases\/(?:import\/sources|attributes|models)$/,
   },
   {
     domain: 'cases',
@@ -250,11 +250,11 @@ const RULES: readonly Rule[] = [
   },
   {
     // Same shape as the item rules, and above the :id pattern for the same
-    // reason: otherwise a request for the system list looks like a case named
-    // "systems".
+    // reason: otherwise a request for the model list looks like a case named
+    // "models".
     domain: 'cases',
     methods: { GET: READ_CATALOG },
-    pattern: /^\/api\/cases\/systems$/,
+    pattern: /^\/api\/cases\/models$/,
   },
   {
     domain: 'cases',

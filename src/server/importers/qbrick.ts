@@ -38,16 +38,16 @@ export function parseQbrickCase(html: string, pageUrl: string): null | ImportedC
 
   const outer = dimensions(rows.get('wymiary zewnętrzne'))
   const inner = dimensions(rows.get('wymiary wewnętrzne'))
-  const system = systemOf(heading)
+  const model = systemOf(heading)
 
   return {
     attributes: attributesOf(rows),
     manufacturer: MANUFACTURER,
-    name: nameOf(heading, system),
+    name: nameOf(heading, model),
     notes: descriptionOf(html),
     photoUrls: photosOf(html),
     sourceUrl: pageUrl,
-    system,
+    model,
   }
 }
 
@@ -107,15 +107,15 @@ export function systemOf(heading: string): string {
 }
 
 // The page shouts. A van full of boxes labelled in capitals is a van nobody can
-// read, so the name is title-cased — and then the system is put back as it was,
+// read, so the name is title-cased — and then the model is put back as it was,
 // because "Pro" is a word and "PRO" is the name of a line.
-export function nameOf(heading: string, system: string): string {
+export function nameOf(heading: string, model: string): string {
   return heading
     .toLocaleLowerCase('pl-PL')
     .split(/\s+/)
     .map((word) =>
-      word.toLocaleUpperCase('en-US') === system
-        ? system
+      word.toLocaleUpperCase('en-US') === model
+        ? model
         : word.charAt(0).toLocaleUpperCase('pl-PL') + word.slice(1),
     )
     .join(' ')

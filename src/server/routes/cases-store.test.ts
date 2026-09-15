@@ -26,7 +26,7 @@ const fields = {
   name: 'Qbrick System PRO Toolbox 2.0',
   notes: '',
   referenceUrl: '',
-  system: 'PRO',
+  model: 'PRO',
 }
 
 test('the insert builds its columns and its parameters together', async () => {
@@ -50,10 +50,10 @@ test('the insert builds its columns and its parameters together', async () => {
 test('a patch writes only what was sent', async () => {
   const { calls, pool } = fakePool([[toRow(fields)]])
 
-  await updateCase(1, { system: 'ONE' }, 7, pool)
+  await updateCase(1, { model: 'ONE' }, 7, pool)
 
   const assignments = calls[0].text.match(/SET (.*)\n/)![1]
-  assert.match(assignments, /"system" = \$3/)
+  assert.match(assignments, /"model" = \$3/)
   // Nothing else was touched: a PATCH that rewrote every column would undo a
   // change somebody else made between the load and the save.
   assert.doesNotMatch(assignments, /"name"/)
@@ -113,7 +113,7 @@ function query(sort: 'createdAt' | 'name' | 'updatedAt') {
     offset: 0,
     search: null,
     sort,
-    system: null,
+    model: null,
   }
 }
 
@@ -129,7 +129,7 @@ test('a sort key that is not ours cannot reach the query', async () => {
       search: null,
       // The parser cannot produce this; the map is what makes it harmless.
       sort: 'name; DROP TABLE "catalog"."tool_case"' as 'name',
-      system: null,
+      model: null,
     },
     pool,
   )
@@ -149,7 +149,7 @@ test('underscores in a search are searched for, not treated as wildcards', async
       offset: 0,
       search: 'Toolbox_2',
       sort: 'name',
-      system: null,
+      model: null,
     },
     pool,
   )
@@ -168,7 +168,7 @@ function toRow(input: typeof fields) {
     name: input.name,
     notes: input.notes,
     reference_url: input.referenceUrl,
-    system: input.system,
+    model: input.model,
     updated_at: '2026-01-01T00:00:00.000Z',
     updated_by: '7',
   }

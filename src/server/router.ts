@@ -125,7 +125,7 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], Entry>> = {
   },
   'GET /api/cases': cases.GET,
   'POST /api/cases': cases.POST,
-  'GET /api/cases/systems': cases.systemsGET,
+  'GET /api/cases/models': cases.modelsGET,
   'GET /api/cases/attributes': cases.attributeNamesGET,
   'GET /api/cases/import/sources': caseImport.sourcesGET,
   'POST /api/cases/import': caseImport.POST,

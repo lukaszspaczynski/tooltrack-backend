@@ -48,7 +48,7 @@ export type ToolCase = {
   // Where an import read this box from, empty when nobody imported it. The
   // same field an item card has, and it was the same parameter before that.
   referenceUrl: string
-  system: string
+  model: string
   updatedAt: string
   updatedBy: null | number
 }
@@ -76,9 +76,9 @@ export type CasePage = {
   total: number
 }
 
-export type SystemCount = {
+export type ModelCount = {
   count: number
-  system: string
+  model: string
 }
 
 type RawSlot = { heightMm: number | string; id: number | string; widthMm: number | string }
@@ -95,14 +95,14 @@ type CaseRow = {
   name: string
   notes: string
   reference_url: string
-  system: string
+  model: string
   total_count?: number | string
   updated_at: Date | string
   updated_by: null | number | string
 }
 
 const CASE_COLUMNS = `
-  "c"."id", "c"."name", "c"."system", "c"."notes", "c"."reference_url",
+  "c"."id", "c"."name", "c"."model", "c"."notes", "c"."reference_url",
   "c"."created_by", "c"."updated_by", "c"."created_at", "c"."updated_at",
   "b"."id" AS "brand_id", "b"."name" AS "brand_name", "b"."color" AS "brand_color"
 `
@@ -142,7 +142,7 @@ const WRITABLE_COLUMNS: Record<keyof CaseFields, string> = {
   name: 'name',
   notes: 'notes',
   referenceUrl: 'reference_url',
-  system: 'system',
+  model: 'model',
 }
 
 // The only place a sort key becomes SQL. A value that is not in this map
@@ -168,7 +168,7 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
       SELECT ${CASE_COLUMNS}, ${CASE_ATTRIBUTES}, count(*) OVER () AS "total_count"
       ${CASE_FROM}
       WHERE ($1::text IS NULL OR (
-              "c"."name" ILIKE $1 OR "b"."name" ILIKE $1 OR "c"."system" ILIKE $1
+              "c"."name" ILIKE $1 OR "b"."name" ILIKE $1 OR "c"."model" ILIKE $1
               OR "c"."notes" ILIKE $1
               -- The barcode and the catalogue number are parameters now, and
               -- they are exactly what somebody types into a search box when
@@ -179,14 +179,14 @@ export async function listCases(query: CaseQuery, pool: PgPool = db()): Promise<
                      AND "s"."value" ILIKE $1
                  )))
         AND ($2::text IS NULL OR lower("b"."name") = lower($2))
-        AND ($3::text IS NULL OR lower("c"."system") = lower($3))
+        AND ($3::text IS NULL OR lower("c"."model") = lower($3))
       ORDER BY ${column} ${direction}, "c"."id" DESC
       LIMIT $4 OFFSET $5
     `,
     [
       query.search === null ? null : likePattern(query.search),
       query.manufacturer,
-      query.system,
+      query.model,
       query.limit,
       query.offset,
     ],
@@ -347,20 +347,20 @@ export async function removeLabelSlot(
   return (result.rowCount ?? 0) > 0
 }
 
-// What the system filter offers, read from the cases themselves — the same
-// reasoning as item categories: the shelf is where the systems come from.
-export async function listSystems(pool: PgPool = db()): Promise<SystemCount[]> {
-  const result = await pool.query<{ count: string; system: string }>(
+// What the model filter offers, read from the cases themselves — the same
+// reasoning as item categories: the shelf is where the models come from.
+export async function listModels(pool: PgPool = db()): Promise<ModelCount[]> {
+  const result = await pool.query<{ count: string; model: string }>(
     `
-      SELECT "system", count(*)::text AS "count"
+      SELECT "model", count(*)::text AS "count"
       FROM "catalog"."tool_case"
-      WHERE "system" <> ''
-      GROUP BY "system"
-      ORDER BY lower("system") ASC
+      WHERE "model" <> ''
+      GROUP BY "model"
+      ORDER BY lower("model") ASC
     `,
   )
 
-  return result.rows.map((row) => ({ count: Number(row.count), system: row.system }))
+  return result.rows.map((row) => ({ count: Number(row.count), model: row.model }))
 }
 
 // `%` and `_` are wildcards in ILIKE, and a search for "Toolbox_2" means the
@@ -392,7 +392,7 @@ function toCase(row: CaseRow): ToolCase {
     name: row.name,
     notes: row.notes,
     referenceUrl: row.reference_url,
-    system: row.system,
+    model: row.model,
     updatedAt: toIsoString(row.updated_at),
     updatedBy: row.updated_by === null ? null : Number(row.updated_by),
   }

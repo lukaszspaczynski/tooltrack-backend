@@ -860,7 +860,7 @@ rather than a lint step, because it is a fact about two files in the repo and
 
 A session is a row in `account.session`: an opaque token, stored only as its
 SHA-256, with an expiry. There are two ways to present it and they are not two
-systems.
+models.
 
 - **The cookie**, set by `POST /api/auth/login`. `httpOnly`, so no script on
   the page can read it — which is why `login` deliberately does not answer with

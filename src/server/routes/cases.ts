@@ -1,5 +1,5 @@
 // The cases: GET/POST /api/cases, GET/PATCH/DELETE /api/cases/:id and
-// GET /api/cases/systems.
+// GET /api/cases/models.
 //
 // Reading needs catalog.read, writing needs catalog.write, and both are
 // checked by the guard before any of this runs (src/access/route-policy.ts).
@@ -18,7 +18,7 @@ import {
   getCase,
   LabelSlotTakenError,
   listCases,
-  listSystems,
+  listModels,
   removeLabelSlot,
   type CaseListPage,
   updateCase,
@@ -72,11 +72,8 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
   return Response.json({ case: created }, { status: 201 })
 }
 
-export async function systemsGET(): Promise<Response> {
-  return Response.json(
-    { systems: await listSystems() },
-    { headers: { 'cache-control': 'no-store' } },
-  )
+export async function modelsGET(): Promise<Response> {
+  return Response.json({ models: await listModels() }, { headers: { 'cache-control': 'no-store' } })
 }
 
 export async function detailGET(_request: Request, context: RouteContext): Promise<Response> {
@@ -184,7 +181,7 @@ async function readJson(request: Request): Promise<unknown> {
 
 // The parameters under a case, on exactly the terms an item's are: a name and a
 // value, both free text, unique per case. The columns hold what every box has —
-// a length is a length — and this holds what they do not: a stacking system, a
+// a length is a length — and this holds what they do not: a stacking model, a
 // lid type, whatever the next kind of box turns out to state.
 //
 // Each answers with the whole case rather than the row that changed, the same

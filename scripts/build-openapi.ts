@@ -62,7 +62,7 @@ const ENTITY_TYPES: { path: string; types: string[] }[] = [
   { path: 'src/server/routes/brands-store.ts', types: ['Brand', 'BrandPage'] },
   {
     path: 'src/server/routes/cases-store.ts',
-    types: ['ToolCase', 'LabelSlot', 'CaseListItem', 'CaseListPage', 'SystemCount'],
+    types: ['ToolCase', 'LabelSlot', 'CaseListItem', 'CaseListPage', 'ModelCount'],
   },
   {
     path: 'src/server/routes/organizers-store.ts',

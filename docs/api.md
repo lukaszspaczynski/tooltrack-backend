@@ -640,7 +640,7 @@ was a bare link.
 ### `POST /api/cases/:id/import` — `catalog.write`
 
 The same page, read again into a case that exists. What the page knows it
-overwrites: the maker, the name, the system, every measurement, the note and
+overwrites: the maker, the name, the model, every measurement, the note and
 the parameters — those are cleared and written again rather than merged, as a
 item's are, because a row the maker has dropped should leave the case too.
 
@@ -685,15 +685,15 @@ The **maker** is the row it is, like an item's: `brand` is
 
 ### `GET /api/cases` — `catalog.read`
 
-| Parameter      | Meaning                                                  | Default |
-| -------------- | -------------------------------------------------------- | ------- |
-| `q`            | Name, maker, system, notes — and every parameter's value | —       |
-| `manufacturer` | Exact match, case-insensitive                            | —       |
-| `system`       | Exact match, case-insensitive                            | —       |
-| `sort`         | `name`, `createdAt`, `updatedAt`                         | `name`  |
-| `order`        | `asc` or `desc`                                          | `desc`  |
-| `limit`        | 1–200                                                    | 50      |
-| `offset`       | ≥ 0                                                      | 0       |
+| Parameter      | Meaning                                                 | Default |
+| -------------- | ------------------------------------------------------- | ------- |
+| `q`            | Name, maker, model, notes — and every parameter's value | —       |
+| `manufacturer` | Exact match, case-insensitive                           | —       |
+| `model`        | Exact match, case-insensitive                           | —       |
+| `sort`         | `name`, `createdAt`, `updatedAt`                        | `name`  |
+| `order`        | `asc` or `desc`                                         | `desc`  |
+| `limit`        | 1–200                                                   | 50      |
+| `offset`       | ≥ 0                                                     | 0       |
 
 `200 { items, total, limit, offset }`. Each item is a case plus
 `primaryPhotoUrl`, so a grid can show thumbnails without a request per row.
@@ -701,7 +701,7 @@ Sorting by capacity puts the unmeasured cases last rather than first.
 
 ### `GET /api/cases/attributes` — `catalog.read`
 
-`{ "names": [{ "name": "System", "count": 5 }] }`, most used first. What the
+`{ "names": [{ "name": "Model", "count": 5 }] }`, most used first. What the
 form offers while somebody types a parameter name on a case, asked per kind
 rather than across the catalog: a box and a drill have nothing in common on a
 spec sheet.
@@ -719,12 +719,12 @@ row that changed.
 
 **Beside the columns, not instead of them.** A case keeps its measurements as
 columns, because a length is a length and every box has one. The sheet is for
-what the columns do not cover: a stacking system, a lid type, whatever the next
+what the columns do not cover: a stacking model, a lid type, whatever the next
 kind of box turns out to state.
 
-### `GET /api/cases/systems` — `catalog.read`
+### `GET /api/cases/models` — `catalog.read`
 
-`200 { systems: [{ system, count }] }` — read from the cases themselves, the
+`200 { models: [{ model, count }] }` — read from the cases themselves, the
 same way item categories are.
 
 ### `POST /api/cases` — `catalog.write`
@@ -760,7 +760,7 @@ but a label with no width is not a label.
 not have to merge one into a list it already holds. `409` when this case
 already has that size: the pair is the key, and adding it twice is a mistake
 rather than a second place. The same size on another case is fine, which is
-the point of a modular system.
+the point of a modular model.
 
 ### `DELETE /api/cases/:id/label-slots/:slotId` — `catalog.write`
 
@@ -772,20 +772,19 @@ the point of a modular system.
 {
   "id": 2,
   "name": "Qbrick System PRO Toolbox 2.0",
-  "manufacturer": "Qbrick",
-  "system": "PRO",
-  "outerLengthMm": 450,
-  "outerWidthMm": 331,
-  "outerHeightMm": 240,
-  "innerLengthMm": 331,
-  "innerWidthMm": 245,
-  "innerHeightMm": 189,
-  "diagonalMm": 497,
-  "capacityL": 19,
-  "loadKg": 20,
-  "ean": "5901238254249",
-  "sku": "SKRQTBPRO2CZAPG001",
+  "brand": { "id": 12, "name": "Qbrick", "color": "" },
+  "model": "PRO",
   "notes": "",
+  "referenceUrl": "https://qbricksystem.com/product/qbrick-system-pro-toolbox-2-0/",
+  "attributes": [
+    { "id": 61, "name": "Długość zewnętrzna", "value": "450 mm" },
+    { "id": 62, "name": "Szerokość zewnętrzna", "value": "331 mm" },
+    { "id": 63, "name": "Wysokość zewnętrzna", "value": "240 mm" },
+    { "id": 67, "name": "Pojemność", "value": "19 L" },
+    { "id": 68, "name": "Ładowność", "value": "20 kg" },
+    { "id": 69, "name": "EAN", "value": "5901238254249" },
+    { "id": 70, "name": "SKU", "value": "SKRQTBPRO2CZAPG001" }
+  ],
   "labelSlots": [{ "id": 1, "widthMm": 30, "heightMm": 40 }],
   "createdBy": 1,
   "updatedBy": 1,
@@ -793,6 +792,10 @@ the point of a modular system.
   "updatedAt": "2026-09-11T18:12:33.370Z"
 }
 ```
+
+`model` is what the maker calls the range this box stacks with — "PRO", "ONE",
+"Systainer". It was `system` until a box came within one card of being an item,
+and `model` is what an item calls the same fact.
 
 The EAN and the SKU identify the product, not this box: two identical cases on
 the shelf are two rows carrying the same barcode, so neither is unique. That is

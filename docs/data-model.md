@@ -72,7 +72,7 @@ One row per case, box or drawer unit the items are kept in.
 | ----------------------------------------- | --------------------------------- | ---------------------------------- |
 | `id`                                      | `bigint` identity                 |                                    |
 | `name`, `manufacturer`                    | `text`                            | Required, CHECK non-blank          |
-| `system`                                  | `text`                            | Free text, `''` when not filled in |
+| `model`                                   | `text`                            | Free text, `''` when not filled in |
 | `outer_*_mm`, `inner_*_mm`, `diagonal_mm` | `integer`                         | NULL when unmeasured, CHECK `> 0`  |
 | `capacity_l`, `load_kg`                   | `numeric(8,2)`                    | NULL when unmeasured, CHECK `> 0`  |
 | `ean`, `sku`                              | `text`                            | Free text, **not** unique          |
@@ -144,7 +144,7 @@ question and not one this table answers.
 
 Unique on `(case_id, width_mm, height_mm)`: one case cannot list the same size
 twice, and adding it again is a mistake rather than a second place. Sizes
-repeat freely across cases, which is what a modular system is.
+repeat freely across cases, which is what a modular model is.
 
 Unlike the measurements on the case itself, these are `NOT NULL` and checked
 positive rather than nullable: "nobody measured the box" is a normal state, but

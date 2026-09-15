@@ -24,7 +24,7 @@ export const MAX_LIMIT = CASE_PAGING.max
 
 // Text fields that are optional and stored as '' when not filled in, the same
 // convention the item card uses.
-const TEXT_FIELDS = ['system', 'ean', 'sku'] as const
+const TEXT_FIELDS = ['model', 'ean', 'sku'] as const
 
 // Numbers that are optional and stored as NULL when not filled in. Zero is not
 // the same as unknown: a case with no height does not exist, but a case nobody
@@ -46,7 +46,7 @@ export type CaseFields = {
   name: string
   notes: string
   referenceUrl: string
-  system: string
+  model: string
 }
 
 // A patch carries only the fields that were sent. `undefined` means "leave it
@@ -63,7 +63,7 @@ export type CaseQuery = {
   offset: number
   search: null | string
   sort: CaseSort
-  system: null | string
+  model: null | string
 }
 
 // null clears the field, a number sets it, and anything else is refused.
@@ -125,7 +125,7 @@ export const CASE_PATCH_SCHEMA = z
       name: required(MAX_NAME_LENGTH, 'name').optional(),
       notes: text(MAX_NOTES_LENGTH, 'notes').optional(),
       referenceUrl: text(MAX_URL_LENGTH, 'referenceUrl').optional(),
-      system: text(MAX_FIELD_LENGTH, 'system').optional(),
+      model: text(MAX_FIELD_LENGTH, 'model').optional(),
     },
     NOT_AN_OBJECT,
   )
@@ -165,7 +165,7 @@ export function parseCaseCreate(body: unknown): Parsed<CaseFields> {
     name: parsed.value.name,
     notes: parsed.value.notes ?? '',
     referenceUrl: parsed.value.referenceUrl ?? '',
-    system: parsed.value.system ?? '',
+    model: parsed.value.model ?? '',
   })
 }
 
@@ -192,7 +192,7 @@ export function parseCaseQuery(params: URLSearchParams): Parsed<CaseQuery> {
     offset: clampOffset(params.get('offset')),
     search: params.get('q')?.trim() || null,
     sort: parseSort(params.get('sort')),
-    system: params.get('system')?.trim() || null,
+    model: params.get('model')?.trim() || null,
   })
 }
 

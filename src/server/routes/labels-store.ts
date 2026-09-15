@@ -1,4 +1,4 @@
-// Every label in the system, seen from outside the organizer that made it.
+// Every label in the model, seen from outside the organizer that made it.
 //
 // `organizers-store.ts` answers "what has this arrangement produced"; this one
 // answers "what have we printed", which is the question somebody asks after a

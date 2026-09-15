@@ -86,7 +86,7 @@ export function defaultQuery(item: {
 // The same question for a case. A case has no model number; what identifies
 // it is who makes it and what it is called. The names usually carry the maker
 // already ("Qbrick System PRO Toolbox 2.0"), and searching for "Qbrick Qbrick
-// System PRO..." finds less than searching for the name alone.
+// Model PRO..." finds less than searching for the name alone.
 export function defaultCaseQuery(item: { brand: null | { name: string }; name: string }): string {
   const name = item.name.trim()
   const manufacturer = (item.brand?.name ?? '').trim()

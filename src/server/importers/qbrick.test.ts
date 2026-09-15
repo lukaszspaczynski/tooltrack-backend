@@ -14,7 +14,7 @@ import {
   systemOf,
 } from './qbrick'
 
-const PAGE_URL = 'https://qbricksystem.com/product/qbrick-system-pro-toolcase-protective-foam/'
+const PAGE_URL = 'https://qbricksystem.com/product/qbrick-model-pro-toolcase-protective-foam/'
 
 const UPLOADS = 'https://qbricksystem.com/wp-content/uploads/2025/01'
 
@@ -66,7 +66,7 @@ test('a product page becomes a case', () => {
 
   assert.ok(found)
   assert.equal(found.manufacturer, 'Qbrick')
-  assert.equal(found.system, 'PRO')
+  assert.equal(found.model, 'PRO')
   // The barcode and the catalogue number are parameters now, like every other
   // row the table states.
   assert.equal(valueOf(found.attributes, 'EAN'), '5901238254232')
@@ -76,7 +76,7 @@ test('a product page becomes a case', () => {
 
 test('the page shouts and the catalog does not', () => {
   // A van full of boxes labelled in capitals is a van nobody can read. The
-  // system goes back as it was: "Pro" is a word, "PRO" is the name of a line.
+  // model goes back as it was: "Pro" is a word, "PRO" is the name of a line.
   assert.equal(nameOf('QBRICK SYSTEM PRO TOOLCASE', 'PRO'), 'Qbrick System PRO Toolcase')
   assert.equal(
     nameOf('QBRICK SYSTEM PRO TECHNICIAN CASE 2.0', 'PRO'),
@@ -84,7 +84,7 @@ test('the page shouts and the catalog does not', () => {
   )
 })
 
-test('the system is the word after "system"', () => {
+test('the model is the word the heading puts after SYSTEM', () => {
   assert.equal(systemOf('QBRICK SYSTEM PRO TOOLCASE'), 'PRO')
   assert.equal(systemOf('Skrzynka bez systemu'), '')
 })

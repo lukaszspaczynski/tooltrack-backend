@@ -28,6 +28,22 @@ BEGIN
     ALTER TABLE "catalog"."manual_item" RENAME COLUMN "tool_id" TO "item_id";
   END IF;
 
+  -- A box called it a system because a Qbrick stacks with a range. An item
+  -- card calls the same fact a model, and a box is one card away from being an
+  -- item.
+  IF to_regclass('"catalog"."tool_case"') IS NOT NULL
+     AND EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'catalog' AND table_name = 'tool_case' AND column_name = 'system'
+     ) THEN
+    ALTER TABLE "catalog"."tool_case" RENAME COLUMN "system" TO "model";
+
+    IF to_regclass('"catalog"."catalog_tool_case_system_idx"') IS NOT NULL THEN
+      ALTER INDEX "catalog"."catalog_tool_case_system_idx"
+        RENAME TO "catalog_tool_case_model_idx";
+    END IF;
+  END IF;
+
   -- The spec sheet says which kind of thing each row is about, as a word. The
   -- word was 'tool' and the table it names is now item.
   IF to_regclass('"catalog"."attribute"') IS NOT NULL THEN
@@ -182,9 +198,13 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool_case" (
   -- points at (see brand-schema.ts), and everything a spec sheet states is a
   -- parameter rather than a column.
   "name" text NOT NULL CHECK (btrim("name") <> ''),
-  -- Which modular system it stacks with: PRO, ONE, Systainer, none. Free text
-  -- for the same reason a category is: the list is not ours to close.
-  "system" text NOT NULL DEFAULT '',
+  -- What the maker calls this box: PRO, ONE, Systainer. Free text for the same
+  -- reason an item's model is: the list is not ours to close.
+  --
+  -- It was called a system, because a Qbrick box stacks with a range rather
+  -- than being a model on its own. A model is what the same fact is called on
+  -- an item card, and a box is one card away from being an item.
+  "model" text NOT NULL DEFAULT '',
   "notes" text NOT NULL DEFAULT '',
   "reference_url" text NOT NULL DEFAULT '',
   "created_by" bigint REFERENCES "account"."user_account"("id") ON DELETE SET NULL,
@@ -194,8 +214,8 @@ CREATE TABLE IF NOT EXISTS "catalog"."tool_case" (
 );
 
 CREATE INDEX IF NOT EXISTS "catalog_tool_case_name_idx" ON "catalog"."tool_case" (lower("name"));
-CREATE INDEX IF NOT EXISTS "catalog_tool_case_system_idx"
-  ON "catalog"."tool_case" (lower("system"));
+CREATE INDEX IF NOT EXISTS "catalog_tool_case_model_idx"
+  ON "catalog"."tool_case" (lower("model"));
 
 -- The manuals: the PDF that came in the box, and whatever else is worth
 -- keeping beside a tool — a parts diagram, a safety sheet.

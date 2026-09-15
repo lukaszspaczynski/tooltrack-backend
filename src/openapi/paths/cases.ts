@@ -55,7 +55,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      "One line off the spec sheet of a box, on exactly the terms an item's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking system, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
+      "One line off the spec sheet of a box, on exactly the terms an item's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking model, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
     operationId: 'addCaseAttribute',
     pathParams: { id: 'The case to add the parameter to.' },
     requestBody: jsonBody(ref('AttributeCreateBody')),
@@ -137,7 +137,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the system, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.',
+      'Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the model, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.',
     operationId: 'refreshCaseFromPage',
     pathParams: { id: 'The case to read the page into.' },
     requestBody: jsonBody(ref('ImportUrlBody'), 'The address of the page to read.'),
@@ -159,7 +159,7 @@ export const CASE_OPERATIONS: OperationSpec[] = [
     query: [
       queryParam('q', 'Free-text search over the case.', { type: 'string' }),
       queryParam('manufacturer', 'Exact maker, as the cases spell it.', { type: 'string' }),
-      queryParam('system', 'Exact stacking system.', { type: 'string' }, 'L-BOXX'),
+      queryParam('model', 'Exact stacking model.', { type: 'string' }, 'L-BOXX'),
       queryParam('sort', 'By name unless asked otherwise.', {
         default: 'name',
         enum: ['name', 'capacityL', 'createdAt', 'updatedAt'],
@@ -192,17 +192,17 @@ export const CASE_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
-      'Read from the cases themselves rather than from a table of systems, so the list is what is actually on the shelf. That is the list to offer in a filter.',
+      'Read from the cases themselves rather than from a table of models, so the list is what is actually on the shelf. That is the list to offer in a filter.',
     operationId: 'listCaseSystems',
     responses: {
       200: jsonResponse(
-        'Every stacking system in use, with how many cases belong to it.',
-        object({ systems: arrayOf(ref('SystemCount')) }),
+        'Every stacking model in use, with how many cases belong to it.',
+        object({ models: arrayOf(ref('ModelCount')) }),
       ),
       ...errors(401, 403, 503),
     },
-    route: 'GET /api/cases/systems',
-    summary: 'The stacking systems in use',
+    route: 'GET /api/cases/models',
+    summary: 'The stacking models in use',
     tag: 'cases',
   },
   {

@@ -75,7 +75,7 @@ export type ImportedCase = {
   // own picture, which is why the order is kept.
   photoUrls: string[]
   sourceUrl: string
-  system: string
+  model: string
 }
 
 export type CaseImporter = {

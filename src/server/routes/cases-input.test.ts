@@ -7,14 +7,14 @@ test('a case needs a name, and nothing else is required of it', () => {
   // The maker was required too, until it became a row a case points at: a box
   // whose maker nobody has recorded is still a box, and every measurement is
   // a parameter now rather than a column with a CHECK.
-  assert.equal(parseCaseCreate({ system: 'PRO' }).ok, false)
+  assert.equal(parseCaseCreate({ model: 'PRO' }).ok, false)
 
   const parsed = parseCaseCreate({ name: ' Toolbox 2.0 ' })
 
   assert.ok(parsed.ok)
   assert.equal(parsed.value.name, 'Toolbox 2.0')
   assert.equal(parsed.value.brandId, null)
-  assert.equal(parsed.value.system, '')
+  assert.equal(parsed.value.model, '')
 })
 
 test('a maker is an id, and nonsense in its place is refused', () => {
@@ -59,7 +59,7 @@ test('a link saved before capacity became a parameter still shows the shelf', ()
 
 test('the filters are read from the query string', () => {
   const parsed = parseCaseQuery(
-    new URLSearchParams('q=toolbox&system=PRO&manufacturer=Qbrick&order=asc'),
+    new URLSearchParams('q=toolbox&model=PRO&manufacturer=Qbrick&order=asc'),
   )
 
   assert.ok(parsed.ok)
@@ -68,9 +68,9 @@ test('the filters are read from the query string', () => {
       direction: parsed.value.direction,
       manufacturer: parsed.value.manufacturer,
       search: parsed.value.search,
-      system: parsed.value.system,
+      model: parsed.value.model,
     },
-    { direction: 'asc', manufacturer: 'Qbrick', search: 'toolbox', system: 'PRO' },
+    { direction: 'asc', manufacturer: 'Qbrick', search: 'toolbox', model: 'PRO' },
   )
 })
 

@@ -1363,7 +1363,7 @@
           "referenceUrl": {
             "type": "string"
           },
-          "system": {
+          "model": {
             "type": "string"
           },
           "updatedAt": {
@@ -1386,7 +1386,7 @@
           "name",
           "notes",
           "referenceUrl",
-          "system",
+          "model",
           "updatedAt",
           "updatedBy"
         ],
@@ -1465,7 +1465,7 @@
           "referenceUrl": {
             "type": "string"
           },
-          "system": {
+          "model": {
             "type": "string"
           },
           "updatedAt": {
@@ -1485,11 +1485,11 @@
           "createdBy",
           "id",
           "labelSlots",
+          "model",
           "name",
           "notes",
           "primaryPhotoUrl",
           "referenceUrl",
-          "system",
           "updatedAt",
           "updatedBy"
         ]
@@ -1521,19 +1521,19 @@
           "total"
         ]
       },
-      "SystemCount": {
+      "ModelCount": {
         "type": "object",
         "properties": {
           "count": {
             "type": "number"
           },
-          "system": {
+          "model": {
             "type": "string"
           }
         },
         "required": [
           "count",
-          "system"
+          "model"
         ],
         "additionalProperties": false
       },
@@ -2765,7 +2765,7 @@
             "type": "string",
             "maxLength": 2000
           },
-          "system": {
+          "model": {
             "type": "string",
             "maxLength": 120
           }
@@ -2820,7 +2820,7 @@
             "type": "string",
             "maxLength": 2000
           },
-          "system": {
+          "model": {
             "type": "string",
             "maxLength": 120
           }
@@ -5427,10 +5427,10 @@
             }
           },
           {
-            "description": "Exact stacking system.",
+            "description": "Exact stacking model.",
             "example": "L-BOXX",
             "in": "query",
-            "name": "system",
+            "name": "model",
             "schema": {
               "type": "string"
             }
@@ -5938,7 +5938,7 @@
     },
     "/api/cases/{id}/attributes": {
       "post": {
-        "description": "One line off the spec sheet of a box, on exactly the terms an item's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking system, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
+        "description": "One line off the spec sheet of a box, on exactly the terms an item's parameters are: both halves required, whitespace collapsed, one name per case.\n\nThe columns hold what every box has — a length is a length — and this holds what they do not: a stacking model, a lid type, whatever the next kind of box turns out to state. Answers with the whole case rather than the row that changed.",
         "operationId": "addCaseAttribute",
         "parameters": [
           {
@@ -6281,7 +6281,7 @@
     },
     "/api/cases/{id}/import": {
       "post": {
-        "description": "Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the system, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.",
+        "description": "Reads the page again into a case that already exists. What the page knows it overwrites: the maker, the name, the model, every measurement and the note.\n\nWhat it cannot know it leaves alone — the **label slots**, which are where a sticker goes on this particular box in this particular van and about which no product page has an opinion, and the photographs, which somebody may well have taken themselves. That is why this is a refresh rather than a delete and a re-import, and why `imported.photos` is always 0 here.",
         "operationId": "refreshCaseFromPage",
         "parameters": [
           {
@@ -8388,9 +8388,9 @@
         ]
       }
     },
-    "/api/cases/systems": {
+    "/api/cases/models": {
       "get": {
-        "description": "Read from the cases themselves rather than from a table of systems, so the list is what is actually on the shelf. That is the list to offer in a filter.",
+        "description": "Read from the cases themselves rather than from a table of models, so the list is what is actually on the shelf. That is the list to offer in a filter.",
         "operationId": "listCaseSystems",
         "parameters": [
           {
@@ -8424,21 +8424,21 @@
                 "schema": {
                   "additionalProperties": false,
                   "properties": {
-                    "systems": {
+                    "models": {
                       "items": {
-                        "$ref": "#/components/schemas/SystemCount"
+                        "$ref": "#/components/schemas/ModelCount"
                       },
                       "type": "array"
                     }
                   },
                   "required": [
-                    "systems"
+                    "models"
                   ],
                   "type": "object"
                 }
               }
             },
-            "description": "Every stacking system in use, with how many cases belong to it."
+            "description": "Every stacking model in use, with how many cases belong to it."
           },
           "401": {
             "$ref": "#/components/responses/401"
@@ -8465,7 +8465,7 @@
             ]
           }
         ],
-        "summary": "The stacking systems in use",
+        "summary": "The stacking models in use",
         "tags": [
           "cases"
         ]

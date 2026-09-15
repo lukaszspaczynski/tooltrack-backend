@@ -206,7 +206,7 @@ test('the domain label survives an unclassified path', () => {
 })
 
 test('cases are the catalog, read to look and write to change', () => {
-  for (const path of ['/api/cases', '/api/cases/42', '/api/cases/systems']) {
+  for (const path of ['/api/cases', '/api/cases/42', '/api/cases/models']) {
     assert.equal(allows(path, 'GET', user('viewer')), true, path)
   }
 
@@ -216,12 +216,12 @@ test('cases are the catalog, read to look and write to change', () => {
   assert.equal(allows('/api/cases/42', 'DELETE', user('editor')), true)
 })
 
-test('the list of systems sits above the case detail pattern', () => {
-  // Or the request would be read as a case named "systems". Both rules happen
+test('the list of models sits above the case detail pattern', () => {
+  // Or the request would be read as a case named "models". Both rules happen
   // to ask for the same thing today, which is exactly why the order has to be
   // asserted rather than trusted.
-  assert.equal(routeRequirement('/api/cases/systems', 'GET').check.kind, 'capability')
-  assert.equal(routeRequirement('/api/cases/systems', 'DELETE').check.kind, 'deny')
+  assert.equal(routeRequirement('/api/cases/models', 'GET').check.kind, 'capability')
+  assert.equal(routeRequirement('/api/cases/models', 'DELETE').check.kind, 'deny')
 })
 
 test('a photo of a case is guarded exactly like a photo of an item', () => {
