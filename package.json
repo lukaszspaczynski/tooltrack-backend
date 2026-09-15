@@ -17,6 +17,7 @@
     "lint": "npm run typecheck && npm run openapi:check",
     "openapi:build": "tsx scripts/build-openapi.ts",
     "openapi:check": "tsx scripts/build-openapi.ts --check",
+    "openapi:baseline": "tsx scripts/build-openapi.ts --baseline",
     "photos:png": "tsx scripts/convert-photos-to-png.ts",
     "qbrick:cases": "tsx scripts/import-qbrick-cases.ts",
     "qbrick:import": "tsx scripts/import-qbrick-tools.ts",

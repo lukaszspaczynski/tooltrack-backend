@@ -25,6 +25,9 @@ import { HAND_WRITTEN_SCHEMAS } from '../src/openapi/schemas'
 import type { Schema } from '../src/openapi/types'
 
 const OUTPUT = 'docs/openapi.json'
+// What the last release published. The compatibility test reads it; nothing
+// writes it but `npm run openapi:baseline`.
+const BASELINE = 'docs/openapi.baseline.json'
 
 // The types the API answers with, and where they live. A type named here
 // becomes `#/components/schemas/<name>`; everything it refers to comes along
@@ -176,7 +179,14 @@ function assertNoDanglingRefs(json: string): void {
   process.exit(1)
 }
 
-if (process.argv.includes('--check')) {
+if (process.argv.includes('--baseline')) {
+  // Deliberately a separate command, and deliberately not run by the build.
+  // Moving the baseline is how a break is admitted, so it has to be something
+  // somebody typed — a build that quietly kept it level with the code would
+  // make the compatibility test a test of nothing.
+  writeFileSync(BASELINE, serialised)
+  console.log(`${BASELINE}: the released contract is now what is in the tree.`)
+} else if (process.argv.includes('--check')) {
   const current = readFileSync(OUTPUT, 'utf8')
   if (current !== serialised) {
     console.error(`${OUTPUT} is out of date. Run \`npm run openapi:build\` and commit the result.`)

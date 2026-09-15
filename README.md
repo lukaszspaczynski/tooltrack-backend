@@ -477,6 +477,20 @@ dangerous when it does not know which half of itself is missing.
 `docs/api.md` remains the prose contract and is the one to read first; the spec
 is what a second client generates itself from.
 
+Because that second client is a phone rather than a page, the document is also
+**compared against the last released one**. `docs/openapi.baseline.json` is
+that release; `src/openapi/compatibility.ts` fails the suite on anything an
+installed client could not survive — a route that stopped answering, a field
+that left a response, a request field that became required, a limit that
+tightened. Additions pass in silence, since adding is the safe half of every
+change and a check that complains about those is one nobody reads.
+
+The way to break it is to mean to: make the change, run
+`npm run openapi:baseline` in the same commit, and say why. The rule the check
+exists to support is expand and contract — add the new thing, keep writing the
+old one, take it out a release later — and `CLAUDE.md` has the worked example,
+which is a change made in this repo the wrong way round.
+
 ## Deployment
 
 `Dockerfile` builds a container that runs the TypeScript directly through

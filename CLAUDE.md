@@ -668,6 +668,45 @@ name while the slug carries the model whole. Both halves are pure functions over
 markup, pinned by tests copied from the real pages — a template change there is
 the one thing that can quietly break this engine.
 
+## Changing something a client already reads
+
+The web client is rebuilt from this repo and reloads. The second consumer is
+not: a phone carries whatever version somebody installed, and it cannot be
+asked to change on the day the API does. So the rule is **expand and contract**
+rather than rename in place.
+
+1. Add the new thing. Keep writing the old one.
+2. Move the clients over. Mark the old one deprecated in `docs/api.md`.
+3. Take the old one out, in its own release.
+
+`Referencja` → `reference_url` is what this is for, and it is also what it
+would have caught: the column was added and the parameter deleted in one step,
+so a client reading the spec sheet for an address would have found nothing and
+shown a card with no update button — no error, nothing to report, just a screen
+that stopped working. Done properly, the seeder would have gone on writing the
+parameter for one release.
+
+`src/openapi/compatibility.ts` is the part that does not rely on remembering.
+It compares `docs/openapi.json` against **`docs/openapi.baseline.json`**, the
+contract as last released, and the test fails on anything an installed client
+cannot survive:
+
+- a path or a method that stopped answering;
+- a property that left a schema, or changed type;
+- a request property that became required, or an enum that lost a value;
+- a bound that tightened — `maxLength` down is a break even though every field
+  is still there.
+
+**Additions are silent**, deliberately. Adding a field, a route or a response
+is the safe half of every change, and a check that complained about those is
+one people learn to run with their eyes shut.
+
+To break the contract on purpose: make the change, run
+`npm run openapi:baseline` **in the same commit**, and say why in the message.
+That is the whole ceremony — it makes a break a line in the history rather than
+something found later by somebody holding a phone. Nothing else writes that
+file, and the build deliberately does not keep it level with the code.
+
 ## Adding a route
 
 1. Write the handler in `src/server/routes/`, and its SQL in the matching
@@ -693,10 +732,15 @@ the one thing that can quietly break this engine.
    `src/openapi/operations.ts`. One or the other — the coverage test fails
    until a route is in exactly one of the two lists, which is how the spec
    stays honest about its own gaps rather than quietly omitting a route. Then
-   `npm run openapi:build` and commit `docs/openapi.json`.
+   `npm run openapi:build` and commit `docs/openapi.json`. A new route is an
+   addition, so the compatibility check has nothing to say about it — see
+   "Changing something a client already reads" for the case where it does.
 
 `npm run lint` is `typecheck` plus `openapi:check`, so a committed document
 that no longer matches the code fails before anyone generates a client from it.
+Whether that document is _compatible_ with the last released one is a test
+rather than a lint step, because it is a fact about two files in the repo and
+`npm test` is where facts about this repo are asserted.
 
 ## Two doors, one session
 
