@@ -67,6 +67,9 @@ test('a product page becomes a case', () => {
 
   assert.ok(found)
   assert.equal(found.brand, 'Qbrick')
+  // Every product on this site is one, and it is not read off the page: the
+  // breadcrumb there names the range rather than the kind of thing.
+  assert.equal(found.category, 'Pojemniki')
   // A box is a card of kind 'case', which is what tells the import route to
   // write one rather than a tool.
   assert.equal(found.kind, 'case')

@@ -28,6 +28,12 @@ export const qbrick: Importer = {
 
 const MANUFACTURER = 'Qbrick'
 
+// What this site sells, in the catalog's own word for it. Written here rather
+// than read off the page: the breadcrumb on qbricksystem.com names the range
+// ("System PRO") rather than the kind of thing, and a category is the word
+// somebody looks under.
+export const QBRICK_CATEGORY = 'Pojemniki'
+
 export function parseQbrickCase(html: string, pageUrl: string): null | ImportedProduct {
   const rows = specifications(html)
   // Every page on this site has a heading; only a product has this table. A
@@ -41,8 +47,11 @@ export function parseQbrickCase(html: string, pageUrl: string): null | ImportedP
   return {
     attributes: attributesOf(rows),
     brand: MANUFACTURER,
-    // A box has no category: the shelf it belongs on is the kind it is.
-    category: '',
+    // Every product on this site is one, and the catalog reads the category
+    // rather than the kind wherever it groups things: the filter on the
+    // catalog screen, the list a form offers, the heading on a card. A box
+    // arriving with none sat in the one group nobody named.
+    category: QBRICK_CATEGORY,
     kind: 'case',
     // Its product pages publish none. The downloads on this site are the
     // catalogue and the terms of sale.

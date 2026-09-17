@@ -19,6 +19,7 @@ import 'dotenv/config'
 
 import pg from 'pg'
 
+import { QBRICK_CATEGORY } from '../src/server/importers/qbrick'
 import { parseItemCreate } from '../src/server/routes/items-input'
 import { addAttribute, listAttributes } from '../src/server/routes/attributes-store'
 import { brandIdForImportedName } from '../src/server/routes/brands-store'
@@ -112,6 +113,11 @@ async function main(): Promise<void> {
       const parsed = parseItemCreate({
         ...entry,
         brandId: await brandIdForImportedName(entry.manufacturer, actorId, pool),
+        // The live importer's own word, imported rather than written again:
+        // two spellings of one category is exactly what a category list is for
+        // noticing. It is not in the manifest, which is frozen page data and
+        // says nothing about how the catalog groups things.
+        category: QBRICK_CATEGORY,
         kind: 'case',
         referenceUrl: entry.sourceUrl ?? '',
       })
@@ -147,7 +153,7 @@ function validate(manifest: Manifest): string[] {
 
     // The parser is the rule, here as in the API: bounds, types and the two
     // required fields are its business, not a second list kept in this file.
-    const parsed = parseItemCreate({ ...entry, kind: 'case' })
+    const parsed = parseItemCreate({ ...entry, category: QBRICK_CATEGORY, kind: 'case' })
     if (!parsed.ok) problems.push(`${where}: ${parsed.error}`)
 
     // Internal dimensions that exceed the external ones mean a decimal point
