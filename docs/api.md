@@ -660,9 +660,13 @@ The EAN and the SKU identify the product, not this box: two identical cases on
 the shelf are two rows carrying the same barcode, so neither is unique. That is
 the difference from an item's serial number, which is one machine.
 
-`model` is what the maker calls the range this box stacks with — "PRO", "ONE",
-"Systainer" — and it is the item's own `model` column, which is why
-`GET /api/items/models?kind=case` is the filter a shelf of boxes is read by.
+`model` is what the maker calls this box, without the maker's own name in
+front of it: "PRO Drawer 3 Toolbox 2.0 Expert". It was the range alone — "PRO"
+— until that turned out to be a fact about nine boxes rather than about one:
+every Qbrick in the workshop is a PRO, so a filter on it filtered nothing and a
+label printed from it said nothing. It is the item's own `model` column, which
+is why `GET /api/items/models?kind=case` is the filter a shelf of boxes is read
+by.
 
 ### `GET /api/items/models` — `catalog.read`
 

@@ -272,6 +272,14 @@ every unit is written into the value — `450 [L] x 322 [W] x 126 [H] mm` — an
 all thirteen rows become parameters, because a box is mostly measurements and a
 measurement is a row.
 
+Its **model is the heading without "Qbrick System" in front of it** — "PRO
+Drawer 3 Toolbox 2.0 Expert". It was the word after SYSTEM, which reads like a
+model and is not one: every Qbrick in a workshop is a PRO, so six cards carried
+the same model and neither the filter nor a printed label could tell two of
+them apart. The range is still read (`lineOf`), because it is the one token in
+a shouted heading that is capitals on purpose and has to survive the
+title-casing.
+
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
 otherwise show it as its source for ever after.

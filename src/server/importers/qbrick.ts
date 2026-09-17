@@ -47,10 +47,11 @@ export function parseQbrickCase(html: string, pageUrl: string): null | ImportedP
     // Its product pages publish none. The downloads on this site are the
     // catalogue and the terms of sale.
     manuals: [],
-    // What the maker calls the range this box stacks with: PRO, ONE. The same
-    // fact an item card calls a model, which is what it is now.
+    // What this box is called, without the maker's own name in front of it:
+    // "PRO Drawer 3 Toolbox 2.0 Expert". The range alone — "PRO" — is what
+    // every Qbrick in the workshop is, which tells none of them apart.
     model: modelOf(heading),
-    name: nameOf(heading, modelOf(heading)),
+    name: nameOf(heading, lineOf(heading)),
     notes: descriptionOf(html),
     photoUrls: photosOf(html),
     sourceUrl: pageUrl,
@@ -104,24 +105,51 @@ export function measurement(value: string | undefined): null | number {
   return Number.isFinite(number) && number > 0 ? number : null
 }
 
+// What every product on this site is called before it is called anything: the
+// maker and the word "System". The card already says both — the maker is a row
+// it points at — so the model is what is left after it.
+const MAKER_PREFIX = /^qbrick\s+system\s+/i
+
 // "QBRICK SYSTEM PRO TOOLCASE" — the word after "SYSTEM" is the line this box
-// belongs to, and it is the one token in the name that is capitals on purpose.
-export function modelOf(heading: string): string {
+// belongs to, and it is the one token in the heading that is capitals on
+// purpose. Not the model: the model is the whole of what this box is called.
+export function lineOf(heading: string): string {
   const after = /\bsystem\s+(\S+)/i.exec(heading)?.[1] ?? ''
 
   return after.toLocaleUpperCase('en-US')
 }
 
+// The heading without the maker's own name: "PRO Drawer 3 Toolbox 2.0 Expert".
+//
+// It was the line alone — "PRO" — and that is a fact about nine boxes rather
+// than about this one. Every Qbrick in a workshop is a PRO, so a filter on it
+// filters nothing and a label printed from it says nothing; what tells two of
+// them apart is the rest of the heading, which is exactly what the maker calls
+// the model.
+//
+// A heading that does not start with the maker's name has nothing to strip and
+// therefore no model: it would otherwise be the name repeated one line down,
+// which is worse than an empty field.
+export function modelOf(heading: string): string {
+  const rest = MAKER_PREFIX.test(heading) ? heading.replace(MAKER_PREFIX, '') : ''
+
+  return rest ? readable(rest, lineOf(heading)) : ''
+}
+
 // The page shouts. A van full of boxes labelled in capitals is a van nobody can
-// read, so the name is title-cased — and then the model is put back as it was,
-// because "Pro" is a word and "PRO" is the name of a line.
-export function nameOf(heading: string, model: string): string {
+// read, so the name is title-cased — and then the line is put back as it was,
+// because "Pro" is a word and "PRO" is the name of a range.
+export function nameOf(heading: string, line: string): string {
+  return readable(heading, line)
+}
+
+function readable(heading: string, line: string): string {
   return heading
     .toLocaleLowerCase('pl-PL')
     .split(/\s+/)
     .map((word) =>
-      word.toLocaleUpperCase('en-US') === model
-        ? model
+      word.toLocaleUpperCase('en-US') === line
+        ? line
         : word.charAt(0).toLocaleUpperCase('pl-PL') + word.slice(1),
     )
     .join(' ')

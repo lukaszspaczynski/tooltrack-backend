@@ -11,6 +11,7 @@ import {
   parseQbrickCase,
   photosOf,
   specifications,
+  lineOf,
   modelOf,
 } from './qbrick'
 
@@ -69,7 +70,7 @@ test('a product page becomes a case', () => {
   // A box is a card of kind 'case', which is what tells the import route to
   // write one rather than a tool.
   assert.equal(found.kind, 'case')
-  assert.equal(found.model, 'PRO')
+  assert.equal(found.model, 'PRO Toolcase')
   // The barcode and the catalogue number are parameters now, like every other
   // row the table states.
   assert.equal(valueOf(found.attributes, 'EAN'), '5901238254232')
@@ -87,9 +88,22 @@ test('the page shouts and the catalog does not', () => {
   )
 })
 
-test('the model is the word the heading puts after SYSTEM', () => {
-  assert.equal(modelOf('QBRICK SYSTEM PRO TOOLCASE'), 'PRO')
+test('the model is the heading without the maker in front of it', () => {
+  // The range alone — "PRO" — is what every Qbrick in a workshop is, so it
+  // tells none of them apart. What does is the rest of the heading.
+  assert.equal(modelOf('QBRICK SYSTEM PRO TOOLCASE'), 'PRO Toolcase')
+  assert.equal(
+    modelOf('QBRICK SYSTEM PRO DRAWER 3 TOOLBOX 2.0 EXPERT'),
+    'PRO Drawer 3 Toolbox 2.0 Expert',
+  )
+  // Nothing to strip is nothing to call a model: it would be the name repeated
+  // one line down, which is worse than an empty field.
   assert.equal(modelOf('Skrzynka bez systemu'), '')
+})
+
+test('the range is the one word the heading shouts on purpose', () => {
+  assert.equal(lineOf('QBRICK SYSTEM PRO TOOLCASE'), 'PRO')
+  assert.equal(lineOf('Skrzynka bez systemu'), '')
 })
 
 test('a box is three numbers, whatever the labels around them say', () => {
