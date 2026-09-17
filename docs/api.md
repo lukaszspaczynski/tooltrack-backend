@@ -820,8 +820,10 @@ pairings go with it, and the pictures no other card uses go with those.
 
 ### `POST /api/items/:id/photos/:photoId/cutout` — `catalog.write`
 
-Take this photo and give back the item alone, without the workbench, the case
-or the hands holding it.
+Take this photo and give back the thing in it without its background — without
+the workbench, the case or the hands holding it. The screens call it "wycinanie
+tła", which is what every service that does it calls it too: what the method
+recognises is the background, not the drill.
 
 `201 { photo, provider }`. It **adds** a photo rather than replacing one: the
 original stays, the new one carries `source: "edit"` and `derivedFrom` with
@@ -830,13 +832,13 @@ a cutout beats the photograph is a judgement for whoever sees both.
 
 Three refusals, and they mean different things:
 
-- `422` — this photograph cannot be cut out. The default method needs a plain
-  light background; a picture taken on a workbench has none. Try another photo,
-  or point the server at an AI provider.
+- `422` — the background of this photograph cannot be found. The default method
+  needs a plain light one; a picture taken on a workbench has none. Try another
+  photo, or point the server at an AI provider.
 - `503` — the configured service is unavailable or the feature is switched off.
   Nothing to do with this photo.
 - `409` — the result is byte-identical to a photo already on the card, which
-  means it was cut out once before. The local method is deterministic, so this
+  means its background was cut out once before. The local method is deterministic, so this
   is how a second press answers.
 
 Takes seconds rather than milliseconds. Clients should show progress on the

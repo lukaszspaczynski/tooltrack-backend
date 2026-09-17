@@ -383,7 +383,11 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
     return Response.json({ photo }, { status: 201 })
   } catch (error) {
     if (error instanceof PhotoAlreadyExistsError) {
-      return errorResponse(409, 'PHOTO_ALREADY_ON_CARD', t('Takie wycięcie już jest na tej karcie'))
+      return errorResponse(
+        409,
+        'PHOTO_ALREADY_ON_CARD',
+        t('To zdjęcie bez tła już jest na tej karcie'),
+      )
     }
     throw error
   }
@@ -706,7 +710,11 @@ function cutoutError(error: unknown): Response {
     return errorResponse(503, error.code, error.message)
   }
   if (error instanceof PhotoAlreadyExistsError) {
-    return errorResponse(409, 'PHOTO_ALREADY_ON_CARD', t('Takie wycięcie już jest na tej karcie'))
+    return errorResponse(
+      409,
+      'PHOTO_ALREADY_ON_CARD',
+      t('To zdjęcie bez tła już jest na tej karcie'),
+    )
   }
   throw error
 }

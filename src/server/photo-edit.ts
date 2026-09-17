@@ -1,10 +1,15 @@
-// "Wytnij samo narzędzie" — the AI edit behind
+// "Wytnij tło" — the AI edit behind
 // POST /api/items/:id/photos/:photoId/cutout.
 //
-// One operation, not an editor: take a photo of an item on a workbench, in a
-// case, in someone's hand, and give back the item alone. That is the edit a
-// catalog needs, and it is a request a model can be held to. A general "edit
-// this picture with a prompt" would be a different product.
+// One operation, not an editor: take a photo of a thing on a workbench, in a
+// case, in someone's hand, and give back it without its background. That is
+// the edit a catalog needs, and it is a request a model can be held to. A
+// general "edit this picture with a prompt" would be a different product.
+//
+// The screens say "wycinanie tła" and this module is still `cutout`: what the
+// operation recognises is the background, which is what every service that
+// does it is named after, while the route, the settings table and the stored
+// `source: 'edit'` are a contract and a schema rather than words on a screen.
 //
 // The provider is a deploy variable, like the photo search. remove.bg is the
 // purpose-built one and returns real transparency; Gemini is the general model
@@ -97,7 +102,7 @@ export async function cutoutSubject(
 ): Promise<CutoutResult> {
   if (config.allowed.length === 0) {
     throw new PhotoEditUnavailableError(
-      t('Żadna metoda wycinania nie jest włączona — sprawdź Ustawienia'),
+      t('Żadna metoda wycinania tła nie jest włączona — sprawdź Ustawienia'),
     )
   }
 
@@ -140,7 +145,7 @@ function callAi(
 function finish(result: Uint8Array, provider: PhotoEditProvider): CutoutResult {
   const metadata = readImageMetadata(result)
   if (!metadata) {
-    throw new PhotoEditUnavailableError(t('Wycinanie zwróciło coś, co nie jest obrazem'))
+    throw new PhotoEditUnavailableError(t('Wycinanie tła zwróciło coś, co nie jest obrazem'))
   }
 
   return { bytes: result, metadata, provider }
@@ -231,7 +236,7 @@ async function call(url: string, init: RequestInit): Promise<Response> {
   } catch {
     // Cutting out takes seconds, not milliseconds; a timeout here usually
     // means the service is struggling rather than that we asked wrongly.
-    throw new PhotoEditUnavailableError(t('Usługa wycinania nie odpowiedziała na czas'))
+    throw new PhotoEditUnavailableError(t('Usługa wycinania tła nie odpowiedziała na czas'))
   }
 
   if (!response.ok) {
@@ -244,8 +249,8 @@ async function call(url: string, init: RequestInit): Promise<Response> {
     // key back and is written for us, not for whoever pressed the button.
     throw new PhotoEditUnavailableError(
       response.status === 402 || response.status === 429
-        ? t('Wyczerpany limit usługi wycinania. Spróbuj później.')
-        : t('Usługa wycinania odpowiedziała błędem'),
+        ? t('Wyczerpany limit usługi wycinania tła. Spróbuj później.')
+        : t('Usługa wycinania tła odpowiedziała błędem'),
     )
   }
 

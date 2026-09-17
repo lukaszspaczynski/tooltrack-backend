@@ -39,7 +39,8 @@ export const EN: Record<string, string> = {
   'Ta instrukcja jest już na tej karcie': 'That manual is already on this card',
   'Ten parametr jest już na tej karcie: {name}': 'That parameter is already on this card: {name}',
   'To zdjęcie jest już logo innej marki': 'That photo is already another maker’s logo',
-  'Takie wycięcie już jest na tej karcie': 'That cutout is already on this card',
+  'To zdjęcie bez tła już jest na tej karcie':
+    'That photo without its background is already on this card',
   'Marka „{name}” już istnieje': 'The maker “{name}” already exists',
   'Numer {number} jest już zajęty przez inny organizer':
     'Number {number} is already taken by another arrangement',
@@ -103,26 +104,28 @@ export const EN: Record<string, string> = {
   'Podgląd jest uszkodzony': 'The preview is damaged',
   'Podgląd wygasł — wygeneruj go ponownie': 'The preview has expired — generate it again',
 
-  // Cutting the item out of a photo
-  'Żadna metoda wycinania nie jest włączona — sprawdź Ustawienia':
-    'No cutout method is switched on — see Settings',
+  // Cutting the background out of a photo
+  'Żadna metoda wycinania tła nie jest włączona — sprawdź Ustawienia':
+    'No background removal method is switched on — see Settings',
   'Metoda {provider} nie jest dostępna — włącz ją i uzupełnij klucz w Ustawieniach':
     'The {provider} method is unavailable — switch it on and fill in its key in Settings',
-  'Usługa wycinania nie odpowiedziała na czas': 'The cutout service did not answer in time',
-  'Usługa wycinania odpowiedziała błędem': 'The cutout service answered with an error',
-  'Wyczerpany limit usługi wycinania. Spróbuj później.':
-    'The cutout service’s quota is used up. Try later.',
-  'Wycinanie zwróciło coś, co nie jest obrazem':
-    'The cutout returned something that is not an image',
+  'Usługa wycinania tła nie odpowiedziała na czas':
+    'The background removal service did not answer in time',
+  'Usługa wycinania tła odpowiedziała błędem':
+    'The background removal service answered with an error',
+  'Wyczerpany limit usługi wycinania tła. Spróbuj później.':
+    'The background removal service’s quota is used up. Try later.',
+  'Wycinanie tła zwróciło coś, co nie jest obrazem':
+    'The background removal returned something that is not an image',
   'Model nie zwrócił obrazu — spróbuj z innym zdjęciem':
     'The model returned no image — try another photo',
-  'Nie znaleziono narzędzia na tym zdjęciu': 'No item was found in this photo',
-  'Narzędzie wypełnia już całe zdjęcie — nie ma czego wycinać':
-    'The item already fills the whole photo — there is nothing to cut out',
-  'Obiekt na zdjęciu jest za mały — sprawdź, czy to zdjęcie narzędzia':
-    'The object in the photo is too small — check that this is a photo of an item',
-  'To zdjęcie nie ma jednolitego jasnego tła — wycinanie bez AI zadziała tylko na zdjęciach katalogowych':
-    'This photo has no even, light background — cutting out without AI works on catalog photos only',
+  'Nie znaleziono przedmiotu na tym zdjęciu': 'No object was found in this photo',
+  'Przedmiot wypełnia całe zdjęcie — nie ma tła do wycięcia':
+    'The object fills the whole photo — there is no background to cut out',
+  'Obiekt na zdjęciu jest za mały — sprawdź, czy to zdjęcie przedmiotu':
+    'The object in the photo is too small — check that this is a photo of a thing',
+  'To zdjęcie nie ma jednolitego jasnego tła — wycinanie tła bez AI zadziała tylko na zdjęciach katalogowych':
+    'This photo has no even, light background — removing it without AI works on catalog photos only',
 
   // Searching the web for photos
   'Żadna wyszukiwarka nie jest włączona — sprawdź Ustawienia':
@@ -141,12 +144,12 @@ export const EN: Record<string, string> = {
     'An image search with an index of its own. Key from api-dashboard.search.brave.com, with a free monthly allowance.',
   'Sklep z elektronarzędziami. Nie szuka obrazków w sieci — znajduje kartę produktu i bierze zdjęcia z jej galerii, więc dostaje się komplet ujęć jednego modelu w pełnej rozdzielczości. Bez klucza. Zna tylko to, czym sklep handluje.':
     'A power item shop. It does not search the web for pictures — it finds the product page and takes the photos from its gallery, so you get a full set of shots of one model at full resolution. No key. It knows only what the shop sells.',
-  'Bez klucza, odpowiedź w ułamku sekundy, przezroczyste tło. Działa na zdjęciach katalogowych — narzędzie na jasnym, jednolitym tle; inne odrzuca.':
-    'No key, an answer in a fraction of a second, a transparent background. It works on catalog photos — an item on a light, even ground; anything else it refuses.',
-  'Usługa zbudowana do wycinania. Radzi sobie ze zdjęciami z ręki i z warsztatu, zwraca przezroczyste PNG. Klucz z remove.bg/api, 50 zdjęć miesięcznie za darmo.':
-    'A service built for cutting out. It copes with handheld and workshop photos and returns a transparent PNG. Key from remove.bg/api, 50 photos a month free.',
-  'Model ogólny. Zwraca narzędzie na jednolitym białym tle, bez przezroczystości. Klucz z aistudio.google.com — inny niż ten do wyszukiwarki.':
-    'A general model. It returns the item on an even white ground, with no transparency. Key from aistudio.google.com — a different one from the search key.',
+  'Bez klucza, odpowiedź w ułamku sekundy, przezroczyste tło. Działa na zdjęciach katalogowych — przedmiot na jasnym, jednolitym tle; inne odrzuca.':
+    'No key, an answer in a fraction of a second, a transparent background. It works on catalog photos — the object on a light, even ground; anything else it refuses.',
+  'Usługa zbudowana do wycinania tła. Radzi sobie ze zdjęciami z ręki i z warsztatu, zwraca przezroczyste PNG. Klucz z remove.bg/api, 50 zdjęć miesięcznie za darmo.':
+    'A service built for removing backgrounds. It copes with handheld and workshop photos and returns a transparent PNG. Key from remove.bg/api, 50 photos a month free.',
+  'Model ogólny. Zwraca przedmiot na jednolitym białym tle, bez przezroczystości. Klucz z aistudio.google.com — inny niż ten do wyszukiwarki.':
+    'A general model. It returns the object on an even white ground, with no transparency. Key from aistudio.google.com — a different one from the search key.',
   'Lokalny skrypt': 'Local script',
   'Klucz remove.bg': 'remove.bg key',
   'Klucz Gemini': 'Gemini key',

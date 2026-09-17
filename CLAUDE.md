@@ -541,7 +541,7 @@ made when the pure-JavaScript decoder turned out not to read WebP, which is
 most of what an image search returns. The sibling project this repo's
 conventions come from uses sharp for the same reason.
 
-`cutout-local.ts` is the default cutout: a pure function over RGBA bytes
+`cutout-local.ts` is the default method: a pure function over RGBA bytes
 (background flood from the border, closing, largest component, crop) with
 `image-convert.ts` on either side of it. It refuses unsuitable photos with
 `PhotoNotSuitableError`, which the route answers as 422; a missing or failing

@@ -23,7 +23,7 @@ export const CUTOUT_METHOD_DEFINITIONS: readonly CutoutMethodDefinition[] = [
     keyLabel: '',
     label: 'Lokalny skrypt',
     method: 'local',
-    note: 'Bez klucza, odpowiedź w ułamku sekundy, przezroczyste tło. Działa na zdjęciach katalogowych — narzędzie na jasnym, jednolitym tle; inne odrzuca.',
+    note: 'Bez klucza, odpowiedź w ułamku sekundy, przezroczyste tło. Działa na zdjęciach katalogowych — przedmiot na jasnym, jednolitym tle; inne odrzuca.',
     requiresKey: false,
   },
   {
@@ -31,7 +31,7 @@ export const CUTOUT_METHOD_DEFINITIONS: readonly CutoutMethodDefinition[] = [
     keyLabel: 'Klucz remove.bg',
     label: 'remove.bg',
     method: 'removebg',
-    note: 'Usługa zbudowana do wycinania. Radzi sobie ze zdjęciami z ręki i z warsztatu, zwraca przezroczyste PNG. Klucz z remove.bg/api, 50 zdjęć miesięcznie za darmo.',
+    note: 'Usługa zbudowana do wycinania tła. Radzi sobie ze zdjęciami z ręki i z warsztatu, zwraca przezroczyste PNG. Klucz z remove.bg/api, 50 zdjęć miesięcznie za darmo.',
     requiresKey: true,
   },
   {
@@ -39,7 +39,7 @@ export const CUTOUT_METHOD_DEFINITIONS: readonly CutoutMethodDefinition[] = [
     keyLabel: 'Klucz Gemini',
     label: 'Gemini',
     method: 'gemini',
-    note: 'Model ogólny. Zwraca narzędzie na jednolitym białym tle, bez przezroczystości. Klucz z aistudio.google.com — inny niż ten do wyszukiwarki.',
+    note: 'Model ogólny. Zwraca przedmiot na jednolitym białym tle, bez przezroczystości. Klucz z aistudio.google.com — inny niż ten do wyszukiwarki.',
     requiresKey: true,
   },
 ]

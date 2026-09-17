@@ -108,7 +108,7 @@ export function planCutout(
     return {
       ok: false,
       reason: t(
-        'To zdjęcie nie ma jednolitego jasnego tła — wycinanie bez AI zadziała tylko na zdjęciach katalogowych',
+        'To zdjęcie nie ma jednolitego jasnego tła — wycinanie tła bez AI zadziała tylko na zdjęciach katalogowych',
       ),
     }
   }
@@ -126,20 +126,20 @@ export function planCutout(
 
   const { bestLabel, bestSize, labels } = largestComponent(closed, width, height)
   if (bestSize === 0) {
-    return { ok: false, reason: t('Nie znaleziono narzędzia na tym zdjęciu') }
+    return { ok: false, reason: t('Nie znaleziono przedmiotu na tym zdjęciu') }
   }
 
   const coverage = bestSize / total
   if (coverage > options.maxCoverage) {
     return {
       ok: false,
-      reason: t('Narzędzie wypełnia już całe zdjęcie — nie ma czego wycinać'),
+      reason: t('Przedmiot wypełnia całe zdjęcie — nie ma tła do wycięcia'),
     }
   }
   if (coverage < options.minCoverage) {
     return {
       ok: false,
-      reason: t('Obiekt na zdjęciu jest za mały — sprawdź, czy to zdjęcie narzędzia'),
+      reason: t('Obiekt na zdjęciu jest za mały — sprawdź, czy to zdjęcie przedmiotu'),
     }
   }
 

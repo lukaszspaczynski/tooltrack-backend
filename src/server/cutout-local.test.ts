@@ -119,7 +119,7 @@ test('a close-up with nothing to trim is refused', () => {
   const plan = planCutout(image.pixels, image.width, image.height)
 
   assert.equal(plan.ok, false)
-  assert.match(plan.ok ? '' : plan.reason, /wypełnia już całe zdjęcie/)
+  assert.match(plan.ok ? '' : plan.reason, /nie ma tła do wycięcia/)
 })
 
 test('a speck of dust is not an item', () => {
