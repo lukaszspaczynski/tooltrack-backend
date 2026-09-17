@@ -569,6 +569,14 @@ string beside it once, and the DDL backfilled — every distinct non-empty
 `item.brand` became a row and every item was pointed at its own, idempotently —
 before the string was dropped. See "One card for everything owned".
 
+**Renaming a maker therefore writes one row.** It used to write the new name
+onto every item pointing at it, in the same transaction, and that statement
+outlived the column by three commits: `updateBrand` went on sending
+`UPDATE item SET brand = …`, every save of a brand answered 500, and the store
+test passed the whole time — a recording fake cannot know a column has been
+dropped. When a column goes, grep for it in the writers, not only in the
+readers.
+
 Cases are part of this like everything else: a box points at its maker with the
 same column, because a box is a card.
 

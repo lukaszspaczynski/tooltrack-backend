@@ -87,30 +87,20 @@ test('two makers cannot share a name, whatever the capitals', async () => {
   )
 })
 
-test('renaming a maker renames it on its items as well', async () => {
-  // The card carries the name as text, which is what the catalog searches.
-  // Renaming one without the other leaves them telling different stories.
-  const { calls, pool } = fakePool([
-    [],
-    [{ id: '1' }],
-    [],
-    [brandRow({ name: 'Bosch Professional' })],
-  ])
+test('renaming a maker writes one statement and touches no card', () => {
+  // It used to rewrite the maker's name on every item that pointed here,
+  // because a card carried it as text beside the pointer. The text is gone —
+  // that is what collapsing the maker to `brand_id` was for — and this asserts
+  // it stays gone: the statement was still being sent after the column had
+  // been dropped, and every save of a brand answered 500. A fake pool cannot
+  // notice a column that is not there.
+  const { calls, pool } = fakePool([[{ id: '1' }], [brandRow({ name: 'Bosch Professional' })]])
 
-  await updateBrand(1, { name: 'Bosch Professional' }, 7, pool)
-
-  const update = calls.find((call) => /UPDATE "catalog"\."item" SET "brand"/.test(call.text))
-  assert.ok(update, 'the items should be renamed too')
-  assert.deepEqual(update!.params, [1, 'Bosch Professional'])
-})
-
-test('a rename that touches no items still only runs inside the transaction', async () => {
-  const { calls, pool } = fakePool([[], [{ id: '1' }], [], [brandRow()]])
-
-  await updateBrand(1, { notes: 'tylko notatka' }, 7, pool)
-
-  // No name in the patch, so nothing on the items is touched.
-  assert.equal(calls.filter((call) => /UPDATE "catalog"\."item"/.test(call.text)).length, 0)
+  return updateBrand(1, { name: 'Bosch Professional' }, 7, pool).then(() => {
+    assert.equal(calls.filter((call) => /UPDATE "catalog"\."item"/.test(call.text)).length, 0)
+    assert.match(calls[0].text, /UPDATE "catalog"\."brand"/)
+    assert.equal(calls.filter((call) => /BEGIN/.test(call.text)).length, 0)
+  })
 })
 
 test('a logo that already belongs to another brand is refused, not moved', async () => {

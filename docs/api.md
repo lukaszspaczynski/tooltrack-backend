@@ -1149,13 +1149,15 @@ not a colour, is a `400` rather than a silently dropped field.
 
 ### `GET|PATCH|DELETE /api/brands/:id` — `catalog.read` / `catalog.write`
 
-A `PATCH` takes `name`, `notes` and `color`. **Renaming rewrites the maker on
-its items** in the same transaction — the card carries the name as text, and
-renaming one without the other leaves them telling different stories.
+A `PATCH` takes `name`, `notes` and `color`. **Renaming touches nothing else**:
+a card points at the maker and reads the name through a join, so the new name is
+on every card that points here as soon as this answers. It used to rewrite the
+name on each of them in the same transaction, because a card carried it as text
+beside the pointer; collapsing the maker to `brand_id` is what took that away.
 
-`DELETE` removes the row. The items stay and keep the maker's name as text;
-they simply stop pointing at it. Deleting the grouping is not a claim about who
-made them.
+`DELETE` removes the row. The items stay and simply stop pointing at it —
+`brand` reads `null` on them afterwards. Deleting the grouping is not a claim
+about who made them.
 
 ### `PUT /api/brands/:id/logo` — `catalog.write`
 

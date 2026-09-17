@@ -4,7 +4,7 @@
 // aggregates in the one statement: a screen of makers would otherwise ask per
 // row, twice.
 
-import { db, withTransaction, type PgPool } from '../db'
+import { db, type PgPool } from '../db'
 import type { ErrorCode } from '../error-codes'
 import type { BrandFields, BrandPatch, BrandQuery } from './brands-input'
 import { photoUrl } from './photos-store'
@@ -175,29 +175,23 @@ export async function updateBrand(
   if (assignments.length === 0) return getBrand(id, pool)
 
   try {
-    return await withTransaction(pool, async (client) => {
-      const result = await client.query(
-        `
-          UPDATE "catalog"."brand"
-          SET ${assignments.join(', ')}, "updated_by" = $2, "updated_at" = now()
-          WHERE "id" = $1
-        `,
-        params,
-      )
-      if ((result.rowCount ?? 0) === 0) return null
+    const result = await pool.query(
+      `
+        UPDATE "catalog"."brand"
+        SET ${assignments.join(', ')}, "updated_by" = $2, "updated_at" = now()
+        WHERE "id" = $1
+      `,
+      params,
+    )
+    if ((result.rowCount ?? 0) === 0) return null
 
-      // The item cards carry the maker's name as text as well, which is what
-      // the catalog searches and what a card shows. Renaming the brand without
-      // it would leave the two telling different stories about the same item.
-      if (patch.name !== undefined) {
-        await client.query(`UPDATE "catalog"."item" SET "brand" = $2 WHERE "brand_id" = $1`, [
-          id,
-          patch.name,
-        ])
-      }
-
-      return getBrand(id, client as unknown as PgPool)
-    })
+    // Nothing else to write. A rename used to rewrite the maker's name on
+    // every item that pointed here, because a card carried it as text beside
+    // the pointer and the two had to be kept in step; the text is gone, which
+    // is what collapsing the maker to `brand_id` was for. It was also a
+    // transaction for that reason, and with one statement left it is one
+    // statement.
+    return getBrand(id, pool)
   } catch (error) {
     if ((error as { code?: string }).code === '23505') {
       throw new BrandNameTakenError(patch.name ?? '')
