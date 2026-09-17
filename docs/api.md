@@ -903,6 +903,23 @@ Turns a preview into a photo: `source: "edit"`, `derivedFrom` the original,
 cache — in which case it is generated again rather than half-saved; or if that
 exact cutout is already on the card.
 
+#### The same screen for a picture on no card
+
+**`POST /api/photos/:id/cutout/preview`**, **`GET /api/photos/:id/cutout/preview/:checksum`**
+and **`POST /api/photos/:id/cutout/commit`** — `catalog.write` — are the same
+three, addressed by the picture rather than by a card that shows it.
+
+They exist because the first three cannot answer for a picture nobody has
+placed: a **brand's logo**, which is on no card and never will be, and anything
+still on the unassigned shelf. A logo is the picture most worth cutting a
+background out of, so the wand in the library had one obvious thing it could
+not do.
+
+The body, the answer and every refusal are the same, with one difference:
+`commit` here writes a picture of nothing in particular rather than one of a
+card, so **there is no `409` about a card**. The same bytes twice is the same
+row, the way a second upload of one file is.
+
 ### `GET /api/items/:id/photo-suggestions` — `catalog.write`
 
 `?source=page` answers from the **product page this card was imported from**

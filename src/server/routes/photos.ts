@@ -28,7 +28,7 @@ import { PhotoNotSuitableError } from '../cutout-local'
 import { cutoutSubject, PhotoEditUnavailableError } from '../photo-edit'
 import { readCutoutConfig } from './cutout-settings-store'
 import { parseAttachIds } from './media-input'
-import { parseCutoutCommitInput, parseCutoutRunInput } from './settings-input'
+import { parseCutoutCommitInput, parseCutoutRunInput, type CutoutRunInput } from './settings-input'
 import {
   defaultCaseQuery,
   defaultQuery,
@@ -281,6 +281,24 @@ export async function cutoutPreviewPOST(
   const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
+  return runCutoutPreview(
+    original,
+    (checksum) => `${ownerPath(target.owner)}/photos/${target.photoId}/cutout/preview/${checksum}`,
+    parsed.value,
+  )
+}
+
+// The half the card's screen and the library's share: read the bytes, run the
+// method, put the result in the preview cache.
+//
+// The two differ in one thing only — where the preview is readable from, which
+// is a path under the card on one screen and under the picture itself on the
+// other — so that arrives as a function rather than as a second copy of this.
+export async function runCutoutPreview(
+  original: { contentType: string; storageKey: string },
+  previewUrl: (checksum: string) => string,
+  options: CutoutRunInput,
+): Promise<Response> {
   const bytes = await readPhotoBytes(original.storageKey)
   if (!bytes) return photoNotFound()
 
@@ -289,7 +307,7 @@ export async function cutoutPreviewPOST(
       bytes,
       original.contentType,
       await readCutoutConfig(),
-      parsed.value,
+      options,
     )
     const png = await toStoredPng(cutout.bytes)
     // Into the preview cache, not the photo store: a cutout nobody accepts
@@ -302,7 +320,7 @@ export async function cutoutPreviewPOST(
         checksum: stored.checksum,
         contentType: png.metadata.contentType,
         height: png.metadata.height,
-        url: `${ownerPath(target.owner)}/photos/${target.photoId}/cutout/preview/${stored.checksum}`,
+        url: previewUrl(stored.checksum),
         width: png.metadata.width,
       },
       provider: cutout.provider,
@@ -351,9 +369,23 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
   const original = await getCardPhoto(target.owner, target.photoId)
   if (!original) return photoNotFound()
 
-  const preview = await readPreviewBytes(parsed.value.checksum)
-  // Expired, or from a tab left open since yesterday. Asked for again rather
-  // than half-saved.
+  return keepCutout(original, parsed.value.checksum, (input) =>
+    addToCard(target.owner, input, actorId),
+  )
+}
+
+// The other half both screens share: turn a preview into a photo.
+//
+// They differ in what "a photo" means — one of this card's, or one on the
+// library shelf — so the write arrives as a function. Everything before it is
+// the same: the preview may have expired under a tab left open since
+// yesterday, and it is asked for again rather than half-saved.
+export async function keepCutout(
+  original: { attribution: string; id: number; sourceUrl: string },
+  checksum: string,
+  save: (input: Parameters<typeof insertPhoto>[0]) => Promise<{ id: number }>,
+): Promise<Response> {
+  const preview = await readPreviewBytes(checksum)
   if (!preview) {
     return errorResponse(409, 'PREVIEW_EXPIRED', t('Podgląd wygasł — wygeneruj go ponownie'))
   }
@@ -367,18 +399,14 @@ export async function cutoutCommitPOST(request: Request, context: RouteContext):
     // the client's idea of what it accepted — does not change.
     const stored = await savePhotoBytes(preview.bytes, metadata.contentType)
 
-    const photo = await addToCard(
-      target.owner,
-      {
-        attribution: original.attribution,
-        derivedFrom: original.id,
-        metadata,
-        source: 'edit',
-        sourceUrl: original.sourceUrl,
-        stored,
-      },
-      actorId,
-    )
+    const photo = await save({
+      attribution: original.attribution,
+      derivedFrom: original.id,
+      metadata,
+      source: 'edit',
+      sourceUrl: original.sourceUrl,
+      stored,
+    })
 
     return Response.json({ photo }, { status: 201 })
   } catch (error) {

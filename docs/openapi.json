@@ -11851,6 +11851,328 @@
         ]
       }
     },
+    "/api/photos/{id}/cutout/commit": {
+      "post": {
+        "description": "Keeps a preview as a picture of nothing in particular. No 409 about a card, because there is no card: the same bytes twice is the same row, the way a second upload of one file is.",
+        "operationId": "commitLibraryCutout",
+        "parameters": [
+          {
+            "description": "The photograph the preview was made from.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CutoutCommitBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "photo": {
+                      "$ref": "#/components/schemas/Photo"
+                    }
+                  },
+                  "required": [
+                    "photo"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Kept."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The preview has expired or is damaged."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Keep a previewed cutout with no card",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
+    "/api/photos/{id}/cutout/preview": {
+      "post": {
+        "description": "The same cutout screen for a picture that is on no card — a brand’s logo, or anything still on the unassigned shelf. The pair under a card cannot answer for those, and a logo is the picture most worth cutting a background out of.\n\nThe body, the answer and the refusals are the card version’s.",
+        "operationId": "previewLibraryCutout",
+        "parameters": [
+          {
+            "description": "The photograph.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CutoutRunBody"
+              }
+            }
+          },
+          "description": "Optional. Omit it entirely to use the configured settings.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CutoutPreviewResponse"
+                }
+              }
+            },
+            "description": "The cutout, cached rather than stored."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The picture is not one this method can cut out."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "Try a cutout on a picture with no card",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
+    "/api/photos/{id}/cutout/preview/{checksum}": {
+      "get": {
+        "description": "Addressed by checksum, like the card’s: nothing here can serve a file that was not produced by a cutout somebody just ran.",
+        "operationId": "getLibraryCutoutPreview",
+        "parameters": [
+          {
+            "description": "The photograph the preview was made from.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The `preview.checksum` the preview call answered with.",
+            "in": "path",
+            "name": "checksum",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Picks the language of any prose this API returns. `pl` and `en` are understood; anything else falls back to Polish.",
+            "example": "pl",
+            "in": "header",
+            "name": "Accept-Language",
+            "schema": {
+              "enum": [
+                "pl",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Which build is calling, as `name/version` — `mobile/1.4.2`. Logged the first time each build is seen, which is how \"may the old field go yet\" gets an answer. When `TOOLTRACK_MIN_CLIENT` names a floor for this client and the build is under it, every route but the public ones answers 426.",
+            "example": "mobile/1.4.2",
+            "in": "header",
+            "name": "X-ToolTrack-Client",
+            "schema": {
+              "pattern": "^[A-Za-z][A-Za-z0-9-]*/\\d+(\\.\\d+){0,3}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/png": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The preview image."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "No such preview, or it has expired."
+          },
+          "426": {
+            "$ref": "#/components/responses/426"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": [
+              "catalog.write"
+            ]
+          },
+          {
+            "bearerAuth": [
+              "catalog.write"
+            ]
+          }
+        ],
+        "summary": "The preview image",
+        "tags": [
+          "photos"
+        ]
+      }
+    },
     "/api/photos/{id}/file": {
       "get": {
         "description": "The bytes, by the picture’s own id, because it is not reached through any card.",

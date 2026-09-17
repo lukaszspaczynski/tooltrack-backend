@@ -129,6 +129,11 @@ const HANDLERS: Partial<Record<(typeof ROUTES)[number], RouteHandler>> = {
   'POST /api/photos': media.uploadPOST,
   'GET /api/photos/:id/file': media.fileGET,
   'POST /api/photos/delete': media.deletePOST,
+  'POST /api/photos/:id/cutout/preview': media.cutoutPreviewPOST,
+  // The bytes of a preview are addressed by checksum and nothing else, so the
+  // card's handler serves these too: it reads no owner and no photo id.
+  'GET /api/photos/:id/cutout/preview/:checksum': photos.cutoutPreviewGET,
+  'POST /api/photos/:id/cutout/commit': media.cutoutCommitPOST,
   'GET /api/users': users.GET,
   'PATCH /api/users/:id': users.detailPATCH,
   'DELETE /api/users/:id': users.detailDELETE,

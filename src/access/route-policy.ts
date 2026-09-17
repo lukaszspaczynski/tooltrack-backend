@@ -416,6 +416,22 @@ const RULES: readonly Rule[] = [
     pattern: /^\/api\/photos\/delete$/,
   },
   {
+    // Cutting the background out of a picture that is on no card — a logo, or
+    // anything still on the unassigned shelf. Classified exactly like the same
+    // pair under a card: a write, because it spends a call to a service and
+    // ends in a new picture.
+    domain: 'items',
+    methods: { POST: WRITE_CATALOG },
+    pattern: /^\/api\/photos\/\d+\/cutout\/(?:preview|commit)$/,
+  },
+  {
+    // The bytes of a preview. A write, like the card's, because a preview is
+    // only ever looked at by whoever just produced it.
+    domain: 'items',
+    methods: { GET: WRITE_CATALOG },
+    pattern: /^\/api\/photos\/\d+\/cutout\/preview\/[0-9a-f]{64}$/,
+  },
+  {
     domain: 'users',
     methods: { GET: MANAGE_USERS },
     pattern: /^\/api\/users$/,

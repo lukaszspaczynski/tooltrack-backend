@@ -426,6 +426,56 @@ const LIBRARY_OPERATIONS: OperationSpec[] = [
   },
   {
     description:
+      'The same cutout screen for a picture that is on no card — a brand’s logo, or anything still on the unassigned shelf. The pair under a card cannot answer for those, and a logo is the picture most worth cutting a background out of.\n\nThe body, the answer and the refusals are the card version’s.',
+    operationId: 'previewLibraryCutout',
+    pathParams: { id: 'The photograph.' },
+    requestBody: jsonBody(
+      ref('CutoutRunBody'),
+      'Optional. Omit it entirely to use the configured settings.',
+    ),
+    responses: {
+      200: jsonResponse('The cutout, cached rather than stored.', ref('CutoutPreviewResponse')),
+      422: jsonResponse('The picture is not one this method can cut out.', ref('Error')),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'POST /api/photos/:id/cutout/preview',
+    summary: 'Try a cutout on a picture with no card',
+    tag: 'photos',
+  },
+  {
+    description:
+      'Addressed by checksum, like the card’s: nothing here can serve a file that was not produced by a cutout somebody just ran.',
+    operationId: 'getLibraryCutoutPreview',
+    pathParams: {
+      checksum: 'The `preview.checksum` the preview call answered with.',
+      id: 'The photograph the preview was made from.',
+    },
+    responses: {
+      200: binaryResponse('The preview image.', 'image/png'),
+      404: jsonResponse('No such preview, or it has expired.', ref('Error')),
+      ...errors(401, 403),
+    },
+    route: 'GET /api/photos/:id/cutout/preview/:checksum',
+    summary: 'The preview image',
+    tag: 'photos',
+  },
+  {
+    description:
+      'Keeps a preview as a picture of nothing in particular. No 409 about a card, because there is no card: the same bytes twice is the same row, the way a second upload of one file is.',
+    operationId: 'commitLibraryCutout',
+    pathParams: { id: 'The photograph the preview was made from.' },
+    requestBody: jsonBody(ref('CutoutCommitBody')),
+    responses: {
+      201: jsonResponse('Kept.', object({ photo: ref('Photo') })),
+      409: jsonResponse('The preview has expired or is damaged.', ref('Error')),
+      ...errors(400, 401, 403, 404, 503),
+    },
+    route: 'POST /api/photos/:id/cutout/commit',
+    summary: 'Keep a previewed cutout with no card',
+    tag: 'photos',
+  },
+  {
+    description:
       'The library’s bin: deletes outright, from every card at once. A cap of two hundred keeps one mis-click from taking the whole library and keeps the transaction short.\n\n`deleted` can be lower than `requested` — somebody else may have removed a photograph between the screen loading and the button being pressed, and the client shows what actually happened rather than what was asked for. `promoted` names the cards that now show a different main picture.',
     operationId: 'deleteLibraryPhotos',
     requestBody: jsonBody(ref('PhotoDeleteBody')),

@@ -541,6 +541,16 @@ made when the pure-JavaScript decoder turned out not to read WebP, which is
 most of what an image search returns. The sibling project this repo's
 conventions come from uses sharp for the same reason.
 
+The cutout routes come in two families: one under a card
+(`/api/items/:id/photos/:photoId/cutout/…`) and one under the picture itself
+(`/api/photos/:id/cutout/…`). The second exists because the first cannot answer
+for a picture that is on no card — a **brand's logo**, which never will be, and
+anything still on the unassigned shelf — and a logo is the picture most worth
+cutting a background out of. `runCutoutPreview` and `keepCutout` in
+`routes/photos.ts` are the whole of the work; the two families differ in where
+the preview is readable from and whether what is kept is linked to a card, so
+those arrive as functions rather than as a second copy of the logic.
+
 `cutout-local.ts` is the default method: a pure function over RGBA bytes
 (background flood from the border, closing, largest component, crop) with
 `image-convert.ts` on either side of it. It refuses unsuitable photos with

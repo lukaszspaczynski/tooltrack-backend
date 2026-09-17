@@ -1,7 +1,11 @@
 // The photo library: every picture on our disk, whatever it is a picture of.
 //
-//   GET  /api/photos          catalog.read
-//   POST /api/photos/delete   catalog.write
+//   GET  /api/photos                          catalog.read
+//   POST /api/photos                          catalog.write
+//   POST /api/photos/delete                   catalog.write
+//   POST /api/photos/:id/cutout/preview       catalog.write
+//   GET  /api/photos/:id/cutout/preview/:sum  catalog.write
+//   POST /api/photos/:id/cutout/commit        catalog.write
 //
 // A separate surface from the per-card photo routes on purpose. Those answer
 // "what does this item or this case look like"; this one answers "what did we
@@ -19,6 +23,8 @@ import { fetchRemoteImage, ImageFetchError, maxPhotoBytes } from '../image-fetch
 import { readPhotoBytes, savePhotoBytes } from '../photo-storage'
 import type { RouteContext } from '../route-context'
 import { parseDeleteIds, parseMediaQuery } from './media-input'
+import { keepCutout, runCutoutPreview } from './photos'
+import { parseCutoutCommitInput, parseCutoutRunInput } from './settings-input'
 import { t } from '../i18n'
 import {
   deletePhotosByIds,
@@ -27,6 +33,7 @@ import {
   insertPhoto,
   listAllPhotos,
   PhotoAlreadyExistsError,
+  type StoredPhotoRow,
 } from './photos-store'
 
 export async function GET(request: Request): Promise<Response> {
@@ -157,6 +164,60 @@ export async function fileGET(_request: Request, context: RouteContext): Promise
 
 function notFound(): Response {
   return errorResponse(404, 'PHOTO_NOT_FOUND', t('Nie ma takiego zdjęcia'))
+}
+
+// POST /api/photos/:id/cutout/preview — the same screen, from the library.
+//
+// Cutting the background out is a thing you do to a picture, and until now it
+// was a thing you could only do to a picture that was on a card: the routes
+// were the card's, so the wand in the library opened nothing for a photo
+// nobody had placed — a logo, or anything still on the unassigned shelf. A
+// brand's logo is exactly the picture most worth cutting a background out of,
+// and it will never be on a card.
+//
+// The work is `photos.ts`'s: one method, one preview cache, one set of
+// refusals. What differs is the path the preview is readable from and the fact
+// that what is kept lands on the shelf rather than on a card.
+export async function cutoutPreviewPOST(
+  request: Request,
+  _context: RouteContext,
+): Promise<Response> {
+  const photo = await photoFromPath(_context)
+  if (!photo) return notFound()
+
+  const parsed = parseCutoutRunInput(await readJson(request))
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
+
+  return runCutoutPreview(
+    photo,
+    (checksum) => `/api/photos/${photo.id}/cutout/preview/${checksum}`,
+    parsed.value,
+  )
+}
+
+// POST /api/photos/:id/cutout/commit — keep it, as a picture of nothing in
+// particular.
+//
+// `insertPhoto` rather than a link, and that is also why there is no 409 here:
+// the same bytes twice is the same row, the way a second upload of one file
+// is, rather than a conflict with a card nobody mentioned.
+export async function cutoutCommitPOST(request: Request, context: RouteContext): Promise<Response> {
+  const actorId = context.user?.id
+  if (!actorId) return errorResponse(401, 'UNAUTHENTICATED', 'Unauthorized')
+
+  const photo = await photoFromPath(context)
+  if (!photo) return notFound()
+
+  const parsed = parseCutoutCommitInput(await readJson(request))
+  if (!parsed.ok) return errorResponse(400, 'INVALID_BODY', parsed.error)
+
+  return keepCutout(photo, parsed.value.checksum, (input) => insertPhoto(input, actorId))
+}
+
+async function photoFromPath(context: RouteContext): Promise<null | StoredPhotoRow> {
+  const id = Number(context.params.id)
+
+  return Number.isSafeInteger(id) && id > 0 ? getPhotoById(id) : null
 }
 
 export async function deletePOST(request: Request, _context: RouteContext): Promise<Response> {
