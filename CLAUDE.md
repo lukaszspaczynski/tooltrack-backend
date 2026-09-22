@@ -68,7 +68,7 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Ten scripts so far, and they have almost nothing in common beyond the
+Eleven scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
 another publishes both halves in different places, a fourth names the kind of
 item where the others name the machine, the fifth publishes no structured data
@@ -303,6 +303,31 @@ names carry a "?" with a paragraph of advice behind it, cut before the tags are.
   was pasted: a link copied off the spec tab ends in `#tab=spec`.
 - No manuals: the site links to shops, not to documents.
 
+`bosch-home.ts` is the eleventh, and the first maker's site for the RTV/AGD
+half: bosch-home.pl, where the fridges and the dishwashers are. A Next.js page
+like bosch-diy.com, but this one publishes a **schema.org Product with the
+whole spec sheet inside it** — every row an `additionalProperty` with a name, a
+value and a unit — so nothing is scraped out of markup. The maker is "Bosch",
+neither the green line nor the blue one.
+
+- The property list is **two lists in one**: the spec sheet, and the feature
+  tiles written as a property whose name is a headline with a colon in it and
+  whose value is a paragraph of marketing. A headline is not a parameter, so
+  those become the notes, and the colon is what tells them apart.
+- A **unit is a separate field** on the page and part of the value on the card,
+  and a name that already said it — "Masa brutto (kg)" — loses that.
+- The **documents are the one thing not in the Product**: they sit in the
+  framework's payload as `technicalDocuments`, JSON inside a string with its
+  quotes escaped, cut out by matching brackets. The energy label, the EU data
+  sheet and the legal notices are left there — paperwork rather than documents
+  about the machine.
+- The **line drawings** the Product lists after the photographs are
+  installation diagrams drawn for a family, filed under another model's number,
+  and stay off the card.
+- A machine the maker no longer sells is filed under **no category** — its
+  breadcrumb is "Produkty > KAD90VB20" — and then the short description without
+  its series says what it is.
+
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
 otherwise show it as its source for ever after.
@@ -311,7 +336,9 @@ The page's own limits are not the card's, so `fitToCard` cuts every field to
 what the column takes rather than failing an import somebody is watching. It
 also throws out a measurement that reads outside what a box can be: those were
 CHECK constraints while they were columns, and free text has no CHECK, so a
-page stating 495000 mm is a page with a decimal point in the wrong place. The
+page stating 495000 mm is a page with a decimal point in the wrong place. A
+value that is not one number — "1770x910x720 mm" — is not a measurement it can
+judge and stays as written. The
 serial number is deliberately left blank: it identifies one physical machine,
 and the page describes a model.
 
@@ -470,7 +497,7 @@ box that has slots into something else. An organizer's `case_id` does the same
 through `case_kind`. The slots are on every `ItemDetail`, empty for everything
 that is not a case, which is what one card type costs and all it costs.
 
-The **importer that reads a box's page** is one of the ten in
+The **importer that reads a box's page** is one of the eleven in
 `importers/index.ts` rather than a registry of its own. An importer reports the
 `kind` its pages describe, so `POST /api/items/import` writes a card of
 whatever sort the address turned out to be about — which sort of card a page

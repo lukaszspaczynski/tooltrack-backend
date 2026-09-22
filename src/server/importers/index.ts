@@ -16,6 +16,7 @@ import {
   MAX_NOTES_LENGTH,
 } from '../routes/items-input'
 import { boschDiy } from './bosch-diy'
+import { boschHome } from './bosch-home'
 import { boschProfessional } from './bosch-professional'
 import { ceneo } from './ceneo'
 import { gardena } from './gardena'
@@ -47,6 +48,7 @@ const IMPORTERS: readonly Importer[] = [
   gardena,
   qbrick,
   ceneo,
+  boschHome,
 ]
 
 // What the import dialog lists, so the screen never offers a source this
@@ -158,7 +160,11 @@ function plausible(attribute: { name: string; value: string }): boolean {
     if (!attribute.value.endsWith(suffix)) continue
 
     const measured = Number(attribute.value.slice(0, -suffix.length).replace(',', '.'))
-    return Number.isFinite(measured) && measured > 0 && measured <= most
+    // "1770x910x720 mm" is three measurements written as one and not a
+    // decimal point out of place; only a value that reads as one number can
+    // be judged, and one that does not is left as the page wrote it.
+    if (!Number.isFinite(measured)) return true
+    return measured > 0 && measured <= most
   }
 
   return true
