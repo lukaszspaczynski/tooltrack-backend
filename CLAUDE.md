@@ -68,7 +68,7 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Nine scripts so far, and they have almost nothing in common beyond the
+Ten scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
 another publishes both halves in different places, a fourth names the kind of
 item where the others name the machine, the fifth publishes no structured data
@@ -143,6 +143,7 @@ by anybody editing a row. The move is in `catalog-schema.ts`, guarded by the
 rows themselves — once they are gone there is nothing left to move.
 
 The importers still only report it, as `sourceUrl`, and the routes write it.
+
 `withoutTracking` cuts the analytics tail before it is stored, and unlike every
 other field it is not clamped: half an address is not an address.
 
@@ -279,6 +280,28 @@ the same model and neither the filter nor a printed label could tell two of
 them apart. The range is still read (`lineOf`), because it is the one token in
 a shouted heading that is capitals on purpose and has to survive the
 title-casing.
+
+`ceneo.ts` is the tenth, and the first source that is neither a shop nor a
+maker: the price comparison site, which is where the RTV/AGD half of the
+catalog is read from — an appliance's maker publishes a marketing page and the
+shops publish a price, and it is Ceneo that publishes the spec table. A
+schema.org Product carries the name, the maker and the gallery, and the
+specification is a table of groups under `#productTechSpecs` where half the
+names carry a "?" with a paragraph of advice behind it, cut before the tags are.
+
+- Ceneo lists tools, boxes and appliances alike, so unlike every other source
+  **the kind is not a fact about the site**. It is read off the
+  `product:category` path in the head: tools, the workshop and the garden are a
+  tool, boxes are a case, and the rest — the washing machine, the television —
+  is an appliance. The head's path is preferred to the breadcrumb because the
+  breadcrumb goes one step further, to a filter such as "Automatyczne".
+- The site states a **model** in the spec table, and it is the model when it
+  has a number in it — "DCD796P1". When it does not — "LatteGO" — it is the
+  line, and the model is the run of letters and digits in the name that is
+  neither a wattage nor a voltage: "EP2231/40".
+- The **source address kept is the product's own**, `og:url`, rather than what
+  was pasted: a link copied off the spec tab ends in `#tab=spec`.
+- No manuals: the site links to shops, not to documents.
 
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
@@ -447,7 +470,7 @@ box that has slots into something else. An organizer's `case_id` does the same
 through `case_kind`. The slots are on every `ItemDetail`, empty for everything
 that is not a case, which is what one card type costs and all it costs.
 
-The **importer that reads a box's page** is one of the nine in
+The **importer that reads a box's page** is one of the ten in
 `importers/index.ts` rather than a registry of its own. An importer reports the
 `kind` its pages describe, so `POST /api/items/import` writes a card of
 whatever sort the address turned out to be about — which sort of card a page

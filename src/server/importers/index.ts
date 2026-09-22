@@ -17,6 +17,7 @@ import {
 } from '../routes/items-input'
 import { boschDiy } from './bosch-diy'
 import { boschProfessional } from './bosch-professional'
+import { ceneo } from './ceneo'
 import { gardena } from './gardena'
 import { lidl } from './lidl'
 import { mistama } from './mistama'
@@ -45,6 +46,7 @@ const IMPORTERS: readonly Importer[] = [
   nac,
   gardena,
   qbrick,
+  ceneo,
 ]
 
 // What the import dialog lists, so the screen never offers a source this

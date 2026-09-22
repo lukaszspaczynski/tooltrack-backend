@@ -320,12 +320,14 @@ is in exactly one of the two lists, so a gap is visible rather than silent.
     { "host": "lidl.pl", "label": "lidl.pl", "manuals": true },
     { "host": "nac.com.pl", "label": "nac.com.pl", "manuals": true },
     { "host": "gardena.com", "label": "gardena.com", "manuals": false },
-    { "host": "qbricksystem.com", "label": "qbricksystem.com", "manuals": false }
+    { "host": "qbricksystem.com", "label": "qbricksystem.com", "manuals": false },
+    { "host": "ceneo.pl", "label": "ceneo.pl", "manuals": false }
   ]
 }
 ```
 
-The pages this server can read — two shops and seven makers' own sites. One
+The pages this server can read — two shops, seven makers' own sites and one
+price comparison site. One
 list, including the one that sells boxes: it used to be two registries under
 two routes, because a case was a table of its own and the scripts answered
 different shapes. They answer the same shape now, and **which sort of card a
@@ -372,8 +374,12 @@ rather than failing the card.
 The **kind** comes from the importer, because the page is where the answer is:
 qbricksystem.com sells boxes and nothing else, so a card imported from it
 arrives as `kind: "case"` and a card imported from a tool shop as
-`kind: "tool"`. An appliance is a card somebody changes the kind of afterwards,
-which is one field rather than a guess made from a category.
+`kind: "tool"`. ceneo.pl lists all three, so its importer reads the kind off the
+path the site files the page under: tools, the workshop and the garden are
+`tool`, boxes are `case`, and everything else it lists — the washing machine,
+the coffee machine, the television — is `appliance`. That is where an
+appliance card comes from now; before it, one was a tool card somebody changed
+the kind of afterwards.
 
 The card is created with `condition: "new"` and **no serial number** — that
 identifies one physical machine, and the page describes a model. Parameters and
@@ -634,7 +640,7 @@ Two things are still only a box's, and both hang off the item routes:
 
 - **label slots**, below — `POST /api/items/:id/label-slots`, refused with
   `409 ITEM_IS_NOT_A_CASE` on a drill;
-- the **importer** that reads qbricksystem.com, which is now one of the nine
+- the **importer** that reads qbricksystem.com, which is now one of the ten
   sources `POST /api/items/import` accepts.
 
 Everything a spec sheet states about a box is a **parameter**, not a column. A
