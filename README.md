@@ -6,12 +6,19 @@ browse and search it from a phone, on site, and know what you own and what
 state it is in.
 
 Node 22 + TypeScript, a plain `node:http` server, raw Postgres. No framework,
-no ORM, no migration item. The web client lives in the sibling `Frontend/`
-directory.
+no ORM, no migration framework. The web client is
+[tooltrack-frontend](https://github.com/lukaszspaczynski/tooltrack-frontend),
+checked out as the sibling `Frontend/` directory; its README has screenshots.
 
 - [HTTP contract](docs/api.md) — every endpoint, written for the client.
 - [Data model](docs/data-model.md) — the two schemas and why they look like that.
 - [CLAUDE.md](CLAUDE.md) — conventions, and how to add a route.
+
+Besides JSON, the server draws the labels stuck on the boxes: PDFs built with
+pdf-lib, one per sticker or ganged onto an A4 sheet for printing. The text on
+them stays Polish — they are read in one workshop.
+
+<img src="docs/screenshots/label-sheet.jpg" alt="An A4 sheet of generated box labels: contents labels with tool photos and models, and number labels in each maker's colours" width="480">
 
 ## Roles
 
