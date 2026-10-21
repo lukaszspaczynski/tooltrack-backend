@@ -98,7 +98,7 @@ one, the answer is a maximum edge length on the way in rather than a second
 stored format. Photos that predate this run through
 `npm run photos:png -- --apply`.
 
-Three search engines, configured on the **Ustawienia** screen rather than in a
+Three search engines, configured on the **Settings** screen rather than in a
 deploy: **Google Custom Search** and **Brave Search** need a key, **Openverse**
 needs none and is therefore what works on a fresh install — at the cost of
 indexing only openly licensed photography, which finds "angle grinder" but not
@@ -156,7 +156,7 @@ paint.
 For photographs taken on site there are two paid providers: **remove.bg**,
 built for exactly this and returning a transparent PNG, and **Gemini**, a
 general model that returns the item on a plain white background instead. Which
-methods may be used, and their keys, are set on the **Ustawienia** screen, like
+methods may be used, and their keys, are set on the **Settings** screen, like
 the search engines — `REMOVE_BG_API_KEY`, `GEMINI_API_KEY` and
 `TOOLTRACK_CUTOUT_THRESHOLD` remain as the bootstrap for the keys and the
 threshold, and anything saved through the screen wins. There is no default
