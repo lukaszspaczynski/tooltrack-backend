@@ -21,7 +21,12 @@ const FETCH_TIMEOUT_MS = 10_000
 // Sent on every outbound request. Some hosts — Wikimedia among them — answer
 // 400 to a client that does not identify itself, and an operator reading their
 // own access log deserves to see who is asking.
-const USER_AGENT = 'ToolTrack/0.1 (item catalog; +https://github.com/)'
+// One name for every request this server makes, and deliberately without an
+// address in it: electrolux.pl's edge closes the stream on any user agent
+// that carries a URL or a bare domain — "(+https://github.com/)" included —
+// while "(item catalog)" is answered. A page fetched under one name and its
+// pictures refused under another is a card with no photographs and no error.
+export const USER_AGENT = 'ToolTrack/0.1 (item catalog)'
 
 export class ImageFetchError extends Error {
   readonly code: ErrorCode

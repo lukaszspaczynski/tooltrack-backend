@@ -68,7 +68,7 @@ product or nothing; the fetching, the writing and the photographs live in
 instead of over the network — a shop redesigns its markup, and the test says
 which part stopped matching.
 
-Eleven scripts so far, and they have almost nothing in common beyond the
+Thirteen scripts so far, and they have almost nothing in common beyond the
 contract: a shop publishes schema.org, one manufacturer publishes its own CMS,
 another publishes both halves in different places, a fourth names the kind of
 item where the others name the machine, the fifth publishes no structured data
@@ -328,6 +328,50 @@ neither the green line nor the blue one.
   breadcrumb is "Produkty > KAD90VB20" — and then the short description without
   its series says what it is.
 
+`electrolux.ts` is the twelfth, and the second maker's site for the RTV/AGD
+half. A Next.js page whose payload is **plain JSON in `__NEXT_DATA__`** rather
+than a string with its quotes escaped, so it is parsed once and walked, and
+the components in it — `FullSpecification`, `DocumentsContent`, the benefit
+tiles — are **found by name**: where a section sits in the tree is layout, what
+it is called is the contract. The schema.org Product beside it carries the
+identity: name, maker, category, model (`sku`), PNC (`mpn`) and EAN.
+
+- The spec sheet's first group, "Funkcje", is **written differently from the
+  rest**: the whole row is in the label, "Maksymalny wsad: 8 kg", and some
+  rows have no colon because they are things the machine does rather than
+  parameters. Those are features and go to the notes.
+- A **unit in brackets** on the label, "[kg]", moves to the value — unless it
+  has a colon in it, "[godz.:min.]", which is a format and stays.
+- The documents are on the payload with lower-case names and one address
+  written `Https://`, which a browser forgives and a URL parser does not. The
+  energy label and the EU information sheet stay on the page.
+- The site's edge **closes the stream on a user agent with an address in it**,
+  which is why `USER_AGENT` in `image-fetch.ts` says "(item catalog)" and
+  nothing more, and why the page fetcher and the search engines send the same
+  one: a page fetched under one name and its pictures refused under another
+  was a card with no photographs and no error.
+
+`x-kom.ts` is the thirteenth, and the third shop: the electronics shop, which
+the catalog files with the appliances — a television is the example the kind
+was named for. A schema.org Product and a BreadcrumbList carry the identity
+and the category; everything else is in the page's **state, assigned to a
+window property** — `window.__INITIAL_STATE__['app'] = {…}` — plain JSON after
+an assignment, cut out by matching braces and read under the product's own
+number, which is the first thing in the address.
+
+- The shop keeps the **model apart from the maker**: `name` is "UE50NU7402"
+  where `fullName` is "Samsung UE50NU7402", and the maker's own code
+  ("UE50NU7402UXXH") is a parameter the sheet does not carry.
+- Every picture comes with a **size template**, and the size the page shows is
+  not the largest there is: `product-original` is 900 px where the Product's
+  own addresses are 617.
+- The description opens with a box inviting a phone call, marked for the
+  shop's own layout as `Xkom_Only`, and is cut on that mark.
+- The page carries Cloudflare's passive challenge script and was served whole
+  to the server's user agent; a search page answered 503 once. If the shop
+  starts challenging, the import will fail with `PAGE_UNREACHABLE` rather than
+  with an empty card.
+
 `withoutTracking` cuts the analytics tail off an address before it is written
 down — `?_gl=…&utm_source=…` says nothing about the product, and the card would
 otherwise show it as its source for ever after.
@@ -497,7 +541,7 @@ box that has slots into something else. An organizer's `case_id` does the same
 through `case_kind`. The slots are on every `ItemDetail`, empty for everything
 that is not a case, which is what one card type costs and all it costs.
 
-The **importer that reads a box's page** is one of the eleven in
+The **importer that reads a box's page** is one of the thirteen in
 `importers/index.ts` rather than a registry of its own. An importer reports the
 `kind` its pages describe, so `POST /api/items/import` writes a card of
 whatever sort the address turned out to be about — which sort of card a page

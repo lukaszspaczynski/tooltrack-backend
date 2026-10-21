@@ -19,6 +19,7 @@ import { boschDiy } from './bosch-diy'
 import { boschHome } from './bosch-home'
 import { boschProfessional } from './bosch-professional'
 import { ceneo } from './ceneo'
+import { electrolux } from './electrolux'
 import { gardena } from './gardena'
 import { lidl } from './lidl'
 import { mistama } from './mistama'
@@ -26,6 +27,7 @@ import { nac } from './nac'
 import { qbrick } from './qbrick'
 import { skil } from './skil'
 import { stanley } from './stanley'
+import { xkom } from './x-kom'
 import type { ImportedProduct, Importer } from './types'
 
 export type { ImportedAttribute, ImportedProduct, Importer } from './types'
@@ -49,6 +51,8 @@ const IMPORTERS: readonly Importer[] = [
   qbrick,
   ceneo,
   boschHome,
+  electrolux,
+  xkom,
 ]
 
 // What the import dialog lists, so the screen never offers a source this

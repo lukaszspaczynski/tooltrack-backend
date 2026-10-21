@@ -15,6 +15,7 @@
 // Nothing is downloaded here. A suggestion is a link; the bytes are only
 // fetched when someone picks one and the server stores it.
 
+import { USER_AGENT } from './image-fetch'
 import { t } from './i18n'
 import type { ErrorCode } from './error-codes'
 
@@ -56,8 +57,6 @@ export type PhotoSearchResult = {
 }
 
 const SEARCH_TIMEOUT_MS = 8000
-
-const USER_AGENT = 'ToolTrack/0.1 (item catalog; +https://github.com/)'
 
 export class PhotoSearchUnavailableError extends Error {
   readonly code: ErrorCode

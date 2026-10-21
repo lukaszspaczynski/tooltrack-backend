@@ -8,6 +8,8 @@
 
 // A product page is text; a site that answers with a hundred megabytes of
 // something else is a site that is not answering.
+import { USER_AGENT } from '../image-fetch'
+
 const MAX_PAGE_BYTES = 4_000_000
 const PAGE_TIMEOUT_MS = 20_000
 
@@ -19,8 +21,9 @@ export async function fetchPage(url: string): Promise<string> {
     headers: {
       accept: 'text/html,application/xhtml+xml',
       // Shops answer a bare fetch with a challenge page; saying who this is
-      // gets the product card, which is what was asked for.
-      'user-agent': 'ToolTrack/0.1 (+catalog importer)',
+      // gets the product card, which is what was asked for. The same name
+      // the pictures and the manuals are fetched under, on purpose.
+      'user-agent': USER_AGENT,
     },
     redirect: 'follow',
     signal: AbortSignal.timeout(PAGE_TIMEOUT_MS),
