@@ -28,3 +28,6 @@ npm-debug.log*
 
 # Local credentials for docs/api.http — never in the repository.
 docs/api.local.http
+
+# Serena's per-machine project config and cache
+/.serena/
